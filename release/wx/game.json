@@ -1,0 +1,1 @@
+{"deviceOrientation":"portrait","showStatusBar":false,"networkTimeout":{"request":10000,"connectSocket":10000,"uploadFile":10000,"downloadFile":10000},"subpackages":[{"name":"res_audio","root":"res/audio/"},{"name":"res_export","root":"res/export/"},{"name":"res_fgui","root":"res/fgui/"},{"name":"res_ltgame","root":"res/ltgame/"}]}
