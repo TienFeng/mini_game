@@ -86,6 +86,9144 @@
 /************************************************************************/
 /******/ ({
 
+/***/ "./src/LTGame/3rd/oimo/collision/broadphase/BroadPhase.ts":
+/*!****************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/broadphase/BroadPhase.ts ***!
+  \****************************************************************/
+/*! exports provided: BroadPhase */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BroadPhase", function() { return BroadPhase; });
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../constants */ "./src/LTGame/3rd/oimo/constants.ts");
+/* harmony import */ var _Pair__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./Pair */ "./src/LTGame/3rd/oimo/collision/broadphase/Pair.ts");
+
+
+class BroadPhase {
+    constructor() {
+        this.types = _constants__WEBPACK_IMPORTED_MODULE_0__["BR_NULL"];
+        this.numPairChecks = 0;
+        this.numPairs = 0;
+        this.pairs = [];
+    }
+    // Create a new proxy.
+    createProxy(shape) {
+        console.error("BroadPhase", "Inheritance error.");
+    }
+    // Add the proxy into the broad-phase.
+    addProxy(proxy) {
+        console.error("BroadPhase", "Inheritance error.");
+    }
+    // Remove the proxy from the broad-phase.
+    removeProxy(proxy) {
+        console.error("BroadPhase", "Inheritance error.");
+    }
+    // Returns whether the pair is available or not.
+    isAvailablePair(s1, s2) {
+        var b1 = s1.parent;
+        var b2 = s2.parent;
+        if (b1 == b2 || // same parents
+            (!b1.isDynamic && !b2.isDynamic) || // static or kinematic object
+            (s1.belongsTo & s2.collidesWith) == 0 ||
+            (s2.belongsTo & s1.collidesWith) == 0 // collision filtering
+        ) {
+            return false;
+        }
+        var js;
+        if (b1.numJoints < b2.numJoints)
+            js = b1.jointLink;
+        else
+            js = b2.jointLink;
+        while (js !== null) {
+            var joint = js.joint;
+            if (!joint.allowCollision && ((joint.body1 == b1 && joint.body2 == b2) || (joint.body1 == b2 && joint.body2 == b1))) {
+                return false;
+            }
+            js = js.next;
+        }
+        return true;
+    }
+    // Detect overlapping pairs.
+    detectPairs() {
+        // clear old
+        this.pairs = [];
+        this.numPairs = 0;
+        this.numPairChecks = 0;
+        this.collectPairs();
+    }
+    collectPairs() {
+        console.error("BroadPhase", "请在子类处理该方法");
+    }
+    addPair(s1, s2) {
+        let pair = new _Pair__WEBPACK_IMPORTED_MODULE_1__["Pair"](s1, s2);
+        this.pairs.push(pair);
+        this.numPairs++;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/broadphase/BruteForceBroadPhase.ts":
+/*!**************************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/broadphase/BruteForceBroadPhase.ts ***!
+  \**************************************************************************/
+/*! exports provided: BruteForceBroadPhase */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BruteForceBroadPhase", function() { return BruteForceBroadPhase; });
+/* harmony import */ var _BroadPhase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./BroadPhase */ "./src/LTGame/3rd/oimo/collision/broadphase/BroadPhase.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/LTGame/3rd/oimo/constants.ts");
+/* harmony import */ var _Proxy__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./Proxy */ "./src/LTGame/3rd/oimo/collision/broadphase/Proxy.ts");
+
+
+
+class BruteForceBroadPhase extends _BroadPhase__WEBPACK_IMPORTED_MODULE_0__["BroadPhase"] {
+    constructor() {
+        super();
+        this.types = _constants__WEBPACK_IMPORTED_MODULE_1__["BR_BRUTE_FORCE"];
+        //this.numProxies=0;
+        ///this.maxProxies = 256;
+        this.proxies = [];
+        //this.proxies.length = 256;
+    }
+    createProxy(shape) {
+        return new _Proxy__WEBPACK_IMPORTED_MODULE_2__["Proxy"](shape);
+    }
+    addProxy(proxy) {
+        /*if(this.numProxies==this.maxProxies){
+            //this.maxProxies<<=1;
+            this.maxProxies*=2;
+            var newProxies=[];
+            newProxies.length = this.maxProxies;
+            var i = this.numProxies;
+            while(i--){
+            //for(var i=0, l=this.numProxies;i<l;i++){
+                newProxies[i]=this.proxies[i];
+            }
+            this.proxies=newProxies;
+        }*/
+        //this.proxies[this.numProxies++] = proxy;
+        this.proxies.push(proxy);
+        //this.numProxies++;
+    }
+    removeProxy(proxy) {
+        var n = this.proxies.indexOf(proxy);
+        if (n > -1) {
+            this.proxies.splice(n, 1);
+            //this.numProxies--;
+        }
+        /*var i = this.numProxies;
+        while(i--){
+        //for(var i=0, l=this.numProxies;i<l;i++){
+            if(this.proxies[i] == proxy){
+                this.proxies[i] = this.proxies[--this.numProxies];
+                this.proxies[this.numProxies] = null;
+                return;
+            }
+        }*/
+    }
+    collectPairs() {
+        var i = 0, j, p1, p2;
+        var px = this.proxies;
+        var l = px.length; //this.numProxies;
+        //var ar1 = [];
+        //var ar2 = [];
+        //for( i = px.length ; i-- ; ar1[ i ] = px[ i ] ){};
+        //for( i = px.length ; i-- ; ar2[ i ] = px[ i ] ){};
+        //var ar1 = JSON.parse(JSON.stringify(this.proxies))
+        //var ar2 = JSON.parse(JSON.stringify(this.proxies))
+        this.numPairChecks = l * (l - 1) >> 1;
+        //this.numPairChecks=this.numProxies*(this.numProxies-1)*0.5;
+        while (i < l) {
+            p1 = px[i++];
+            j = i + 1;
+            while (j < l) {
+                p2 = px[j++];
+                if (p1.aabb.intersectTest(p2.aabb) || !this.isAvailablePair(p1.shape, p2.shape))
+                    continue;
+                this.addPair(p1.shape, p2.shape);
+            }
+        }
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/broadphase/Pair.ts":
+/*!**********************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/broadphase/Pair.ts ***!
+  \**********************************************************/
+/*! exports provided: Pair */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Pair", function() { return Pair; });
+class Pair {
+    constructor(s1, s2) {
+        // The first shape.
+        this.shape1 = s1 || null;
+        // The second shape.
+        this.shape2 = s2 || null;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/broadphase/Proxy.ts":
+/*!***********************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/broadphase/Proxy.ts ***!
+  \***********************************************************/
+/*! exports provided: Proxy */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Proxy", function() { return Proxy; });
+var count = 0;
+function ProxyIdCount() { return count++; }
+class Proxy {
+    constructor(shape) {
+        //The parent shape.
+        this.shape = shape;
+        //The axis-aligned bounding box.
+        this.aabb = shape.aabb;
+        this.id = ProxyIdCount();
+    }
+    update() {
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/broadphase/dbvt/DBVT.ts":
+/*!***************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/broadphase/dbvt/DBVT.ts ***!
+  \***************************************************************/
+/*! exports provided: DBVT */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DBVT", function() { return DBVT; });
+/* harmony import */ var _math_AABB__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../math/AABB */ "./src/LTGame/3rd/oimo/math/AABB.ts");
+/* harmony import */ var _DBVTNode__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./DBVTNode */ "./src/LTGame/3rd/oimo/collision/broadphase/dbvt/DBVTNode.ts");
+
+
+class DBVT {
+    constructor() {
+        // The root of the tree.
+        this.root = null;
+        this.freeNodes = [];
+        this.freeNodes.length = 16384;
+        this.numFreeNodes = 0;
+        this.aabb = new _math_AABB__WEBPACK_IMPORTED_MODULE_0__["AABB"]();
+    }
+    moveLeaf(leaf) {
+        this.deleteLeaf(leaf);
+        this.insertLeaf(leaf);
+    }
+    insertLeaf(leaf) {
+        if (this.root == null) {
+            this.root = leaf;
+            return;
+        }
+        var lb = leaf.aabb;
+        var sibling = this.root;
+        var oldArea;
+        var newArea;
+        while (sibling.proxy == null) { // descend the node to search the best pair
+            var c1 = sibling.child1;
+            var c2 = sibling.child2;
+            var b = sibling.aabb;
+            var c1b = c1.aabb;
+            var c2b = c2.aabb;
+            oldArea = b.surfaceArea();
+            this.aabb.combine(lb, b);
+            newArea = this.aabb.surfaceArea();
+            var creatingCost = newArea * 2;
+            var incrementalCost = (newArea - oldArea) * 2; // cost of creating a new pair with the node
+            var discendingCost1 = incrementalCost;
+            this.aabb.combine(lb, c1b);
+            if (c1.proxy != null) {
+                // leaf cost = area(combined aabb)
+                discendingCost1 += this.aabb.surfaceArea();
+            }
+            else {
+                // node cost = area(combined aabb) - area(old aabb)
+                discendingCost1 += this.aabb.surfaceArea() - c1b.surfaceArea();
+            }
+            var discendingCost2 = incrementalCost;
+            this.aabb.combine(lb, c2b);
+            if (c2.proxy != null) {
+                // leaf cost = area(combined aabb)
+                discendingCost2 += this.aabb.surfaceArea();
+            }
+            else {
+                // node cost = area(combined aabb) - area(old aabb)
+                discendingCost2 += this.aabb.surfaceArea() - c2b.surfaceArea();
+            }
+            if (discendingCost1 < discendingCost2) {
+                if (creatingCost < discendingCost1) {
+                    break; // stop descending
+                }
+                else {
+                    sibling = c1; // descend into first child
+                }
+            }
+            else {
+                if (creatingCost < discendingCost2) {
+                    break; // stop descending
+                }
+                else {
+                    sibling = c2; // descend into second child
+                }
+            }
+        }
+        var oldParent = sibling.parent;
+        var newParent;
+        if (this.numFreeNodes > 0) {
+            newParent = this.freeNodes[--this.numFreeNodes];
+        }
+        else {
+            newParent = new _DBVTNode__WEBPACK_IMPORTED_MODULE_1__["DBVTNode"]();
+        }
+        newParent.parent = oldParent;
+        newParent.child1 = leaf;
+        newParent.child2 = sibling;
+        newParent.aabb.combine(leaf.aabb, sibling.aabb);
+        newParent.height = sibling.height + 1;
+        sibling.parent = newParent;
+        leaf.parent = newParent;
+        if (sibling == this.root) {
+            // replace root
+            this.root = newParent;
+        }
+        else {
+            // replace child
+            if (oldParent.child1 == sibling) {
+                oldParent.child1 = newParent;
+            }
+            else {
+                oldParent.child2 = newParent;
+            }
+        }
+        // update whole tree
+        do {
+            newParent = this.balance(newParent);
+            this.fix(newParent);
+            newParent = newParent.parent;
+        } while (newParent != null);
+    }
+    getBalance(node) {
+        if (node.proxy != null)
+            return 0;
+        return node.child1.height - node.child2.height;
+    }
+    deleteLeaf(leaf) {
+        if (leaf == this.root) {
+            this.root = null;
+            return;
+        }
+        var parent = leaf.parent;
+        var sibling;
+        if (parent.child1 == leaf) {
+            sibling = parent.child2;
+        }
+        else {
+            sibling = parent.child1;
+        }
+        if (parent == this.root) {
+            this.root = sibling;
+            sibling.parent = null;
+            return;
+        }
+        var grandParent = parent.parent;
+        sibling.parent = grandParent;
+        if (grandParent.child1 == parent) {
+            grandParent.child1 = sibling;
+        }
+        else {
+            grandParent.child2 = sibling;
+        }
+        if (this.numFreeNodes < 16384) {
+            this.freeNodes[this.numFreeNodes++] = parent;
+        }
+        do {
+            grandParent = this.balance(grandParent);
+            this.fix(grandParent);
+            grandParent = grandParent.parent;
+        } while (grandParent != null);
+    }
+    balance(node) {
+        var nh = node.height;
+        if (nh < 2) {
+            return node;
+        }
+        var p = node.parent;
+        var l = node.child1;
+        var r = node.child2;
+        var lh = l.height;
+        var rh = r.height;
+        var balance = lh - rh;
+        var t; // for bit operation
+        //          [ N ]
+        //         /     \
+        //    [ L ]       [ R ]
+        //     / \         / \
+        // [L-L] [L-R] [R-L] [R-R]
+        // Is the tree balanced?
+        if (balance > 1) {
+            var ll = l.child1;
+            var lr = l.child2;
+            var llh = ll.height;
+            var lrh = lr.height;
+            // Is L-L higher than L-R?
+            if (llh > lrh) {
+                // set N to L-R
+                l.child2 = node;
+                node.parent = l;
+                //          [ L ]
+                //         /     \
+                //    [L-L]       [ N ]
+                //     / \         / \
+                // [...] [...] [ L ] [ R ]
+                // set L-R
+                node.child1 = lr;
+                lr.parent = node;
+                //          [ L ]
+                //         /     \
+                //    [L-L]       [ N ]
+                //     / \         / \
+                // [...] [...] [L-R] [ R ]
+                // fix bounds and heights
+                node.aabb.combine(lr.aabb, r.aabb);
+                t = lrh - rh;
+                node.height = lrh - (t & t >> 31) + 1;
+                l.aabb.combine(ll.aabb, node.aabb);
+                t = llh - nh;
+                l.height = llh - (t & t >> 31) + 1;
+            }
+            else {
+                // set N to L-L
+                l.child1 = node;
+                node.parent = l;
+                //          [ L ]
+                //         /     \
+                //    [ N ]       [L-R]
+                //     / \         / \
+                // [ L ] [ R ] [...] [...]
+                // set L-L
+                node.child1 = ll;
+                ll.parent = node;
+                //          [ L ]
+                //         /     \
+                //    [ N ]       [L-R]
+                //     / \         / \
+                // [L-L] [ R ] [...] [...]
+                // fix bounds and heights
+                node.aabb.combine(ll.aabb, r.aabb);
+                t = llh - rh;
+                node.height = llh - (t & t >> 31) + 1;
+                l.aabb.combine(node.aabb, lr.aabb);
+                t = nh - lrh;
+                l.height = nh - (t & t >> 31) + 1;
+            }
+            // set new parent of L
+            if (p != null) {
+                if (p.child1 == node) {
+                    p.child1 = l;
+                }
+                else {
+                    p.child2 = l;
+                }
+            }
+            else {
+                this.root = l;
+            }
+            l.parent = p;
+            return l;
+        }
+        else if (balance < -1) {
+            var rl = r.child1;
+            var rr = r.child2;
+            var rlh = rl.height;
+            var rrh = rr.height;
+            // Is R-L higher than R-R?
+            if (rlh > rrh) {
+                // set N to R-R
+                r.child2 = node;
+                node.parent = r;
+                //          [ R ]
+                //         /     \
+                //    [R-L]       [ N ]
+                //     / \         / \
+                // [...] [...] [ L ] [ R ]
+                // set R-R
+                node.child2 = rr;
+                rr.parent = node;
+                //          [ R ]
+                //         /     \
+                //    [R-L]       [ N ]
+                //     / \         / \
+                // [...] [...] [ L ] [R-R]
+                // fix bounds and heights
+                node.aabb.combine(l.aabb, rr.aabb);
+                t = lh - rrh;
+                node.height = lh - (t & t >> 31) + 1;
+                r.aabb.combine(rl.aabb, node.aabb);
+                t = rlh - nh;
+                r.height = rlh - (t & t >> 31) + 1;
+            }
+            else {
+                // set N to R-L
+                r.child1 = node;
+                node.parent = r;
+                //          [ R ]
+                //         /     \
+                //    [ N ]       [R-R]
+                //     / \         / \
+                // [ L ] [ R ] [...] [...]
+                // set R-L
+                node.child2 = rl;
+                rl.parent = node;
+                //          [ R ]
+                //         /     \
+                //    [ N ]       [R-R]
+                //     / \         / \
+                // [ L ] [R-L] [...] [...]
+                // fix bounds and heights
+                node.aabb.combine(l.aabb, rl.aabb);
+                t = lh - rlh;
+                node.height = lh - (t & t >> 31) + 1;
+                r.aabb.combine(node.aabb, rr.aabb);
+                t = nh - rrh;
+                r.height = nh - (t & t >> 31) + 1;
+            }
+            // set new parent of R
+            if (p != null) {
+                if (p.child1 == node) {
+                    p.child1 = r;
+                }
+                else {
+                    p.child2 = r;
+                }
+            }
+            else {
+                this.root = r;
+            }
+            r.parent = p;
+            return r;
+        }
+        return node;
+    }
+    fix(node) {
+        var c1 = node.child1;
+        var c2 = node.child2;
+        node.aabb.combine(c1.aabb, c2.aabb);
+        node.height = c1.height < c2.height ? c2.height + 1 : c1.height + 1;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/broadphase/dbvt/DBVTBroadPhase.ts":
+/*!*************************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/broadphase/dbvt/DBVTBroadPhase.ts ***!
+  \*************************************************************************/
+/*! exports provided: DBVTBroadPhase */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DBVTBroadPhase", function() { return DBVTBroadPhase; });
+/* harmony import */ var _BroadPhase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../BroadPhase */ "./src/LTGame/3rd/oimo/collision/broadphase/BroadPhase.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../constants */ "./src/LTGame/3rd/oimo/constants.ts");
+/* harmony import */ var _DBVT__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./DBVT */ "./src/LTGame/3rd/oimo/collision/broadphase/dbvt/DBVT.ts");
+/* harmony import */ var _DBVTProxy__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./DBVTProxy */ "./src/LTGame/3rd/oimo/collision/broadphase/dbvt/DBVTProxy.ts");
+
+
+
+
+class DBVTBroadPhase extends _BroadPhase__WEBPACK_IMPORTED_MODULE_0__["BroadPhase"] {
+    constructor() {
+        super();
+        this.types = _constants__WEBPACK_IMPORTED_MODULE_1__["BR_BOUNDING_VOLUME_TREE"];
+        this.tree = new _DBVT__WEBPACK_IMPORTED_MODULE_2__["DBVT"]();
+        this.stack = [];
+        this.leaves = [];
+        this.numLeaves = 0;
+    }
+    createProxy(shape) {
+        return new _DBVTProxy__WEBPACK_IMPORTED_MODULE_3__["DBVTProxy"](shape);
+    }
+    addProxy(proxy) {
+        this.tree.insertLeaf(proxy.leaf);
+        this.leaves.push(proxy.leaf);
+        this.numLeaves++;
+    }
+    removeProxy(proxy) {
+        this.tree.deleteLeaf(proxy.leaf);
+        var n = this.leaves.indexOf(proxy.leaf);
+        if (n > -1) {
+            this.leaves.splice(n, 1);
+            this.numLeaves--;
+        }
+    }
+    collectPairs() {
+        if (this.numLeaves < 2)
+            return;
+        var leaf, margin = 0.1, i = this.numLeaves;
+        while (i--) {
+            leaf = this.leaves[i];
+            if (leaf.proxy.aabb.intersectTestTwo(leaf.aabb)) {
+                leaf.aabb.copy(leaf.proxy.aabb, margin);
+                this.tree.deleteLeaf(leaf);
+                this.tree.insertLeaf(leaf);
+                this.collide(leaf, this.tree.root);
+            }
+        }
+    }
+    collide(node1, node2) {
+        var stackCount = 2;
+        var s1, s2, n1, n2, l1, l2;
+        this.stack[0] = node1;
+        this.stack[1] = node2;
+        while (stackCount > 0) {
+            n1 = this.stack[--stackCount];
+            n2 = this.stack[--stackCount];
+            l1 = n1.proxy != null;
+            l2 = n2.proxy != null;
+            this.numPairChecks++;
+            if (l1 && l2) {
+                s1 = n1.proxy.shape;
+                s2 = n2.proxy.shape;
+                if (s1 == s2 || s1.aabb.intersectTest(s2.aabb) || !this.isAvailablePair(s1, s2))
+                    continue;
+                this.addPair(s1, s2);
+            }
+            else {
+                if (n1.aabb.intersectTest(n2.aabb))
+                    continue;
+                /*if(stackCount+4>=this.maxStack){// expand the stack
+                    //this.maxStack<<=1;
+                    this.maxStack*=2;
+                    var newStack = [];// vector
+                    newStack.length = this.maxStack;
+                    for(var i=0;i<stackCount;i++){
+                        newStack[i] = this.stack[i];
+                    }
+                    this.stack = newStack;
+                }*/
+                if (l2 || !l1 && (n1.aabb.surfaceArea() > n2.aabb.surfaceArea())) {
+                    this.stack[stackCount++] = n1.child1;
+                    this.stack[stackCount++] = n2;
+                    this.stack[stackCount++] = n1.child2;
+                    this.stack[stackCount++] = n2;
+                }
+                else {
+                    this.stack[stackCount++] = n1;
+                    this.stack[stackCount++] = n2.child1;
+                    this.stack[stackCount++] = n1;
+                    this.stack[stackCount++] = n2.child2;
+                }
+            }
+        }
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/broadphase/dbvt/DBVTNode.ts":
+/*!*******************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/broadphase/dbvt/DBVTNode.ts ***!
+  \*******************************************************************/
+/*! exports provided: DBVTNode */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DBVTNode", function() { return DBVTNode; });
+/* harmony import */ var _math_AABB__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../math/AABB */ "./src/LTGame/3rd/oimo/math/AABB.ts");
+
+class DBVTNode {
+    constructor() {
+        // The first child node of this node.
+        this.child1 = null;
+        // The second child node of this node.
+        this.child2 = null;
+        //  The parent node of this tree.
+        this.parent = null;
+        // The proxy of this node. This has no value if this node is not leaf.
+        this.proxy = null;
+        // The maximum distance from leaf nodes.
+        this.height = 0;
+        // The AABB of this node.
+        this.aabb = new _math_AABB__WEBPACK_IMPORTED_MODULE_0__["AABB"]();
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/broadphase/dbvt/DBVTProxy.ts":
+/*!********************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/broadphase/dbvt/DBVTProxy.ts ***!
+  \********************************************************************/
+/*! exports provided: DBVTProxy */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DBVTProxy", function() { return DBVTProxy; });
+/* harmony import */ var _DBVTNode__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./DBVTNode */ "./src/LTGame/3rd/oimo/collision/broadphase/dbvt/DBVTNode.ts");
+/* harmony import */ var _Proxy__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../Proxy */ "./src/LTGame/3rd/oimo/collision/broadphase/Proxy.ts");
+
+
+class DBVTProxy extends _Proxy__WEBPACK_IMPORTED_MODULE_1__["Proxy"] {
+    constructor(shape) {
+        super(shape);
+        // The leaf of the proxy.
+        this.leaf = new _DBVTNode__WEBPACK_IMPORTED_MODULE_0__["DBVTNode"]();
+        this.leaf.proxy = this;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/broadphase/sap/SAPAxis.ts":
+/*!*****************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/broadphase/sap/SAPAxis.ts ***!
+  \*****************************************************************/
+/*! exports provided: SAPAxis */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SAPAxis", function() { return SAPAxis; });
+class SAPAxis {
+    constructor() {
+        this.numElements = 0;
+        this.bufferSize = 256;
+        this.elements = [];
+        this.elements.length = this.bufferSize;
+        this.stack = new Float32Array(64);
+    }
+    addElements(min, max) {
+        if (this.numElements + 2 >= this.bufferSize) {
+            //this.bufferSize<<=1;
+            this.bufferSize *= 2;
+            var newElements = [];
+            var i = this.numElements;
+            while (i--) {
+                //for(var i=0, l=this.numElements; i<l; i++){
+                newElements[i] = this.elements[i];
+            }
+        }
+        this.elements[this.numElements++] = min;
+        this.elements[this.numElements++] = max;
+    }
+    removeElements(min, max) {
+        var minIndex = -1;
+        var maxIndex = -1;
+        for (var i = 0, l = this.numElements; i < l; i++) {
+            var e = this.elements[i];
+            if (e == min || e == max) {
+                if (minIndex == -1) {
+                    minIndex = i;
+                }
+                else {
+                    maxIndex = i;
+                    break;
+                }
+            }
+        }
+        for (i = minIndex + 1, l = maxIndex; i < l; i++) {
+            this.elements[i - 1] = this.elements[i];
+        }
+        for (i = maxIndex + 1, l = this.numElements; i < l; i++) {
+            this.elements[i - 2] = this.elements[i];
+        }
+        this.elements[--this.numElements] = null;
+        this.elements[--this.numElements] = null;
+    }
+    sort() {
+        var count = 0;
+        var threshold = 1;
+        while ((this.numElements >> threshold) != 0)
+            threshold++;
+        threshold = threshold * this.numElements >> 2;
+        count = 0;
+        var giveup = false;
+        var elements = this.elements;
+        for (var i = 1, l = this.numElements; i < l; i++) { // try insertion sort
+            var tmp = elements[i];
+            var pivot = tmp.value;
+            var tmp2 = elements[i - 1];
+            if (tmp2.value > pivot) {
+                var j = i;
+                do {
+                    elements[j] = tmp2;
+                    if (--j == 0)
+                        break;
+                    tmp2 = elements[j - 1];
+                } while (tmp2.value > pivot);
+                elements[j] = tmp;
+                count += i - j;
+                if (count > threshold) {
+                    giveup = true; // stop and use quick sort
+                    break;
+                }
+            }
+        }
+        if (!giveup)
+            return;
+        count = 2;
+        var stack = this.stack;
+        stack[0] = 0;
+        stack[1] = this.numElements - 1;
+        while (count > 0) {
+            var right = stack[--count];
+            var left = stack[--count];
+            var diff = right - left;
+            if (diff > 16) { // quick sort
+                //var mid=left+(diff>>1);
+                var mid = left + (Math.floor(diff * 0.5));
+                tmp = elements[mid];
+                elements[mid] = elements[right];
+                elements[right] = tmp;
+                pivot = tmp.value;
+                i = left - 1;
+                j = right;
+                while (true) {
+                    var ei;
+                    var ej;
+                    do {
+                        ei = elements[++i];
+                    } while (ei.value < pivot);
+                    do {
+                        ej = elements[--j];
+                    } while (pivot < ej.value && j != left);
+                    if (i >= j)
+                        break;
+                    elements[i] = ej;
+                    elements[j] = ei;
+                }
+                elements[right] = elements[i];
+                elements[i] = tmp;
+                if (i - left > right - i) {
+                    stack[count++] = left;
+                    stack[count++] = i - 1;
+                    stack[count++] = i + 1;
+                    stack[count++] = right;
+                }
+                else {
+                    stack[count++] = i + 1;
+                    stack[count++] = right;
+                    stack[count++] = left;
+                    stack[count++] = i - 1;
+                }
+            }
+            else {
+                for (i = left + 1; i <= right; i++) {
+                    tmp = elements[i];
+                    pivot = tmp.value;
+                    tmp2 = elements[i - 1];
+                    if (tmp2.value > pivot) {
+                        j = i;
+                        do {
+                            elements[j] = tmp2;
+                            if (--j == 0)
+                                break;
+                            tmp2 = elements[j - 1];
+                        } while (tmp2.value > pivot);
+                        elements[j] = tmp;
+                    }
+                }
+            }
+        }
+    }
+    calculateTestCount() {
+        var num = 1;
+        var sum = 0;
+        for (var i = 1, l = this.numElements; i < l; i++) {
+            if (this.elements[i].max) {
+                num--;
+            }
+            else {
+                sum += num;
+                num++;
+            }
+        }
+        return sum;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/broadphase/sap/SAPBroadPhase.ts":
+/*!***********************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/broadphase/sap/SAPBroadPhase.ts ***!
+  \***********************************************************************/
+/*! exports provided: SAPBroadPhase */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SAPBroadPhase", function() { return SAPBroadPhase; });
+/* harmony import */ var _BroadPhase__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../BroadPhase */ "./src/LTGame/3rd/oimo/collision/broadphase/BroadPhase.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../constants */ "./src/LTGame/3rd/oimo/constants.ts");
+/* harmony import */ var _SAPAxis__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./SAPAxis */ "./src/LTGame/3rd/oimo/collision/broadphase/sap/SAPAxis.ts");
+/* harmony import */ var _SAPProxy__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./SAPProxy */ "./src/LTGame/3rd/oimo/collision/broadphase/sap/SAPProxy.ts");
+
+
+
+
+class SAPBroadPhase extends _BroadPhase__WEBPACK_IMPORTED_MODULE_0__["BroadPhase"] {
+    constructor() {
+        super();
+        this.types = _constants__WEBPACK_IMPORTED_MODULE_1__["BR_SWEEP_AND_PRUNE"];
+        this.numElementsD = 0;
+        this.numElementsS = 0;
+        // dynamic proxies
+        this.axesD = [
+            new _SAPAxis__WEBPACK_IMPORTED_MODULE_2__["SAPAxis"](),
+            new _SAPAxis__WEBPACK_IMPORTED_MODULE_2__["SAPAxis"](),
+            new _SAPAxis__WEBPACK_IMPORTED_MODULE_2__["SAPAxis"]()
+        ];
+        // static or sleeping proxies
+        this.axesS = [
+            new _SAPAxis__WEBPACK_IMPORTED_MODULE_2__["SAPAxis"](),
+            new _SAPAxis__WEBPACK_IMPORTED_MODULE_2__["SAPAxis"](),
+            new _SAPAxis__WEBPACK_IMPORTED_MODULE_2__["SAPAxis"]()
+        ];
+        this.index1 = 0;
+        this.index2 = 1;
+    }
+    createProxy(shape) {
+        return new _SAPProxy__WEBPACK_IMPORTED_MODULE_3__["SAPProxy"](this, shape);
+    }
+    addProxy(proxy) {
+        var p = proxy;
+        if (p.isDynamic()) {
+            this.axesD[0].addElements(p.min[0], p.max[0]);
+            this.axesD[1].addElements(p.min[1], p.max[1]);
+            this.axesD[2].addElements(p.min[2], p.max[2]);
+            p.belongsTo = 1;
+            this.numElementsD += 2;
+        }
+        else {
+            this.axesS[0].addElements(p.min[0], p.max[0]);
+            this.axesS[1].addElements(p.min[1], p.max[1]);
+            this.axesS[2].addElements(p.min[2], p.max[2]);
+            p.belongsTo = 2;
+            this.numElementsS += 2;
+        }
+    }
+    removeProxy(proxy) {
+        var p = proxy;
+        if (p.belongsTo == 0)
+            return;
+        /*else if ( p.belongsTo == 1 ) {
+            this.axesD[0].removeElements( p.min[0], p.max[0] );
+            this.axesD[1].removeElements( p.min[1], p.max[1] );
+            this.axesD[2].removeElements( p.min[2], p.max[2] );
+            this.numElementsD -= 2;
+        } else if ( p.belongsTo == 2 ) {
+            this.axesS[0].removeElements( p.min[0], p.max[0] );
+            this.axesS[1].removeElements( p.min[1], p.max[1] );
+            this.axesS[2].removeElements( p.min[2], p.max[2] );
+            this.numElementsS -= 2;
+        }*/
+        switch (p.belongsTo) {
+            case 1:
+                this.axesD[0].removeElements(p.min[0], p.max[0]);
+                this.axesD[1].removeElements(p.min[1], p.max[1]);
+                this.axesD[2].removeElements(p.min[2], p.max[2]);
+                this.numElementsD -= 2;
+                break;
+            case 2:
+                this.axesS[0].removeElements(p.min[0], p.max[0]);
+                this.axesS[1].removeElements(p.min[1], p.max[1]);
+                this.axesS[2].removeElements(p.min[2], p.max[2]);
+                this.numElementsS -= 2;
+                break;
+        }
+        p.belongsTo = 0;
+    }
+    collectPairs() {
+        if (this.numElementsD == 0)
+            return;
+        var axis1 = this.axesD[this.index1];
+        var axis2 = this.axesD[this.index2];
+        axis1.sort();
+        axis2.sort();
+        var count1 = axis1.calculateTestCount();
+        var count2 = axis2.calculateTestCount();
+        var elementsD;
+        var elementsS;
+        if (count1 <= count2) { // select the best axis
+            axis2 = this.axesS[this.index1];
+            axis2.sort();
+            elementsD = axis1.elements;
+            elementsS = axis2.elements;
+        }
+        else {
+            axis1 = this.axesS[this.index2];
+            axis1.sort();
+            elementsD = axis2.elements;
+            elementsS = axis1.elements;
+            this.index1 ^= this.index2;
+            this.index2 ^= this.index1;
+            this.index1 ^= this.index2;
+        }
+        var activeD;
+        var activeS;
+        var p = 0;
+        var q = 0;
+        while (p < this.numElementsD) {
+            var e1;
+            var dyn;
+            if (q == this.numElementsS) {
+                e1 = elementsD[p];
+                dyn = true;
+                p++;
+            }
+            else {
+                var d = elementsD[p];
+                var s = elementsS[q];
+                if (d.value < s.value) {
+                    e1 = d;
+                    dyn = true;
+                    p++;
+                }
+                else {
+                    e1 = s;
+                    dyn = false;
+                    q++;
+                }
+            }
+            if (!e1.max) {
+                var s1 = e1.proxy.shape;
+                var min1 = e1.min1.value;
+                var max1 = e1.max1.value;
+                var min2 = e1.min2.value;
+                var max2 = e1.max2.value;
+                for (var e2 = activeD; e2 != null; e2 = e2.pair) { // test for dynamic
+                    var s2 = e2.proxy.shape;
+                    this.numPairChecks++;
+                    if (min1 > e2.max1.value || max1 < e2.min1.value || min2 > e2.max2.value || max2 < e2.min2.value || !this.isAvailablePair(s1, s2))
+                        continue;
+                    this.addPair(s1, s2);
+                }
+                if (dyn) {
+                    for (e2 = activeS; e2 != null; e2 = e2.pair) { // test for static
+                        s2 = e2.proxy.shape;
+                        this.numPairChecks++;
+                        if (min1 > e2.max1.value || max1 < e2.min1.value || min2 > e2.max2.value || max2 < e2.min2.value || !this.isAvailablePair(s1, s2))
+                            continue;
+                        this.addPair(s1, s2);
+                    }
+                    e1.pair = activeD;
+                    activeD = e1;
+                }
+                else {
+                    e1.pair = activeS;
+                    activeS = e1;
+                }
+            }
+            else {
+                var min = e1.pair;
+                if (dyn) {
+                    if (min == activeD) {
+                        activeD = activeD.pair;
+                        continue;
+                    }
+                    else {
+                        e1 = activeD;
+                    }
+                }
+                else {
+                    if (min == activeS) {
+                        activeS = activeS.pair;
+                        continue;
+                    }
+                    else {
+                        e1 = activeS;
+                    }
+                }
+                while (e1) {
+                    e2 = e1.pair;
+                    if (e2 == min) {
+                        e1.pair = e2.pair;
+                        break;
+                    }
+                    e1 = e2;
+                }
+            }
+        }
+        this.index2 = (this.index1 | this.index2) ^ 3;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/broadphase/sap/SAPElement.ts":
+/*!********************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/broadphase/sap/SAPElement.ts ***!
+  \********************************************************************/
+/*! exports provided: SAPElement */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SAPElement", function() { return SAPElement; });
+class SAPElement {
+    constructor(proxy, max) {
+        // The parent proxy
+        this.proxy = proxy;
+        // The pair element.
+        this.pair = null;
+        // The minimum element on other axis.
+        this.min1 = null;
+        // The maximum element on other axis.
+        this.max1 = null;
+        // The minimum element on other axis.
+        this.min2 = null;
+        // The maximum element on other axis.
+        this.max2 = null;
+        // Whether the element has maximum value or not.
+        this.max = max;
+        // The value of the element.
+        this.value = 0;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/broadphase/sap/SAPProxy.ts":
+/*!******************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/broadphase/sap/SAPProxy.ts ***!
+  \******************************************************************/
+/*! exports provided: SAPProxy */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SAPProxy", function() { return SAPProxy; });
+/* harmony import */ var _SAPElement__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./SAPElement */ "./src/LTGame/3rd/oimo/collision/broadphase/sap/SAPElement.ts");
+/* harmony import */ var _Proxy__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../Proxy */ "./src/LTGame/3rd/oimo/collision/broadphase/Proxy.ts");
+
+
+class SAPProxy extends _Proxy__WEBPACK_IMPORTED_MODULE_1__["Proxy"] {
+    constructor(sap, shape) {
+        super(shape);
+        // Type of the axis to which the proxy belongs to. [0:none, 1:dynamic, 2:static]
+        this.belongsTo = 0;
+        // The maximum elements on each axis.
+        this.max = [];
+        // The minimum elements on each axis.
+        this.min = [];
+        this.sap = sap;
+        this.min[0] = new _SAPElement__WEBPACK_IMPORTED_MODULE_0__["SAPElement"](this, false);
+        this.max[0] = new _SAPElement__WEBPACK_IMPORTED_MODULE_0__["SAPElement"](this, true);
+        this.min[1] = new _SAPElement__WEBPACK_IMPORTED_MODULE_0__["SAPElement"](this, false);
+        this.max[1] = new _SAPElement__WEBPACK_IMPORTED_MODULE_0__["SAPElement"](this, true);
+        this.min[2] = new _SAPElement__WEBPACK_IMPORTED_MODULE_0__["SAPElement"](this, false);
+        this.max[2] = new _SAPElement__WEBPACK_IMPORTED_MODULE_0__["SAPElement"](this, true);
+        this.max[0].pair = this.min[0];
+        this.max[1].pair = this.min[1];
+        this.max[2].pair = this.min[2];
+        this.min[0].min1 = this.min[1];
+        this.min[0].max1 = this.max[1];
+        this.min[0].min2 = this.min[2];
+        this.min[0].max2 = this.max[2];
+        this.min[1].min1 = this.min[0];
+        this.min[1].max1 = this.max[0];
+        this.min[1].min2 = this.min[2];
+        this.min[1].max2 = this.max[2];
+        this.min[2].min1 = this.min[0];
+        this.min[2].max1 = this.max[0];
+        this.min[2].min2 = this.min[1];
+        this.min[2].max2 = this.max[1];
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/narrophase/BoxBoxCollisionDetector.ts":
+/*!*****************************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/narrophase/BoxBoxCollisionDetector.ts ***!
+  \*****************************************************************************/
+/*! exports provided: BoxBoxCollisionDetector */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BoxBoxCollisionDetector", function() { return BoxBoxCollisionDetector; });
+/* harmony import */ var _CollisionDetector__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./CollisionDetector */ "./src/LTGame/3rd/oimo/collision/narrophase/CollisionDetector.ts");
+
+class BoxBoxCollisionDetector extends _CollisionDetector__WEBPACK_IMPORTED_MODULE_0__["CollisionDetector"] {
+    constructor() {
+        super();
+        this.clipVertices1 = new Float32Array(24); // 8 vertices x,y,z
+        this.clipVertices2 = new Float32Array(24);
+        this.used = [];
+        this.INF = Infinity;
+    }
+    detectCollision(shape1, shape2, manifold) {
+        // What you are doing 
+        // · I to prepare a separate axis of the fifteen 
+        //-Six in each of three normal vectors of the xyz direction of the box both 
+        // · Remaining nine 3x3 a vector perpendicular to the side of the box 2 and the side of the box 1 
+        // · Calculate the depth to the separation axis 
+        // Calculates the distance using the inner product and put the amount of embedment 
+        // · However a vertical separation axis and side to weight a little to avoid vibration 
+        // And end when there is a separate axis that is remote even one 
+        // · I look for separation axis with little to dent most 
+        // Men and if separation axis of the first six - end collision 
+        // Heng If it separate axis of nine other - side collision 
+        // Heng - case of a side collision 
+        // · Find points of two sides on which you made ​​the separation axis 
+        // Calculates the point of closest approach of a straight line consisting of separate axis points obtained, and the collision point 
+        //-Surface - the case of the plane crash 
+        //-Box A, box B and the other a box of better made ​​a separate axis 
+        // • The surface A and the plane that made the separation axis of the box A, and B to the surface the face of the box B close in the opposite direction to the most isolated axis 
+        // When viewed from the front surface A, and the cut part exceeding the area of the surface A is a surface B 
+        //-Plane B becomes the 3-8 triangle, I a candidate for the collision point the vertex of surface B 
+        // • If more than one candidate 5 exists, scraping up to four 
+        // For potential collision points of all, to examine the distance between the surface A 
+        // • If you were on the inside surface of A, and the collision point
+        var b1;
+        var b2;
+        if (shape1.id < shape2.id) {
+            b1 = (shape1);
+            b2 = (shape2);
+        }
+        else {
+            b1 = (shape2);
+            b2 = (shape1);
+        }
+        var V1 = b1.elements;
+        var V2 = b2.elements;
+        var D1 = b1.dimentions;
+        var D2 = b2.dimentions;
+        var p1 = b1.position;
+        var p2 = b2.position;
+        var p1x = p1.x;
+        var p1y = p1.y;
+        var p1z = p1.z;
+        var p2x = p2.x;
+        var p2y = p2.y;
+        var p2z = p2.z;
+        // diff
+        var dx = p2x - p1x;
+        var dy = p2y - p1y;
+        var dz = p2z - p1z;
+        // distance
+        var w1 = b1.halfWidth;
+        var h1 = b1.halfHeight;
+        var d1 = b1.halfDepth;
+        var w2 = b2.halfWidth;
+        var h2 = b2.halfHeight;
+        var d2 = b2.halfDepth;
+        // direction
+        // ----------------------------
+        // 15 separating axes
+        // 1~6: face
+        // 7~f: edge
+        // http://marupeke296.com/COL_3D_No13_OBBvsOBB.html
+        // ----------------------------
+        var a1x = D1[0];
+        var a1y = D1[1];
+        var a1z = D1[2];
+        var a2x = D1[3];
+        var a2y = D1[4];
+        var a2z = D1[5];
+        var a3x = D1[6];
+        var a3y = D1[7];
+        var a3z = D1[8];
+        var d1x = D1[9];
+        var d1y = D1[10];
+        var d1z = D1[11];
+        var d2x = D1[12];
+        var d2y = D1[13];
+        var d2z = D1[14];
+        var d3x = D1[15];
+        var d3y = D1[16];
+        var d3z = D1[17];
+        var a4x = D2[0];
+        var a4y = D2[1];
+        var a4z = D2[2];
+        var a5x = D2[3];
+        var a5y = D2[4];
+        var a5z = D2[5];
+        var a6x = D2[6];
+        var a6y = D2[7];
+        var a6z = D2[8];
+        var d4x = D2[9];
+        var d4y = D2[10];
+        var d4z = D2[11];
+        var d5x = D2[12];
+        var d5y = D2[13];
+        var d5z = D2[14];
+        var d6x = D2[15];
+        var d6y = D2[16];
+        var d6z = D2[17];
+        var a7x = a1y * a4z - a1z * a4y;
+        var a7y = a1z * a4x - a1x * a4z;
+        var a7z = a1x * a4y - a1y * a4x;
+        var a8x = a1y * a5z - a1z * a5y;
+        var a8y = a1z * a5x - a1x * a5z;
+        var a8z = a1x * a5y - a1y * a5x;
+        var a9x = a1y * a6z - a1z * a6y;
+        var a9y = a1z * a6x - a1x * a6z;
+        var a9z = a1x * a6y - a1y * a6x;
+        var aax = a2y * a4z - a2z * a4y;
+        var aay = a2z * a4x - a2x * a4z;
+        var aaz = a2x * a4y - a2y * a4x;
+        var abx = a2y * a5z - a2z * a5y;
+        var aby = a2z * a5x - a2x * a5z;
+        var abz = a2x * a5y - a2y * a5x;
+        var acx = a2y * a6z - a2z * a6y;
+        var acy = a2z * a6x - a2x * a6z;
+        var acz = a2x * a6y - a2y * a6x;
+        var adx = a3y * a4z - a3z * a4y;
+        var ady = a3z * a4x - a3x * a4z;
+        var adz = a3x * a4y - a3y * a4x;
+        var aex = a3y * a5z - a3z * a5y;
+        var aey = a3z * a5x - a3x * a5z;
+        var aez = a3x * a5y - a3y * a5x;
+        var afx = a3y * a6z - a3z * a6y;
+        var afy = a3z * a6x - a3x * a6z;
+        var afz = a3x * a6y - a3y * a6x;
+        // right or left flags
+        var right1;
+        var right2;
+        var right3;
+        var right4;
+        var right5;
+        var right6;
+        var right7;
+        var right8;
+        var right9;
+        var righta;
+        var rightb;
+        var rightc;
+        var rightd;
+        var righte;
+        var rightf;
+        // overlapping distances
+        var overlap1;
+        var overlap2;
+        var overlap3;
+        var overlap4;
+        var overlap5;
+        var overlap6;
+        var overlap7;
+        var overlap8;
+        var overlap9;
+        var overlapa;
+        var overlapb;
+        var overlapc;
+        var overlapd;
+        var overlape;
+        var overlapf;
+        // invalid flags
+        var invalid7 = false;
+        var invalid8 = false;
+        var invalid9 = false;
+        var invalida = false;
+        var invalidb = false;
+        var invalidc = false;
+        var invalidd = false;
+        var invalide = false;
+        var invalidf = false;
+        // temporary variables
+        var len;
+        var len1;
+        var len2;
+        var dot1;
+        var dot2;
+        var dot3;
+        // try axis 1
+        len = a1x * dx + a1y * dy + a1z * dz;
+        right1 = len > 0;
+        if (!right1)
+            len = -len;
+        len1 = w1;
+        dot1 = a1x * a4x + a1y * a4y + a1z * a4z;
+        dot2 = a1x * a5x + a1y * a5y + a1z * a5z;
+        dot3 = a1x * a6x + a1y * a6y + a1z * a6z;
+        if (dot1 < 0)
+            dot1 = -dot1;
+        if (dot2 < 0)
+            dot2 = -dot2;
+        if (dot3 < 0)
+            dot3 = -dot3;
+        len2 = dot1 * w2 + dot2 * h2 + dot3 * d2;
+        overlap1 = len - len1 - len2;
+        if (overlap1 > 0)
+            return;
+        // try axis 2
+        len = a2x * dx + a2y * dy + a2z * dz;
+        right2 = len > 0;
+        if (!right2)
+            len = -len;
+        len1 = h1;
+        dot1 = a2x * a4x + a2y * a4y + a2z * a4z;
+        dot2 = a2x * a5x + a2y * a5y + a2z * a5z;
+        dot3 = a2x * a6x + a2y * a6y + a2z * a6z;
+        if (dot1 < 0)
+            dot1 = -dot1;
+        if (dot2 < 0)
+            dot2 = -dot2;
+        if (dot3 < 0)
+            dot3 = -dot3;
+        len2 = dot1 * w2 + dot2 * h2 + dot3 * d2;
+        overlap2 = len - len1 - len2;
+        if (overlap2 > 0)
+            return;
+        // try axis 3
+        len = a3x * dx + a3y * dy + a3z * dz;
+        right3 = len > 0;
+        if (!right3)
+            len = -len;
+        len1 = d1;
+        dot1 = a3x * a4x + a3y * a4y + a3z * a4z;
+        dot2 = a3x * a5x + a3y * a5y + a3z * a5z;
+        dot3 = a3x * a6x + a3y * a6y + a3z * a6z;
+        if (dot1 < 0)
+            dot1 = -dot1;
+        if (dot2 < 0)
+            dot2 = -dot2;
+        if (dot3 < 0)
+            dot3 = -dot3;
+        len2 = dot1 * w2 + dot2 * h2 + dot3 * d2;
+        overlap3 = len - len1 - len2;
+        if (overlap3 > 0)
+            return;
+        // try axis 4
+        len = a4x * dx + a4y * dy + a4z * dz;
+        right4 = len > 0;
+        if (!right4)
+            len = -len;
+        dot1 = a4x * a1x + a4y * a1y + a4z * a1z;
+        dot2 = a4x * a2x + a4y * a2y + a4z * a2z;
+        dot3 = a4x * a3x + a4y * a3y + a4z * a3z;
+        if (dot1 < 0)
+            dot1 = -dot1;
+        if (dot2 < 0)
+            dot2 = -dot2;
+        if (dot3 < 0)
+            dot3 = -dot3;
+        len1 = dot1 * w1 + dot2 * h1 + dot3 * d1;
+        len2 = w2;
+        overlap4 = (len - len1 - len2) * 1.0;
+        if (overlap4 > 0)
+            return;
+        // try axis 5
+        len = a5x * dx + a5y * dy + a5z * dz;
+        right5 = len > 0;
+        if (!right5)
+            len = -len;
+        dot1 = a5x * a1x + a5y * a1y + a5z * a1z;
+        dot2 = a5x * a2x + a5y * a2y + a5z * a2z;
+        dot3 = a5x * a3x + a5y * a3y + a5z * a3z;
+        if (dot1 < 0)
+            dot1 = -dot1;
+        if (dot2 < 0)
+            dot2 = -dot2;
+        if (dot3 < 0)
+            dot3 = -dot3;
+        len1 = dot1 * w1 + dot2 * h1 + dot3 * d1;
+        len2 = h2;
+        overlap5 = (len - len1 - len2) * 1.0;
+        if (overlap5 > 0)
+            return;
+        // try axis 6
+        len = a6x * dx + a6y * dy + a6z * dz;
+        right6 = len > 0;
+        if (!right6)
+            len = -len;
+        dot1 = a6x * a1x + a6y * a1y + a6z * a1z;
+        dot2 = a6x * a2x + a6y * a2y + a6z * a2z;
+        dot3 = a6x * a3x + a6y * a3y + a6z * a3z;
+        if (dot1 < 0)
+            dot1 = -dot1;
+        if (dot2 < 0)
+            dot2 = -dot2;
+        if (dot3 < 0)
+            dot3 = -dot3;
+        len1 = dot1 * w1 + dot2 * h1 + dot3 * d1;
+        len2 = d2;
+        overlap6 = (len - len1 - len2) * 1.0;
+        if (overlap6 > 0)
+            return;
+        // try axis 7
+        len = a7x * a7x + a7y * a7y + a7z * a7z;
+        if (len > 1e-5) {
+            len = 1 / Math.sqrt(len);
+            a7x *= len;
+            a7y *= len;
+            a7z *= len;
+            len = a7x * dx + a7y * dy + a7z * dz;
+            right7 = len > 0;
+            if (!right7)
+                len = -len;
+            dot1 = a7x * a2x + a7y * a2y + a7z * a2z;
+            dot2 = a7x * a3x + a7y * a3y + a7z * a3z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len1 = dot1 * h1 + dot2 * d1;
+            dot1 = a7x * a5x + a7y * a5y + a7z * a5z;
+            dot2 = a7x * a6x + a7y * a6y + a7z * a6z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len2 = dot1 * h2 + dot2 * d2;
+            overlap7 = len - len1 - len2;
+            if (overlap7 > 0)
+                return;
+        }
+        else {
+            right7 = false;
+            overlap7 = 0;
+            invalid7 = true;
+        }
+        // try axis 8
+        len = a8x * a8x + a8y * a8y + a8z * a8z;
+        if (len > 1e-5) {
+            len = 1 / Math.sqrt(len);
+            a8x *= len;
+            a8y *= len;
+            a8z *= len;
+            len = a8x * dx + a8y * dy + a8z * dz;
+            right8 = len > 0;
+            if (!right8)
+                len = -len;
+            dot1 = a8x * a2x + a8y * a2y + a8z * a2z;
+            dot2 = a8x * a3x + a8y * a3y + a8z * a3z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len1 = dot1 * h1 + dot2 * d1;
+            dot1 = a8x * a4x + a8y * a4y + a8z * a4z;
+            dot2 = a8x * a6x + a8y * a6y + a8z * a6z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len2 = dot1 * w2 + dot2 * d2;
+            overlap8 = len - len1 - len2;
+            if (overlap8 > 0)
+                return;
+        }
+        else {
+            right8 = false;
+            overlap8 = 0;
+            invalid8 = true;
+        }
+        // try axis 9
+        len = a9x * a9x + a9y * a9y + a9z * a9z;
+        if (len > 1e-5) {
+            len = 1 / Math.sqrt(len);
+            a9x *= len;
+            a9y *= len;
+            a9z *= len;
+            len = a9x * dx + a9y * dy + a9z * dz;
+            right9 = len > 0;
+            if (!right9)
+                len = -len;
+            dot1 = a9x * a2x + a9y * a2y + a9z * a2z;
+            dot2 = a9x * a3x + a9y * a3y + a9z * a3z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len1 = dot1 * h1 + dot2 * d1;
+            dot1 = a9x * a4x + a9y * a4y + a9z * a4z;
+            dot2 = a9x * a5x + a9y * a5y + a9z * a5z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len2 = dot1 * w2 + dot2 * h2;
+            overlap9 = len - len1 - len2;
+            if (overlap9 > 0)
+                return;
+        }
+        else {
+            right9 = false;
+            overlap9 = 0;
+            invalid9 = true;
+        }
+        // try axis 10
+        len = aax * aax + aay * aay + aaz * aaz;
+        if (len > 1e-5) {
+            len = 1 / Math.sqrt(len);
+            aax *= len;
+            aay *= len;
+            aaz *= len;
+            len = aax * dx + aay * dy + aaz * dz;
+            righta = len > 0;
+            if (!righta)
+                len = -len;
+            dot1 = aax * a1x + aay * a1y + aaz * a1z;
+            dot2 = aax * a3x + aay * a3y + aaz * a3z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len1 = dot1 * w1 + dot2 * d1;
+            dot1 = aax * a5x + aay * a5y + aaz * a5z;
+            dot2 = aax * a6x + aay * a6y + aaz * a6z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len2 = dot1 * h2 + dot2 * d2;
+            overlapa = len - len1 - len2;
+            if (overlapa > 0)
+                return;
+        }
+        else {
+            righta = false;
+            overlapa = 0;
+            invalida = true;
+        }
+        // try axis 11
+        len = abx * abx + aby * aby + abz * abz;
+        if (len > 1e-5) {
+            len = 1 / Math.sqrt(len);
+            abx *= len;
+            aby *= len;
+            abz *= len;
+            len = abx * dx + aby * dy + abz * dz;
+            rightb = len > 0;
+            if (!rightb)
+                len = -len;
+            dot1 = abx * a1x + aby * a1y + abz * a1z;
+            dot2 = abx * a3x + aby * a3y + abz * a3z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len1 = dot1 * w1 + dot2 * d1;
+            dot1 = abx * a4x + aby * a4y + abz * a4z;
+            dot2 = abx * a6x + aby * a6y + abz * a6z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len2 = dot1 * w2 + dot2 * d2;
+            overlapb = len - len1 - len2;
+            if (overlapb > 0)
+                return;
+        }
+        else {
+            rightb = false;
+            overlapb = 0;
+            invalidb = true;
+        }
+        // try axis 12
+        len = acx * acx + acy * acy + acz * acz;
+        if (len > 1e-5) {
+            len = 1 / Math.sqrt(len);
+            acx *= len;
+            acy *= len;
+            acz *= len;
+            len = acx * dx + acy * dy + acz * dz;
+            rightc = len > 0;
+            if (!rightc)
+                len = -len;
+            dot1 = acx * a1x + acy * a1y + acz * a1z;
+            dot2 = acx * a3x + acy * a3y + acz * a3z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len1 = dot1 * w1 + dot2 * d1;
+            dot1 = acx * a4x + acy * a4y + acz * a4z;
+            dot2 = acx * a5x + acy * a5y + acz * a5z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len2 = dot1 * w2 + dot2 * h2;
+            overlapc = len - len1 - len2;
+            if (overlapc > 0)
+                return;
+        }
+        else {
+            rightc = false;
+            overlapc = 0;
+            invalidc = true;
+        }
+        // try axis 13
+        len = adx * adx + ady * ady + adz * adz;
+        if (len > 1e-5) {
+            len = 1 / Math.sqrt(len);
+            adx *= len;
+            ady *= len;
+            adz *= len;
+            len = adx * dx + ady * dy + adz * dz;
+            rightd = len > 0;
+            if (!rightd)
+                len = -len;
+            dot1 = adx * a1x + ady * a1y + adz * a1z;
+            dot2 = adx * a2x + ady * a2y + adz * a2z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len1 = dot1 * w1 + dot2 * h1;
+            dot1 = adx * a5x + ady * a5y + adz * a5z;
+            dot2 = adx * a6x + ady * a6y + adz * a6z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len2 = dot1 * h2 + dot2 * d2;
+            overlapd = len - len1 - len2;
+            if (overlapd > 0)
+                return;
+        }
+        else {
+            rightd = false;
+            overlapd = 0;
+            invalidd = true;
+        }
+        // try axis 14
+        len = aex * aex + aey * aey + aez * aez;
+        if (len > 1e-5) {
+            len = 1 / Math.sqrt(len);
+            aex *= len;
+            aey *= len;
+            aez *= len;
+            len = aex * dx + aey * dy + aez * dz;
+            righte = len > 0;
+            if (!righte)
+                len = -len;
+            dot1 = aex * a1x + aey * a1y + aez * a1z;
+            dot2 = aex * a2x + aey * a2y + aez * a2z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len1 = dot1 * w1 + dot2 * h1;
+            dot1 = aex * a4x + aey * a4y + aez * a4z;
+            dot2 = aex * a6x + aey * a6y + aez * a6z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len2 = dot1 * w2 + dot2 * d2;
+            overlape = len - len1 - len2;
+            if (overlape > 0)
+                return;
+        }
+        else {
+            righte = false;
+            overlape = 0;
+            invalide = true;
+        }
+        // try axis 15
+        len = afx * afx + afy * afy + afz * afz;
+        if (len > 1e-5) {
+            len = 1 / Math.sqrt(len);
+            afx *= len;
+            afy *= len;
+            afz *= len;
+            len = afx * dx + afy * dy + afz * dz;
+            rightf = len > 0;
+            if (!rightf)
+                len = -len;
+            dot1 = afx * a1x + afy * a1y + afz * a1z;
+            dot2 = afx * a2x + afy * a2y + afz * a2z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len1 = dot1 * w1 + dot2 * h1;
+            dot1 = afx * a4x + afy * a4y + afz * a4z;
+            dot2 = afx * a5x + afy * a5y + afz * a5z;
+            if (dot1 < 0)
+                dot1 = -dot1;
+            if (dot2 < 0)
+                dot2 = -dot2;
+            len2 = dot1 * w2 + dot2 * h2;
+            overlapf = len - len1 - len2;
+            if (overlapf > 0)
+                return;
+        }
+        else {
+            rightf = false;
+            overlapf = 0;
+            invalidf = true;
+        }
+        // boxes are overlapping
+        var depth = overlap1;
+        var depth2 = overlap1;
+        var minIndex = 0;
+        var right = right1;
+        if (overlap2 > depth2) {
+            depth = overlap2;
+            depth2 = overlap2;
+            minIndex = 1;
+            right = right2;
+        }
+        if (overlap3 > depth2) {
+            depth = overlap3;
+            depth2 = overlap3;
+            minIndex = 2;
+            right = right3;
+        }
+        if (overlap4 > depth2) {
+            depth = overlap4;
+            depth2 = overlap4;
+            minIndex = 3;
+            right = right4;
+        }
+        if (overlap5 > depth2) {
+            depth = overlap5;
+            depth2 = overlap5;
+            minIndex = 4;
+            right = right5;
+        }
+        if (overlap6 > depth2) {
+            depth = overlap6;
+            depth2 = overlap6;
+            minIndex = 5;
+            right = right6;
+        }
+        if (overlap7 - 0.01 > depth2 && !invalid7) {
+            depth = overlap7;
+            depth2 = overlap7 - 0.01;
+            minIndex = 6;
+            right = right7;
+        }
+        if (overlap8 - 0.01 > depth2 && !invalid8) {
+            depth = overlap8;
+            depth2 = overlap8 - 0.01;
+            minIndex = 7;
+            right = right8;
+        }
+        if (overlap9 - 0.01 > depth2 && !invalid9) {
+            depth = overlap9;
+            depth2 = overlap9 - 0.01;
+            minIndex = 8;
+            right = right9;
+        }
+        if (overlapa - 0.01 > depth2 && !invalida) {
+            depth = overlapa;
+            depth2 = overlapa - 0.01;
+            minIndex = 9;
+            right = righta;
+        }
+        if (overlapb - 0.01 > depth2 && !invalidb) {
+            depth = overlapb;
+            depth2 = overlapb - 0.01;
+            minIndex = 10;
+            right = rightb;
+        }
+        if (overlapc - 0.01 > depth2 && !invalidc) {
+            depth = overlapc;
+            depth2 = overlapc - 0.01;
+            minIndex = 11;
+            right = rightc;
+        }
+        if (overlapd - 0.01 > depth2 && !invalidd) {
+            depth = overlapd;
+            depth2 = overlapd - 0.01;
+            minIndex = 12;
+            right = rightd;
+        }
+        if (overlape - 0.01 > depth2 && !invalide) {
+            depth = overlape;
+            depth2 = overlape - 0.01;
+            minIndex = 13;
+            right = righte;
+        }
+        if (overlapf - 0.01 > depth2 && !invalidf) {
+            depth = overlapf;
+            minIndex = 14;
+            right = rightf;
+        }
+        // normal
+        var nx = 0;
+        var ny = 0;
+        var nz = 0;
+        // edge line or face side normal
+        var n1x = 0;
+        var n1y = 0;
+        var n1z = 0;
+        var n2x = 0;
+        var n2y = 0;
+        var n2z = 0;
+        // center of current face
+        var cx = 0;
+        var cy = 0;
+        var cz = 0;
+        // face side
+        var s1x = 0;
+        var s1y = 0;
+        var s1z = 0;
+        var s2x = 0;
+        var s2y = 0;
+        var s2z = 0;
+        // swap b1 b2
+        var swap = false;
+        //_______________________________________
+        if (minIndex == 0) { // b1.x * b2
+            if (right) {
+                cx = p1x + d1x;
+                cy = p1y + d1y;
+                cz = p1z + d1z;
+                nx = a1x;
+                ny = a1y;
+                nz = a1z;
+            }
+            else {
+                cx = p1x - d1x;
+                cy = p1y - d1y;
+                cz = p1z - d1z;
+                nx = -a1x;
+                ny = -a1y;
+                nz = -a1z;
+            }
+            s1x = d2x;
+            s1y = d2y;
+            s1z = d2z;
+            n1x = -a2x;
+            n1y = -a2y;
+            n1z = -a2z;
+            s2x = d3x;
+            s2y = d3y;
+            s2z = d3z;
+            n2x = -a3x;
+            n2y = -a3y;
+            n2z = -a3z;
+        }
+        else if (minIndex == 1) { // b1.y * b2
+            if (right) {
+                cx = p1x + d2x;
+                cy = p1y + d2y;
+                cz = p1z + d2z;
+                nx = a2x;
+                ny = a2y;
+                nz = a2z;
+            }
+            else {
+                cx = p1x - d2x;
+                cy = p1y - d2y;
+                cz = p1z - d2z;
+                nx = -a2x;
+                ny = -a2y;
+                nz = -a2z;
+            }
+            s1x = d1x;
+            s1y = d1y;
+            s1z = d1z;
+            n1x = -a1x;
+            n1y = -a1y;
+            n1z = -a1z;
+            s2x = d3x;
+            s2y = d3y;
+            s2z = d3z;
+            n2x = -a3x;
+            n2y = -a3y;
+            n2z = -a3z;
+        }
+        else if (minIndex == 2) { // b1.z * b2
+            if (right) {
+                cx = p1x + d3x;
+                cy = p1y + d3y;
+                cz = p1z + d3z;
+                nx = a3x;
+                ny = a3y;
+                nz = a3z;
+            }
+            else {
+                cx = p1x - d3x;
+                cy = p1y - d3y;
+                cz = p1z - d3z;
+                nx = -a3x;
+                ny = -a3y;
+                nz = -a3z;
+            }
+            s1x = d1x;
+            s1y = d1y;
+            s1z = d1z;
+            n1x = -a1x;
+            n1y = -a1y;
+            n1z = -a1z;
+            s2x = d2x;
+            s2y = d2y;
+            s2z = d2z;
+            n2x = -a2x;
+            n2y = -a2y;
+            n2z = -a2z;
+        }
+        else if (minIndex == 3) { // b2.x * b1
+            swap = true;
+            if (!right) {
+                cx = p2x + d4x;
+                cy = p2y + d4y;
+                cz = p2z + d4z;
+                nx = a4x;
+                ny = a4y;
+                nz = a4z;
+            }
+            else {
+                cx = p2x - d4x;
+                cy = p2y - d4y;
+                cz = p2z - d4z;
+                nx = -a4x;
+                ny = -a4y;
+                nz = -a4z;
+            }
+            s1x = d5x;
+            s1y = d5y;
+            s1z = d5z;
+            n1x = -a5x;
+            n1y = -a5y;
+            n1z = -a5z;
+            s2x = d6x;
+            s2y = d6y;
+            s2z = d6z;
+            n2x = -a6x;
+            n2y = -a6y;
+            n2z = -a6z;
+        }
+        else if (minIndex == 4) { // b2.y * b1
+            swap = true;
+            if (!right) {
+                cx = p2x + d5x;
+                cy = p2y + d5y;
+                cz = p2z + d5z;
+                nx = a5x;
+                ny = a5y;
+                nz = a5z;
+            }
+            else {
+                cx = p2x - d5x;
+                cy = p2y - d5y;
+                cz = p2z - d5z;
+                nx = -a5x;
+                ny = -a5y;
+                nz = -a5z;
+            }
+            s1x = d4x;
+            s1y = d4y;
+            s1z = d4z;
+            n1x = -a4x;
+            n1y = -a4y;
+            n1z = -a4z;
+            s2x = d6x;
+            s2y = d6y;
+            s2z = d6z;
+            n2x = -a6x;
+            n2y = -a6y;
+            n2z = -a6z;
+        }
+        else if (minIndex == 5) { // b2.z * b1
+            swap = true;
+            if (!right) {
+                cx = p2x + d6x;
+                cy = p2y + d6y;
+                cz = p2z + d6z;
+                nx = a6x;
+                ny = a6y;
+                nz = a6z;
+            }
+            else {
+                cx = p2x - d6x;
+                cy = p2y - d6y;
+                cz = p2z - d6z;
+                nx = -a6x;
+                ny = -a6y;
+                nz = -a6z;
+            }
+            s1x = d4x;
+            s1y = d4y;
+            s1z = d4z;
+            n1x = -a4x;
+            n1y = -a4y;
+            n1z = -a4z;
+            s2x = d5x;
+            s2y = d5y;
+            s2z = d5z;
+            n2x = -a5x;
+            n2y = -a5y;
+            n2z = -a5z;
+        }
+        else if (minIndex == 6) { // b1.x * b2.x
+            nx = a7x;
+            ny = a7y;
+            nz = a7z;
+            n1x = a1x;
+            n1y = a1y;
+            n1z = a1z;
+            n2x = a4x;
+            n2y = a4y;
+            n2z = a4z;
+        }
+        else if (minIndex == 7) { // b1.x * b2.y
+            nx = a8x;
+            ny = a8y;
+            nz = a8z;
+            n1x = a1x;
+            n1y = a1y;
+            n1z = a1z;
+            n2x = a5x;
+            n2y = a5y;
+            n2z = a5z;
+        }
+        else if (minIndex == 8) { // b1.x * b2.z
+            nx = a9x;
+            ny = a9y;
+            nz = a9z;
+            n1x = a1x;
+            n1y = a1y;
+            n1z = a1z;
+            n2x = a6x;
+            n2y = a6y;
+            n2z = a6z;
+        }
+        else if (minIndex == 9) { // b1.y * b2.x
+            nx = aax;
+            ny = aay;
+            nz = aaz;
+            n1x = a2x;
+            n1y = a2y;
+            n1z = a2z;
+            n2x = a4x;
+            n2y = a4y;
+            n2z = a4z;
+        }
+        else if (minIndex == 10) { // b1.y * b2.y
+            nx = abx;
+            ny = aby;
+            nz = abz;
+            n1x = a2x;
+            n1y = a2y;
+            n1z = a2z;
+            n2x = a5x;
+            n2y = a5y;
+            n2z = a5z;
+        }
+        else if (minIndex == 11) { // b1.y * b2.z
+            nx = acx;
+            ny = acy;
+            nz = acz;
+            n1x = a2x;
+            n1y = a2y;
+            n1z = a2z;
+            n2x = a6x;
+            n2y = a6y;
+            n2z = a6z;
+        }
+        else if (minIndex == 12) { // b1.z * b2.x
+            nx = adx;
+            ny = ady;
+            nz = adz;
+            n1x = a3x;
+            n1y = a3y;
+            n1z = a3z;
+            n2x = a4x;
+            n2y = a4y;
+            n2z = a4z;
+        }
+        else if (minIndex == 13) { // b1.z * b2.y
+            nx = aex;
+            ny = aey;
+            nz = aez;
+            n1x = a3x;
+            n1y = a3y;
+            n1z = a3z;
+            n2x = a5x;
+            n2y = a5y;
+            n2z = a5z;
+        }
+        else if (minIndex == 14) { // b1.z * b2.z
+            nx = afx;
+            ny = afy;
+            nz = afz;
+            n1x = a3x;
+            n1y = a3y;
+            n1z = a3z;
+            n2x = a6x;
+            n2y = a6y;
+            n2z = a6z;
+        }
+        //__________________________________________
+        //var v;
+        if (minIndex > 5) {
+            if (!right) {
+                nx = -nx;
+                ny = -ny;
+                nz = -nz;
+            }
+            var distance;
+            var maxDistance;
+            var vx;
+            var vy;
+            var vz;
+            var v1x;
+            var v1y;
+            var v1z;
+            var v2x;
+            var v2y;
+            var v2z;
+            //vertex1;
+            v1x = V1[0];
+            v1y = V1[1];
+            v1z = V1[2];
+            maxDistance = nx * v1x + ny * v1y + nz * v1z;
+            //vertex2;
+            vx = V1[3];
+            vy = V1[4];
+            vz = V1[5];
+            distance = nx * vx + ny * vy + nz * vz;
+            if (distance > maxDistance) {
+                maxDistance = distance;
+                v1x = vx;
+                v1y = vy;
+                v1z = vz;
+            }
+            //vertex3;
+            vx = V1[6];
+            vy = V1[7];
+            vz = V1[8];
+            distance = nx * vx + ny * vy + nz * vz;
+            if (distance > maxDistance) {
+                maxDistance = distance;
+                v1x = vx;
+                v1y = vy;
+                v1z = vz;
+            }
+            //vertex4;
+            vx = V1[9];
+            vy = V1[10];
+            vz = V1[11];
+            distance = nx * vx + ny * vy + nz * vz;
+            if (distance > maxDistance) {
+                maxDistance = distance;
+                v1x = vx;
+                v1y = vy;
+                v1z = vz;
+            }
+            //vertex5;
+            vx = V1[12];
+            vy = V1[13];
+            vz = V1[14];
+            distance = nx * vx + ny * vy + nz * vz;
+            if (distance > maxDistance) {
+                maxDistance = distance;
+                v1x = vx;
+                v1y = vy;
+                v1z = vz;
+            }
+            //vertex6;
+            vx = V1[15];
+            vy = V1[16];
+            vz = V1[17];
+            distance = nx * vx + ny * vy + nz * vz;
+            if (distance > maxDistance) {
+                maxDistance = distance;
+                v1x = vx;
+                v1y = vy;
+                v1z = vz;
+            }
+            //vertex7;
+            vx = V1[18];
+            vy = V1[19];
+            vz = V1[20];
+            distance = nx * vx + ny * vy + nz * vz;
+            if (distance > maxDistance) {
+                maxDistance = distance;
+                v1x = vx;
+                v1y = vy;
+                v1z = vz;
+            }
+            //vertex8;
+            vx = V1[21];
+            vy = V1[22];
+            vz = V1[23];
+            distance = nx * vx + ny * vy + nz * vz;
+            if (distance > maxDistance) {
+                maxDistance = distance;
+                v1x = vx;
+                v1y = vy;
+                v1z = vz;
+            }
+            //vertex1;
+            v2x = V2[0];
+            v2y = V2[1];
+            v2z = V2[2];
+            maxDistance = nx * v2x + ny * v2y + nz * v2z;
+            //vertex2;
+            vx = V2[3];
+            vy = V2[4];
+            vz = V2[5];
+            distance = nx * vx + ny * vy + nz * vz;
+            if (distance < maxDistance) {
+                maxDistance = distance;
+                v2x = vx;
+                v2y = vy;
+                v2z = vz;
+            }
+            //vertex3;
+            vx = V2[6];
+            vy = V2[7];
+            vz = V2[8];
+            distance = nx * vx + ny * vy + nz * vz;
+            if (distance < maxDistance) {
+                maxDistance = distance;
+                v2x = vx;
+                v2y = vy;
+                v2z = vz;
+            }
+            //vertex4;
+            vx = V2[9];
+            vy = V2[10];
+            vz = V2[11];
+            distance = nx * vx + ny * vy + nz * vz;
+            if (distance < maxDistance) {
+                maxDistance = distance;
+                v2x = vx;
+                v2y = vy;
+                v2z = vz;
+            }
+            //vertex5;
+            vx = V2[12];
+            vy = V2[13];
+            vz = V2[14];
+            distance = nx * vx + ny * vy + nz * vz;
+            if (distance < maxDistance) {
+                maxDistance = distance;
+                v2x = vx;
+                v2y = vy;
+                v2z = vz;
+            }
+            //vertex6;
+            vx = V2[15];
+            vy = V2[16];
+            vz = V2[17];
+            distance = nx * vx + ny * vy + nz * vz;
+            if (distance < maxDistance) {
+                maxDistance = distance;
+                v2x = vx;
+                v2y = vy;
+                v2z = vz;
+            }
+            //vertex7;
+            vx = V2[18];
+            vy = V2[19];
+            vz = V2[20];
+            distance = nx * vx + ny * vy + nz * vz;
+            if (distance < maxDistance) {
+                maxDistance = distance;
+                v2x = vx;
+                v2y = vy;
+                v2z = vz;
+            }
+            //vertex8;
+            vx = V2[21];
+            vy = V2[22];
+            vz = V2[23];
+            distance = nx * vx + ny * vy + nz * vz;
+            if (distance < maxDistance) {
+                maxDistance = distance;
+                v2x = vx;
+                v2y = vy;
+                v2z = vz;
+            }
+            vx = v2x - v1x;
+            vy = v2y - v1y;
+            vz = v2z - v1z;
+            dot1 = n1x * n2x + n1y * n2y + n1z * n2z;
+            var t = (vx * (n1x - n2x * dot1) + vy * (n1y - n2y * dot1) + vz * (n1z - n2z * dot1)) / (1 - dot1 * dot1);
+            manifold.addPoint(v1x + n1x * t + nx * depth * 0.5, v1y + n1y * t + ny * depth * 0.5, v1z + n1z * t + nz * depth * 0.5, nx, ny, nz, depth, false);
+            return;
+        }
+        // now detect face-face collision...
+        // target quad
+        var q1x;
+        var q1y;
+        var q1z;
+        var q2x;
+        var q2y;
+        var q2z;
+        var q3x;
+        var q3y;
+        var q3z;
+        var q4x;
+        var q4y;
+        var q4z;
+        // search support face and vertex
+        var minDot = 1;
+        var dot = 0;
+        var minDotIndex = 0;
+        if (swap) {
+            dot = a1x * nx + a1y * ny + a1z * nz;
+            if (dot < minDot) {
+                minDot = dot;
+                minDotIndex = 0;
+            }
+            if (-dot < minDot) {
+                minDot = -dot;
+                minDotIndex = 1;
+            }
+            dot = a2x * nx + a2y * ny + a2z * nz;
+            if (dot < minDot) {
+                minDot = dot;
+                minDotIndex = 2;
+            }
+            if (-dot < minDot) {
+                minDot = -dot;
+                minDotIndex = 3;
+            }
+            dot = a3x * nx + a3y * ny + a3z * nz;
+            if (dot < minDot) {
+                minDot = dot;
+                minDotIndex = 4;
+            }
+            if (-dot < minDot) {
+                minDot = -dot;
+                minDotIndex = 5;
+            }
+            if (minDotIndex == 0) { // x+ face
+                q1x = V1[0];
+                q1y = V1[1];
+                q1z = V1[2]; //vertex1
+                q2x = V1[6];
+                q2y = V1[7];
+                q2z = V1[8]; //vertex3
+                q3x = V1[9];
+                q3y = V1[10];
+                q3z = V1[11]; //vertex4
+                q4x = V1[3];
+                q4y = V1[4];
+                q4z = V1[5]; //vertex2
+            }
+            else if (minDotIndex == 1) { // x- face
+                q1x = V1[15];
+                q1y = V1[16];
+                q1z = V1[17]; //vertex6
+                q2x = V1[21];
+                q2y = V1[22];
+                q2z = V1[23]; //vertex8
+                q3x = V1[18];
+                q3y = V1[19];
+                q3z = V1[20]; //vertex7
+                q4x = V1[12];
+                q4y = V1[13];
+                q4z = V1[14]; //vertex5
+            }
+            else if (minDotIndex == 2) { // y+ face
+                q1x = V1[12];
+                q1y = V1[13];
+                q1z = V1[14]; //vertex5
+                q2x = V1[0];
+                q2y = V1[1];
+                q2z = V1[2]; //vertex1
+                q3x = V1[3];
+                q3y = V1[4];
+                q3z = V1[5]; //vertex2
+                q4x = V1[15];
+                q4y = V1[16];
+                q4z = V1[17]; //vertex6
+            }
+            else if (minDotIndex == 3) { // y- face
+                q1x = V1[21];
+                q1y = V1[22];
+                q1z = V1[23]; //vertex8
+                q2x = V1[9];
+                q2y = V1[10];
+                q2z = V1[11]; //vertex4
+                q3x = V1[6];
+                q3y = V1[7];
+                q3z = V1[8]; //vertex3
+                q4x = V1[18];
+                q4y = V1[19];
+                q4z = V1[20]; //vertex7
+            }
+            else if (minDotIndex == 4) { // z+ face
+                q1x = V1[12];
+                q1y = V1[13];
+                q1z = V1[14]; //vertex5
+                q2x = V1[18];
+                q2y = V1[19];
+                q2z = V1[20]; //vertex7
+                q3x = V1[6];
+                q3y = V1[7];
+                q3z = V1[8]; //vertex3
+                q4x = V1[0];
+                q4y = V1[1];
+                q4z = V1[2]; //vertex1
+            }
+            else if (minDotIndex == 5) { // z- face
+                q1x = V1[3];
+                q1y = V1[4];
+                q1z = V1[5]; //vertex2
+                //2x=V1[6]; q2y=V1[7]; q2z=V1[8];//vertex4 !!!
+                q2x = V2[9];
+                q2y = V2[10];
+                q2z = V2[11]; //vertex4
+                q3x = V1[21];
+                q3y = V1[22];
+                q3z = V1[23]; //vertex8
+                q4x = V1[15];
+                q4y = V1[16];
+                q4z = V1[17]; //vertex6
+            }
+        }
+        else {
+            dot = a4x * nx + a4y * ny + a4z * nz;
+            if (dot < minDot) {
+                minDot = dot;
+                minDotIndex = 0;
+            }
+            if (-dot < minDot) {
+                minDot = -dot;
+                minDotIndex = 1;
+            }
+            dot = a5x * nx + a5y * ny + a5z * nz;
+            if (dot < minDot) {
+                minDot = dot;
+                minDotIndex = 2;
+            }
+            if (-dot < minDot) {
+                minDot = -dot;
+                minDotIndex = 3;
+            }
+            dot = a6x * nx + a6y * ny + a6z * nz;
+            if (dot < minDot) {
+                minDot = dot;
+                minDotIndex = 4;
+            }
+            if (-dot < minDot) {
+                minDot = -dot;
+                minDotIndex = 5;
+            }
+            //______________________________________________________
+            if (minDotIndex == 0) { // x+ face
+                q1x = V2[0];
+                q1y = V2[1];
+                q1z = V2[2]; //vertex1
+                q2x = V2[6];
+                q2y = V2[7];
+                q2z = V2[8]; //vertex3
+                q3x = V2[9];
+                q3y = V2[10];
+                q3z = V2[11]; //vertex4
+                q4x = V2[3];
+                q4y = V2[4];
+                q4z = V2[5]; //vertex2
+            }
+            else if (minDotIndex == 1) { // x- face
+                q1x = V2[15];
+                q1y = V2[16];
+                q1z = V2[17]; //vertex6
+                q2x = V2[21];
+                q2y = V2[22];
+                q2z = V2[23]; //vertex8
+                q3x = V2[18];
+                q3y = V2[19];
+                q3z = V2[20]; //vertex7
+                q4x = V2[12];
+                q4y = V2[13];
+                q4z = V2[14]; //vertex5
+            }
+            else if (minDotIndex == 2) { // y+ face
+                q1x = V2[12];
+                q1y = V2[13];
+                q1z = V2[14]; //vertex5
+                q2x = V2[0];
+                q2y = V2[1];
+                q2z = V2[2]; //vertex1
+                q3x = V2[3];
+                q3y = V2[4];
+                q3z = V2[5]; //vertex2
+                q4x = V2[15];
+                q4y = V2[16];
+                q4z = V2[17]; //vertex6
+            }
+            else if (minDotIndex == 3) { // y- face
+                q1x = V2[21];
+                q1y = V2[22];
+                q1z = V2[23]; //vertex8
+                q2x = V2[9];
+                q2y = V2[10];
+                q2z = V2[11]; //vertex4
+                q3x = V2[6];
+                q3y = V2[7];
+                q3z = V2[8]; //vertex3
+                q4x = V2[18];
+                q4y = V2[19];
+                q4z = V2[20]; //vertex7
+            }
+            else if (minDotIndex == 4) { // z+ face
+                q1x = V2[12];
+                q1y = V2[13];
+                q1z = V2[14]; //vertex5
+                q2x = V2[18];
+                q2y = V2[19];
+                q2z = V2[20]; //vertex7
+                q3x = V2[6];
+                q3y = V2[7];
+                q3z = V2[8]; //vertex3
+                q4x = V2[0];
+                q4y = V2[1];
+                q4z = V2[2]; //vertex1
+            }
+            else if (minDotIndex == 5) { // z- face
+                q1x = V2[3];
+                q1y = V2[4];
+                q1z = V2[5]; //vertex2
+                q2x = V2[9];
+                q2y = V2[10];
+                q2z = V2[11]; //vertex4
+                q3x = V2[21];
+                q3y = V2[22];
+                q3z = V2[23]; //vertex8
+                q4x = V2[15];
+                q4y = V2[16];
+                q4z = V2[17]; //vertex6
+            }
+        }
+        // clip vertices
+        var numClipVertices;
+        var numAddedClipVertices;
+        var index;
+        var x1;
+        var y1;
+        var z1;
+        var x2;
+        var y2;
+        var z2;
+        this.clipVertices1[0] = q1x;
+        this.clipVertices1[1] = q1y;
+        this.clipVertices1[2] = q1z;
+        this.clipVertices1[3] = q2x;
+        this.clipVertices1[4] = q2y;
+        this.clipVertices1[5] = q2z;
+        this.clipVertices1[6] = q3x;
+        this.clipVertices1[7] = q3y;
+        this.clipVertices1[8] = q3z;
+        this.clipVertices1[9] = q4x;
+        this.clipVertices1[10] = q4y;
+        this.clipVertices1[11] = q4z;
+        numAddedClipVertices = 0;
+        x1 = this.clipVertices1[9];
+        y1 = this.clipVertices1[10];
+        z1 = this.clipVertices1[11];
+        dot1 = (x1 - cx - s1x) * n1x + (y1 - cy - s1y) * n1y + (z1 - cz - s1z) * n1z;
+        //var i = 4;
+        //while(i--){
+        for (var i = 0; i < 4; i++) {
+            index = i * 3;
+            x2 = this.clipVertices1[index];
+            y2 = this.clipVertices1[index + 1];
+            z2 = this.clipVertices1[index + 2];
+            dot2 = (x2 - cx - s1x) * n1x + (y2 - cy - s1y) * n1y + (z2 - cz - s1z) * n1z;
+            if (dot1 > 0) {
+                if (dot2 > 0) {
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    this.clipVertices2[index] = x2;
+                    this.clipVertices2[index + 1] = y2;
+                    this.clipVertices2[index + 2] = z2;
+                }
+                else {
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    t = dot1 / (dot1 - dot2);
+                    this.clipVertices2[index] = x1 + (x2 - x1) * t;
+                    this.clipVertices2[index + 1] = y1 + (y2 - y1) * t;
+                    this.clipVertices2[index + 2] = z1 + (z2 - z1) * t;
+                }
+            }
+            else {
+                if (dot2 > 0) {
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    t = dot1 / (dot1 - dot2);
+                    this.clipVertices2[index] = x1 + (x2 - x1) * t;
+                    this.clipVertices2[index + 1] = y1 + (y2 - y1) * t;
+                    this.clipVertices2[index + 2] = z1 + (z2 - z1) * t;
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    this.clipVertices2[index] = x2;
+                    this.clipVertices2[index + 1] = y2;
+                    this.clipVertices2[index + 2] = z2;
+                }
+            }
+            x1 = x2;
+            y1 = y2;
+            z1 = z2;
+            dot1 = dot2;
+        }
+        numClipVertices = numAddedClipVertices;
+        if (numClipVertices == 0)
+            return;
+        numAddedClipVertices = 0;
+        index = (numClipVertices - 1) * 3;
+        x1 = this.clipVertices2[index];
+        y1 = this.clipVertices2[index + 1];
+        z1 = this.clipVertices2[index + 2];
+        dot1 = (x1 - cx - s2x) * n2x + (y1 - cy - s2y) * n2y + (z1 - cz - s2z) * n2z;
+        //i = numClipVertices;
+        //while(i--){
+        for (i = 0; i < numClipVertices; i++) {
+            index = i * 3;
+            x2 = this.clipVertices2[index];
+            y2 = this.clipVertices2[index + 1];
+            z2 = this.clipVertices2[index + 2];
+            dot2 = (x2 - cx - s2x) * n2x + (y2 - cy - s2y) * n2y + (z2 - cz - s2z) * n2z;
+            if (dot1 > 0) {
+                if (dot2 > 0) {
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    this.clipVertices1[index] = x2;
+                    this.clipVertices1[index + 1] = y2;
+                    this.clipVertices1[index + 2] = z2;
+                }
+                else {
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    t = dot1 / (dot1 - dot2);
+                    this.clipVertices1[index] = x1 + (x2 - x1) * t;
+                    this.clipVertices1[index + 1] = y1 + (y2 - y1) * t;
+                    this.clipVertices1[index + 2] = z1 + (z2 - z1) * t;
+                }
+            }
+            else {
+                if (dot2 > 0) {
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    t = dot1 / (dot1 - dot2);
+                    this.clipVertices1[index] = x1 + (x2 - x1) * t;
+                    this.clipVertices1[index + 1] = y1 + (y2 - y1) * t;
+                    this.clipVertices1[index + 2] = z1 + (z2 - z1) * t;
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    this.clipVertices1[index] = x2;
+                    this.clipVertices1[index + 1] = y2;
+                    this.clipVertices1[index + 2] = z2;
+                }
+            }
+            x1 = x2;
+            y1 = y2;
+            z1 = z2;
+            dot1 = dot2;
+        }
+        numClipVertices = numAddedClipVertices;
+        if (numClipVertices == 0)
+            return;
+        numAddedClipVertices = 0;
+        index = (numClipVertices - 1) * 3;
+        x1 = this.clipVertices1[index];
+        y1 = this.clipVertices1[index + 1];
+        z1 = this.clipVertices1[index + 2];
+        dot1 = (x1 - cx + s1x) * -n1x + (y1 - cy + s1y) * -n1y + (z1 - cz + s1z) * -n1z;
+        //i = numClipVertices;
+        //while(i--){
+        for (i = 0; i < numClipVertices; i++) {
+            index = i * 3;
+            x2 = this.clipVertices1[index];
+            y2 = this.clipVertices1[index + 1];
+            z2 = this.clipVertices1[index + 2];
+            dot2 = (x2 - cx + s1x) * -n1x + (y2 - cy + s1y) * -n1y + (z2 - cz + s1z) * -n1z;
+            if (dot1 > 0) {
+                if (dot2 > 0) {
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    this.clipVertices2[index] = x2;
+                    this.clipVertices2[index + 1] = y2;
+                    this.clipVertices2[index + 2] = z2;
+                }
+                else {
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    t = dot1 / (dot1 - dot2);
+                    this.clipVertices2[index] = x1 + (x2 - x1) * t;
+                    this.clipVertices2[index + 1] = y1 + (y2 - y1) * t;
+                    this.clipVertices2[index + 2] = z1 + (z2 - z1) * t;
+                }
+            }
+            else {
+                if (dot2 > 0) {
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    t = dot1 / (dot1 - dot2);
+                    this.clipVertices2[index] = x1 + (x2 - x1) * t;
+                    this.clipVertices2[index + 1] = y1 + (y2 - y1) * t;
+                    this.clipVertices2[index + 2] = z1 + (z2 - z1) * t;
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    this.clipVertices2[index] = x2;
+                    this.clipVertices2[index + 1] = y2;
+                    this.clipVertices2[index + 2] = z2;
+                }
+            }
+            x1 = x2;
+            y1 = y2;
+            z1 = z2;
+            dot1 = dot2;
+        }
+        numClipVertices = numAddedClipVertices;
+        if (numClipVertices == 0)
+            return;
+        numAddedClipVertices = 0;
+        index = (numClipVertices - 1) * 3;
+        x1 = this.clipVertices2[index];
+        y1 = this.clipVertices2[index + 1];
+        z1 = this.clipVertices2[index + 2];
+        dot1 = (x1 - cx + s2x) * -n2x + (y1 - cy + s2y) * -n2y + (z1 - cz + s2z) * -n2z;
+        //i = numClipVertices;
+        //while(i--){
+        for (i = 0; i < numClipVertices; i++) {
+            index = i * 3;
+            x2 = this.clipVertices2[index];
+            y2 = this.clipVertices2[index + 1];
+            z2 = this.clipVertices2[index + 2];
+            dot2 = (x2 - cx + s2x) * -n2x + (y2 - cy + s2y) * -n2y + (z2 - cz + s2z) * -n2z;
+            if (dot1 > 0) {
+                if (dot2 > 0) {
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    this.clipVertices1[index] = x2;
+                    this.clipVertices1[index + 1] = y2;
+                    this.clipVertices1[index + 2] = z2;
+                }
+                else {
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    t = dot1 / (dot1 - dot2);
+                    this.clipVertices1[index] = x1 + (x2 - x1) * t;
+                    this.clipVertices1[index + 1] = y1 + (y2 - y1) * t;
+                    this.clipVertices1[index + 2] = z1 + (z2 - z1) * t;
+                }
+            }
+            else {
+                if (dot2 > 0) {
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    t = dot1 / (dot1 - dot2);
+                    this.clipVertices1[index] = x1 + (x2 - x1) * t;
+                    this.clipVertices1[index + 1] = y1 + (y2 - y1) * t;
+                    this.clipVertices1[index + 2] = z1 + (z2 - z1) * t;
+                    index = numAddedClipVertices * 3;
+                    numAddedClipVertices++;
+                    this.clipVertices1[index] = x2;
+                    this.clipVertices1[index + 1] = y2;
+                    this.clipVertices1[index + 2] = z2;
+                }
+            }
+            x1 = x2;
+            y1 = y2;
+            z1 = z2;
+            dot1 = dot2;
+        }
+        numClipVertices = numAddedClipVertices;
+        if (swap) {
+            var tb = b1;
+            b1 = b2;
+            b2 = tb;
+        }
+        if (numClipVertices == 0)
+            return;
+        var flipped = b1 != shape1;
+        if (numClipVertices > 4) {
+            x1 = (q1x + q2x + q3x + q4x) * 0.25;
+            y1 = (q1y + q2y + q3y + q4y) * 0.25;
+            z1 = (q1z + q2z + q3z + q4z) * 0.25;
+            n1x = q1x - x1;
+            n1y = q1y - y1;
+            n1z = q1z - z1;
+            n2x = q2x - x1;
+            n2y = q2y - y1;
+            n2z = q2z - z1;
+            var index1 = 0;
+            var index2 = 0;
+            var index3 = 0;
+            var index4 = 0;
+            var maxDot = -this.INF;
+            minDot = this.INF;
+            //i = numClipVertices;
+            //while(i--){
+            for (i = 0; i < numClipVertices; i++) {
+                this.used[i] = false;
+                index = i * 3;
+                x1 = this.clipVertices1[index];
+                y1 = this.clipVertices1[index + 1];
+                z1 = this.clipVertices1[index + 2];
+                dot = x1 * n1x + y1 * n1y + z1 * n1z;
+                if (dot < minDot) {
+                    minDot = dot;
+                    index1 = i;
+                }
+                if (dot > maxDot) {
+                    maxDot = dot;
+                    index3 = i;
+                }
+            }
+            this.used[index1] = true;
+            this.used[index3] = true;
+            maxDot = -this.INF;
+            minDot = this.INF;
+            //i = numClipVertices;
+            //while(i--){
+            for (i = 0; i < numClipVertices; i++) {
+                if (this.used[i])
+                    continue;
+                index = i * 3;
+                x1 = this.clipVertices1[index];
+                y1 = this.clipVertices1[index + 1];
+                z1 = this.clipVertices1[index + 2];
+                dot = x1 * n2x + y1 * n2y + z1 * n2z;
+                if (dot < minDot) {
+                    minDot = dot;
+                    index2 = i;
+                }
+                if (dot > maxDot) {
+                    maxDot = dot;
+                    index4 = i;
+                }
+            }
+            index = index1 * 3;
+            x1 = this.clipVertices1[index];
+            y1 = this.clipVertices1[index + 1];
+            z1 = this.clipVertices1[index + 2];
+            dot = (x1 - cx) * nx + (y1 - cy) * ny + (z1 - cz) * nz;
+            if (dot < 0)
+                manifold.addPoint(x1, y1, z1, nx, ny, nz, dot, flipped);
+            index = index2 * 3;
+            x1 = this.clipVertices1[index];
+            y1 = this.clipVertices1[index + 1];
+            z1 = this.clipVertices1[index + 2];
+            dot = (x1 - cx) * nx + (y1 - cy) * ny + (z1 - cz) * nz;
+            if (dot < 0)
+                manifold.addPoint(x1, y1, z1, nx, ny, nz, dot, flipped);
+            index = index3 * 3;
+            x1 = this.clipVertices1[index];
+            y1 = this.clipVertices1[index + 1];
+            z1 = this.clipVertices1[index + 2];
+            dot = (x1 - cx) * nx + (y1 - cy) * ny + (z1 - cz) * nz;
+            if (dot < 0)
+                manifold.addPoint(x1, y1, z1, nx, ny, nz, dot, flipped);
+            index = index4 * 3;
+            x1 = this.clipVertices1[index];
+            y1 = this.clipVertices1[index + 1];
+            z1 = this.clipVertices1[index + 2];
+            dot = (x1 - cx) * nx + (y1 - cy) * ny + (z1 - cz) * nz;
+            if (dot < 0)
+                manifold.addPoint(x1, y1, z1, nx, ny, nz, dot, flipped);
+        }
+        else {
+            //i = numClipVertices;
+            //while(i--){
+            for (i = 0; i < numClipVertices; i++) {
+                index = i * 3;
+                x1 = this.clipVertices1[index];
+                y1 = this.clipVertices1[index + 1];
+                z1 = this.clipVertices1[index + 2];
+                dot = (x1 - cx) * nx + (y1 - cy) * ny + (z1 - cz) * nz;
+                if (dot < 0)
+                    manifold.addPoint(x1, y1, z1, nx, ny, nz, dot, flipped);
+            }
+        }
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/narrophase/BoxCylinderCollisionDetector.ts":
+/*!**********************************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/narrophase/BoxCylinderCollisionDetector.ts ***!
+  \**********************************************************************************/
+/*! exports provided: BoxCylinderCollisionDetector */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BoxCylinderCollisionDetector", function() { return BoxCylinderCollisionDetector; });
+/* harmony import */ var _CollisionDetector__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./CollisionDetector */ "./src/LTGame/3rd/oimo/collision/narrophase/CollisionDetector.ts");
+/* harmony import */ var _math_Vec3__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../math/Vec3 */ "./src/LTGame/3rd/oimo/math/Vec3.ts");
+
+
+class BoxCylinderCollisionDetector extends _CollisionDetector__WEBPACK_IMPORTED_MODULE_0__["CollisionDetector"] {
+    constructor(flip) {
+        super();
+        this.flip = flip;
+    }
+    getSep(c1, c2, sep, pos, dep) {
+        var t1x;
+        var t1y;
+        var t1z;
+        var t2x;
+        var t2y;
+        var t2z;
+        var sup = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        var len;
+        var p1x;
+        var p1y;
+        var p1z;
+        var p2x;
+        var p2y;
+        var p2z;
+        var v01x = c1.position.x;
+        var v01y = c1.position.y;
+        var v01z = c1.position.z;
+        var v02x = c2.position.x;
+        var v02y = c2.position.y;
+        var v02z = c2.position.z;
+        var v0x = v02x - v01x;
+        var v0y = v02y - v01y;
+        var v0z = v02z - v01z;
+        if (v0x * v0x + v0y * v0y + v0z * v0z == 0)
+            v0y = 0.001;
+        var nx = -v0x;
+        var ny = -v0y;
+        var nz = -v0z;
+        this.supportPointB(c1, -nx, -ny, -nz, sup);
+        var v11x = sup.x;
+        var v11y = sup.y;
+        var v11z = sup.z;
+        this.supportPointC(c2, nx, ny, nz, sup);
+        var v12x = sup.x;
+        var v12y = sup.y;
+        var v12z = sup.z;
+        var v1x = v12x - v11x;
+        var v1y = v12y - v11y;
+        var v1z = v12z - v11z;
+        if (v1x * nx + v1y * ny + v1z * nz <= 0) {
+            return false;
+        }
+        nx = v1y * v0z - v1z * v0y;
+        ny = v1z * v0x - v1x * v0z;
+        nz = v1x * v0y - v1y * v0x;
+        if (nx * nx + ny * ny + nz * nz == 0) {
+            sep.set(v1x - v0x, v1y - v0y, v1z - v0z).normalize();
+            pos.set((v11x + v12x) * 0.5, (v11y + v12y) * 0.5, (v11z + v12z) * 0.5);
+            return true;
+        }
+        this.supportPointB(c1, -nx, -ny, -nz, sup);
+        var v21x = sup.x;
+        var v21y = sup.y;
+        var v21z = sup.z;
+        this.supportPointC(c2, nx, ny, nz, sup);
+        var v22x = sup.x;
+        var v22y = sup.y;
+        var v22z = sup.z;
+        var v2x = v22x - v21x;
+        var v2y = v22y - v21y;
+        var v2z = v22z - v21z;
+        if (v2x * nx + v2y * ny + v2z * nz <= 0) {
+            return false;
+        }
+        t1x = v1x - v0x;
+        t1y = v1y - v0y;
+        t1z = v1z - v0z;
+        t2x = v2x - v0x;
+        t2y = v2y - v0y;
+        t2z = v2z - v0z;
+        nx = t1y * t2z - t1z * t2y;
+        ny = t1z * t2x - t1x * t2z;
+        nz = t1x * t2y - t1y * t2x;
+        if (nx * v0x + ny * v0y + nz * v0z > 0) {
+            t1x = v1x;
+            t1y = v1y;
+            t1z = v1z;
+            v1x = v2x;
+            v1y = v2y;
+            v1z = v2z;
+            v2x = t1x;
+            v2y = t1y;
+            v2z = t1z;
+            t1x = v11x;
+            t1y = v11y;
+            t1z = v11z;
+            v11x = v21x;
+            v11y = v21y;
+            v11z = v21z;
+            v21x = t1x;
+            v21y = t1y;
+            v21z = t1z;
+            t1x = v12x;
+            t1y = v12y;
+            t1z = v12z;
+            v12x = v22x;
+            v12y = v22y;
+            v12z = v22z;
+            v22x = t1x;
+            v22y = t1y;
+            v22z = t1z;
+            nx = -nx;
+            ny = -ny;
+            nz = -nz;
+        }
+        var iterations = 0;
+        while (true) {
+            if (++iterations > 100) {
+                return false;
+            }
+            this.supportPointB(c1, -nx, -ny, -nz, sup);
+            var v31x = sup.x;
+            var v31y = sup.y;
+            var v31z = sup.z;
+            this.supportPointC(c2, nx, ny, nz, sup);
+            var v32x = sup.x;
+            var v32y = sup.y;
+            var v32z = sup.z;
+            var v3x = v32x - v31x;
+            var v3y = v32y - v31y;
+            var v3z = v32z - v31z;
+            if (v3x * nx + v3y * ny + v3z * nz <= 0) {
+                return false;
+            }
+            if ((v1y * v3z - v1z * v3y) * v0x + (v1z * v3x - v1x * v3z) * v0y + (v1x * v3y - v1y * v3x) * v0z < 0) {
+                v2x = v3x;
+                v2y = v3y;
+                v2z = v3z;
+                v21x = v31x;
+                v21y = v31y;
+                v21z = v31z;
+                v22x = v32x;
+                v22y = v32y;
+                v22z = v32z;
+                t1x = v1x - v0x;
+                t1y = v1y - v0y;
+                t1z = v1z - v0z;
+                t2x = v3x - v0x;
+                t2y = v3y - v0y;
+                t2z = v3z - v0z;
+                nx = t1y * t2z - t1z * t2y;
+                ny = t1z * t2x - t1x * t2z;
+                nz = t1x * t2y - t1y * t2x;
+                continue;
+            }
+            if ((v3y * v2z - v3z * v2y) * v0x + (v3z * v2x - v3x * v2z) * v0y + (v3x * v2y - v3y * v2x) * v0z < 0) {
+                v1x = v3x;
+                v1y = v3y;
+                v1z = v3z;
+                v11x = v31x;
+                v11y = v31y;
+                v11z = v31z;
+                v12x = v32x;
+                v12y = v32y;
+                v12z = v32z;
+                t1x = v3x - v0x;
+                t1y = v3y - v0y;
+                t1z = v3z - v0z;
+                t2x = v2x - v0x;
+                t2y = v2y - v0y;
+                t2z = v2z - v0z;
+                nx = t1y * t2z - t1z * t2y;
+                ny = t1z * t2x - t1x * t2z;
+                nz = t1x * t2y - t1y * t2x;
+                continue;
+            }
+            var hit = false;
+            while (true) {
+                t1x = v2x - v1x;
+                t1y = v2y - v1y;
+                t1z = v2z - v1z;
+                t2x = v3x - v1x;
+                t2y = v3y - v1y;
+                t2z = v3z - v1z;
+                nx = t1y * t2z - t1z * t2y;
+                ny = t1z * t2x - t1x * t2z;
+                nz = t1x * t2y - t1y * t2x;
+                len = 1 / Math.sqrt(nx * nx + ny * ny + nz * nz);
+                nx *= len;
+                ny *= len;
+                nz *= len;
+                if (nx * v1x + ny * v1y + nz * v1z >= 0 && !hit) {
+                    var b0 = (v1y * v2z - v1z * v2y) * v3x + (v1z * v2x - v1x * v2z) * v3y + (v1x * v2y - v1y * v2x) * v3z;
+                    var b1 = (v3y * v2z - v3z * v2y) * v0x + (v3z * v2x - v3x * v2z) * v0y + (v3x * v2y - v3y * v2x) * v0z;
+                    var b2 = (v0y * v1z - v0z * v1y) * v3x + (v0z * v1x - v0x * v1z) * v3y + (v0x * v1y - v0y * v1x) * v3z;
+                    var b3 = (v2y * v1z - v2z * v1y) * v0x + (v2z * v1x - v2x * v1z) * v0y + (v2x * v1y - v2y * v1x) * v0z;
+                    var sum = b0 + b1 + b2 + b3;
+                    if (sum <= 0) {
+                        b0 = 0;
+                        b1 = (v2y * v3z - v2z * v3y) * nx + (v2z * v3x - v2x * v3z) * ny + (v2x * v3y - v2y * v3x) * nz;
+                        b2 = (v3y * v2z - v3z * v2y) * nx + (v3z * v2x - v3x * v2z) * ny + (v3x * v2y - v3y * v2x) * nz;
+                        b3 = (v1y * v2z - v1z * v2y) * nx + (v1z * v2x - v1x * v2z) * ny + (v1x * v2y - v1y * v2x) * nz;
+                        sum = b1 + b2 + b3;
+                    }
+                    var inv = 1 / sum;
+                    p1x = (v01x * b0 + v11x * b1 + v21x * b2 + v31x * b3) * inv;
+                    p1y = (v01y * b0 + v11y * b1 + v21y * b2 + v31y * b3) * inv;
+                    p1z = (v01z * b0 + v11z * b1 + v21z * b2 + v31z * b3) * inv;
+                    p2x = (v02x * b0 + v12x * b1 + v22x * b2 + v32x * b3) * inv;
+                    p2y = (v02y * b0 + v12y * b1 + v22y * b2 + v32y * b3) * inv;
+                    p2z = (v02z * b0 + v12z * b1 + v22z * b2 + v32z * b3) * inv;
+                    hit = true;
+                }
+                this.supportPointB(c1, -nx, -ny, -nz, sup);
+                var v41x = sup.x;
+                var v41y = sup.y;
+                var v41z = sup.z;
+                this.supportPointC(c2, nx, ny, nz, sup);
+                var v42x = sup.x;
+                var v42y = sup.y;
+                var v42z = sup.z;
+                var v4x = v42x - v41x;
+                var v4y = v42y - v41y;
+                var v4z = v42z - v41z;
+                var separation = -(v4x * nx + v4y * ny + v4z * nz);
+                if ((v4x - v3x) * nx + (v4y - v3y) * ny + (v4z - v3z) * nz <= 0.01 || separation >= 0) {
+                    if (hit) {
+                        sep.set(-nx, -ny, -nz);
+                        pos.set((p1x + p2x) * 0.5, (p1y + p2y) * 0.5, (p1z + p2z) * 0.5);
+                        dep.x = separation;
+                        return true;
+                    }
+                    return false;
+                }
+                if ((v4y * v1z - v4z * v1y) * v0x +
+                    (v4z * v1x - v4x * v1z) * v0y +
+                    (v4x * v1y - v4y * v1x) * v0z < 0) {
+                    if ((v4y * v2z - v4z * v2y) * v0x +
+                        (v4z * v2x - v4x * v2z) * v0y +
+                        (v4x * v2y - v4y * v2x) * v0z < 0) {
+                        v1x = v4x;
+                        v1y = v4y;
+                        v1z = v4z;
+                        v11x = v41x;
+                        v11y = v41y;
+                        v11z = v41z;
+                        v12x = v42x;
+                        v12y = v42y;
+                        v12z = v42z;
+                    }
+                    else {
+                        v3x = v4x;
+                        v3y = v4y;
+                        v3z = v4z;
+                        v31x = v41x;
+                        v31y = v41y;
+                        v31z = v41z;
+                        v32x = v42x;
+                        v32y = v42y;
+                        v32z = v42z;
+                    }
+                }
+                else {
+                    if ((v4y * v3z - v4z * v3y) * v0x +
+                        (v4z * v3x - v4x * v3z) * v0y +
+                        (v4x * v3y - v4y * v3x) * v0z < 0) {
+                        v2x = v4x;
+                        v2y = v4y;
+                        v2z = v4z;
+                        v21x = v41x;
+                        v21y = v41y;
+                        v21z = v41z;
+                        v22x = v42x;
+                        v22y = v42y;
+                        v22z = v42z;
+                    }
+                    else {
+                        v1x = v4x;
+                        v1y = v4y;
+                        v1z = v4z;
+                        v11x = v41x;
+                        v11y = v41y;
+                        v11z = v41z;
+                        v12x = v42x;
+                        v12y = v42y;
+                        v12z = v42z;
+                    }
+                }
+            }
+        }
+        //return false;
+    }
+    supportPointB(c, dx, dy, dz, out) {
+        var rot = c.rotation.elements;
+        var ldx = rot[0] * dx + rot[3] * dy + rot[6] * dz;
+        var ldy = rot[1] * dx + rot[4] * dy + rot[7] * dz;
+        var ldz = rot[2] * dx + rot[5] * dy + rot[8] * dz;
+        var w = c.halfWidth;
+        var h = c.halfHeight;
+        var d = c.halfDepth;
+        var ox;
+        var oy;
+        var oz;
+        if (ldx < 0)
+            ox = -w;
+        else
+            ox = w;
+        if (ldy < 0)
+            oy = -h;
+        else
+            oy = h;
+        if (ldz < 0)
+            oz = -d;
+        else
+            oz = d;
+        ldx = rot[0] * ox + rot[1] * oy + rot[2] * oz + c.position.x;
+        ldy = rot[3] * ox + rot[4] * oy + rot[5] * oz + c.position.y;
+        ldz = rot[6] * ox + rot[7] * oy + rot[8] * oz + c.position.z;
+        out.set(ldx, ldy, ldz);
+    }
+    supportPointC(c, dx, dy, dz, out) {
+        var rot = c.rotation.elements;
+        var ldx = rot[0] * dx + rot[3] * dy + rot[6] * dz;
+        var ldy = rot[1] * dx + rot[4] * dy + rot[7] * dz;
+        var ldz = rot[2] * dx + rot[5] * dy + rot[8] * dz;
+        var radx = ldx;
+        var radz = ldz;
+        var len = radx * radx + radz * radz;
+        var rad = c.radius;
+        var hh = c.halfHeight;
+        var ox;
+        var oy;
+        var oz;
+        if (len == 0) {
+            if (ldy < 0) {
+                ox = rad;
+                oy = -hh;
+                oz = 0;
+            }
+            else {
+                ox = rad;
+                oy = hh;
+                oz = 0;
+            }
+        }
+        else {
+            len = c.radius / Math.sqrt(len);
+            if (ldy < 0) {
+                ox = radx * len;
+                oy = -hh;
+                oz = radz * len;
+            }
+            else {
+                ox = radx * len;
+                oy = hh;
+                oz = radz * len;
+            }
+        }
+        ldx = rot[0] * ox + rot[1] * oy + rot[2] * oz + c.position.x;
+        ldy = rot[3] * ox + rot[4] * oy + rot[5] * oz + c.position.y;
+        ldz = rot[6] * ox + rot[7] * oy + rot[8] * oz + c.position.z;
+        out.set(ldx, ldy, ldz);
+    }
+    detectCollision(shape1, shape2, manifold) {
+        var b;
+        var c;
+        if (this.flip) {
+            b = shape2;
+            c = shape1;
+        }
+        else {
+            b = shape1;
+            c = shape2;
+        }
+        var sep = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        var pos = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        var dep = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        if (!this.getSep(b, c, sep, pos, dep))
+            return;
+        var pbx = b.position.x;
+        var pby = b.position.y;
+        var pbz = b.position.z;
+        var pcx = c.position.x;
+        var pcy = c.position.y;
+        var pcz = c.position.z;
+        var bw = b.halfWidth;
+        var bh = b.halfHeight;
+        var bd = b.halfDepth;
+        var ch = c.halfHeight;
+        var r = c.radius;
+        var D = b.dimentions;
+        var nwx = D[0]; //b.normalDirectionWidth.x;
+        var nwy = D[1]; //b.normalDirectionWidth.y;
+        var nwz = D[2]; //b.normalDirectionWidth.z;
+        var nhx = D[3]; //b.normalDirectionHeight.x;
+        var nhy = D[4]; //b.normalDirectionHeight.y;
+        var nhz = D[5]; //b.normalDirectionHeight.z;
+        var ndx = D[6]; //b.normalDirectionDepth.x;
+        var ndy = D[7]; //b.normalDirectionDepth.y;
+        var ndz = D[8]; //b.normalDirectionDepth.z;
+        var dwx = D[9]; //b.halfDirectionWidth.x;
+        var dwy = D[10]; //b.halfDirectionWidth.y;
+        var dwz = D[11]; //b.halfDirectionWidth.z;
+        var dhx = D[12]; //b.halfDirectionHeight.x;
+        var dhy = D[13]; //b.halfDirectionHeight.y;
+        var dhz = D[14]; //b.halfDirectionHeight.z;
+        var ddx = D[15]; //b.halfDirectionDepth.x;
+        var ddy = D[16]; //b.halfDirectionDepth.y;
+        var ddz = D[17]; //b.halfDirectionDepth.z;
+        var ncx = c.normalDirection.x;
+        var ncy = c.normalDirection.y;
+        var ncz = c.normalDirection.z;
+        var dcx = c.halfDirection.x;
+        var dcy = c.halfDirection.y;
+        var dcz = c.halfDirection.z;
+        var nx = sep.x;
+        var ny = sep.y;
+        var nz = sep.z;
+        var dotw = nx * nwx + ny * nwy + nz * nwz;
+        var doth = nx * nhx + ny * nhy + nz * nhz;
+        var dotd = nx * ndx + ny * ndy + nz * ndz;
+        var dotc = nx * ncx + ny * ncy + nz * ncz;
+        var right1 = dotw > 0;
+        var right2 = doth > 0;
+        var right3 = dotd > 0;
+        var right4 = dotc > 0;
+        if (!right1)
+            dotw = -dotw;
+        if (!right2)
+            doth = -doth;
+        if (!right3)
+            dotd = -dotd;
+        if (!right4)
+            dotc = -dotc;
+        var state = 0;
+        if (dotc > 0.999) {
+            if (dotw > 0.999) {
+                if (dotw > dotc)
+                    state = 1;
+                else
+                    state = 4;
+            }
+            else if (doth > 0.999) {
+                if (doth > dotc)
+                    state = 2;
+                else
+                    state = 4;
+            }
+            else if (dotd > 0.999) {
+                if (dotd > dotc)
+                    state = 3;
+                else
+                    state = 4;
+            }
+            else
+                state = 4;
+        }
+        else {
+            if (dotw > 0.999)
+                state = 1;
+            else if (doth > 0.999)
+                state = 2;
+            else if (dotd > 0.999)
+                state = 3;
+        }
+        var cbx;
+        var cby;
+        var cbz;
+        var ccx;
+        var ccy;
+        var ccz;
+        var r00;
+        var r01;
+        var r02;
+        var r10;
+        var r11;
+        var r12;
+        var r20;
+        var r21;
+        var r22;
+        var px;
+        var py;
+        var pz;
+        var pd;
+        var dot;
+        var len;
+        var tx;
+        var ty;
+        var tz;
+        var td;
+        var dx;
+        var dy;
+        var dz;
+        var d1x;
+        var d1y;
+        var d1z;
+        var d2x;
+        var d2y;
+        var d2z;
+        var sx;
+        var sy;
+        var sz;
+        var sd;
+        var ex;
+        var ey;
+        var ez;
+        var ed;
+        var dot1;
+        var dot2;
+        var t1;
+        var dir1x;
+        var dir1y;
+        var dir1z;
+        var dir2x;
+        var dir2y;
+        var dir2z;
+        var dir1l;
+        var dir2l;
+        if (state == 0) {
+            //manifold.addPoint(pos.x,pos.y,pos.z,nx,ny,nz,dep.x,b,c,0,0,false);
+            manifold.addPoint(pos.x, pos.y, pos.z, nx, ny, nz, dep.x, this.flip);
+        }
+        else if (state == 4) {
+            if (right4) {
+                ccx = pcx - dcx;
+                ccy = pcy - dcy;
+                ccz = pcz - dcz;
+                nx = -ncx;
+                ny = -ncy;
+                nz = -ncz;
+            }
+            else {
+                ccx = pcx + dcx;
+                ccy = pcy + dcy;
+                ccz = pcz + dcz;
+                nx = ncx;
+                ny = ncy;
+                nz = ncz;
+            }
+            var v1x;
+            var v1y;
+            var v1z;
+            var v2x;
+            var v2y;
+            var v2z;
+            var v3x;
+            var v3y;
+            var v3z;
+            var v4x;
+            var v4y;
+            var v4z;
+            dot = 1;
+            state = 0;
+            dot1 = nwx * nx + nwy * ny + nwz * nz;
+            if (dot1 < dot) {
+                dot = dot1;
+                state = 0;
+            }
+            if (-dot1 < dot) {
+                dot = -dot1;
+                state = 1;
+            }
+            dot1 = nhx * nx + nhy * ny + nhz * nz;
+            if (dot1 < dot) {
+                dot = dot1;
+                state = 2;
+            }
+            if (-dot1 < dot) {
+                dot = -dot1;
+                state = 3;
+            }
+            dot1 = ndx * nx + ndy * ny + ndz * nz;
+            if (dot1 < dot) {
+                dot = dot1;
+                state = 4;
+            }
+            if (-dot1 < dot) {
+                dot = -dot1;
+                state = 5;
+            }
+            var v = b.elements;
+            switch (state) {
+                case 0:
+                    //v=b.vertex1;
+                    v1x = v[0]; //v.x;
+                    v1y = v[1]; //v.y;
+                    v1z = v[2]; //v.z;
+                    //v=b.vertex3;
+                    v2x = v[6]; //v.x;
+                    v2y = v[7]; //v.y;
+                    v2z = v[8]; //v.z;
+                    //v=b.vertex4;
+                    v3x = v[9]; //v.x;
+                    v3y = v[10]; //v.y;
+                    v3z = v[11]; //v.z;
+                    //v=b.vertex2;
+                    v4x = v[3]; //v.x;
+                    v4y = v[4]; //v.y;
+                    v4z = v[5]; //v.z;
+                    break;
+                case 1:
+                    //v=b.vertex6;
+                    v1x = v[15]; //v.x;
+                    v1y = v[16]; //v.y;
+                    v1z = v[17]; //v.z;
+                    //v=b.vertex8;
+                    v2x = v[21]; //v.x;
+                    v2y = v[22]; //v.y;
+                    v2z = v[23]; //v.z;
+                    //v=b.vertex7;
+                    v3x = v[18]; //v.x;
+                    v3y = v[19]; //v.y;
+                    v3z = v[20]; //v.z;
+                    //v=b.vertex5;
+                    v4x = v[12]; //v.x;
+                    v4y = v[13]; //v.y;
+                    v4z = v[14]; //v.z;
+                    break;
+                case 2:
+                    //v=b.vertex5;
+                    v1x = v[12]; //v.x;
+                    v1y = v[13]; //v.y;
+                    v1z = v[14]; //v.z;
+                    //v=b.vertex1;
+                    v2x = v[0]; //v.x;
+                    v2y = v[1]; //v.y;
+                    v2z = v[2]; //v.z;
+                    //v=b.vertex2;
+                    v3x = v[3]; //v.x;
+                    v3y = v[4]; //v.y;
+                    v3z = v[5]; //v.z;
+                    //v=b.vertex6;
+                    v4x = v[15]; //v.x;
+                    v4y = v[16]; //v.y;
+                    v4z = v[17]; //v.z;
+                    break;
+                case 3:
+                    //v=b.vertex8;
+                    v1x = v[21]; //v.x;
+                    v1y = v[22]; //v.y;
+                    v1z = v[23]; //v.z;
+                    //v=b.vertex4;
+                    v2x = v[9]; //v.x;
+                    v2y = v[10]; //v.y;
+                    v2z = v[11]; //v.z;
+                    //v=b.vertex3;
+                    v3x = v[6]; //v.x;
+                    v3y = v[7]; //v.y;
+                    v3z = v[8]; //v.z;
+                    //v=b.vertex7;
+                    v4x = v[18]; //v.x;
+                    v4y = v[19]; //v.y;
+                    v4z = v[20]; //v.z;
+                    break;
+                case 4:
+                    //v=b.vertex5;
+                    v1x = v[12]; //v.x;
+                    v1y = v[13]; //v.y;
+                    v1z = v[14]; //v.z;
+                    //v=b.vertex7;
+                    v2x = v[18]; //v.x;
+                    v2y = v[19]; //v.y;
+                    v2z = v[20]; //v.z;
+                    //v=b.vertex3;
+                    v3x = v[6]; //v.x;
+                    v3y = v[7]; //v.y;
+                    v3z = v[8]; //v.z;
+                    //v=b.vertex1;
+                    v4x = v[0]; //v.x;
+                    v4y = v[1]; //v.y;
+                    v4z = v[2]; //v.z;
+                    break;
+                case 5:
+                    //v=b.vertex2;
+                    v1x = v[3]; //v.x;
+                    v1y = v[4]; //v.y;
+                    v1z = v[5]; //v.z;
+                    //v=b.vertex4;
+                    v2x = v[9]; //v.x;
+                    v2y = v[10]; //v.y;
+                    v2z = v[11]; //v.z;
+                    //v=b.vertex8;
+                    v3x = v[21]; //v.x;
+                    v3y = v[22]; //v.y;
+                    v3z = v[23]; //v.z;
+                    //v=b.vertex6;
+                    v4x = v[15]; //v.x;
+                    v4y = v[16]; //v.y;
+                    v4z = v[17]; //v.z;
+                    break;
+            }
+            pd = nx * (v1x - ccx) + ny * (v1y - ccy) + nz * (v1z - ccz);
+            if (pd <= 0)
+                manifold.addPoint(v1x, v1y, v1z, -nx, -ny, -nz, pd, this.flip);
+            pd = nx * (v2x - ccx) + ny * (v2y - ccy) + nz * (v2z - ccz);
+            if (pd <= 0)
+                manifold.addPoint(v2x, v2y, v2z, -nx, -ny, -nz, pd, this.flip);
+            pd = nx * (v3x - ccx) + ny * (v3y - ccy) + nz * (v3z - ccz);
+            if (pd <= 0)
+                manifold.addPoint(v3x, v3y, v3z, -nx, -ny, -nz, pd, this.flip);
+            pd = nx * (v4x - ccx) + ny * (v4y - ccy) + nz * (v4z - ccz);
+            if (pd <= 0)
+                manifold.addPoint(v4x, v4y, v4z, -nx, -ny, -nz, pd, this.flip);
+        }
+        else {
+            switch (state) {
+                case 1:
+                    if (right1) {
+                        cbx = pbx + dwx;
+                        cby = pby + dwy;
+                        cbz = pbz + dwz;
+                        nx = nwx;
+                        ny = nwy;
+                        nz = nwz;
+                    }
+                    else {
+                        cbx = pbx - dwx;
+                        cby = pby - dwy;
+                        cbz = pbz - dwz;
+                        nx = -nwx;
+                        ny = -nwy;
+                        nz = -nwz;
+                    }
+                    dir1x = nhx;
+                    dir1y = nhy;
+                    dir1z = nhz;
+                    dir1l = bh;
+                    dir2x = ndx;
+                    dir2y = ndy;
+                    dir2z = ndz;
+                    dir2l = bd;
+                    break;
+                case 2:
+                    if (right2) {
+                        cbx = pbx + dhx;
+                        cby = pby + dhy;
+                        cbz = pbz + dhz;
+                        nx = nhx;
+                        ny = nhy;
+                        nz = nhz;
+                    }
+                    else {
+                        cbx = pbx - dhx;
+                        cby = pby - dhy;
+                        cbz = pbz - dhz;
+                        nx = -nhx;
+                        ny = -nhy;
+                        nz = -nhz;
+                    }
+                    dir1x = nwx;
+                    dir1y = nwy;
+                    dir1z = nwz;
+                    dir1l = bw;
+                    dir2x = ndx;
+                    dir2y = ndy;
+                    dir2z = ndz;
+                    dir2l = bd;
+                    break;
+                case 3:
+                    if (right3) {
+                        cbx = pbx + ddx;
+                        cby = pby + ddy;
+                        cbz = pbz + ddz;
+                        nx = ndx;
+                        ny = ndy;
+                        nz = ndz;
+                    }
+                    else {
+                        cbx = pbx - ddx;
+                        cby = pby - ddy;
+                        cbz = pbz - ddz;
+                        nx = -ndx;
+                        ny = -ndy;
+                        nz = -ndz;
+                    }
+                    dir1x = nwx;
+                    dir1y = nwy;
+                    dir1z = nwz;
+                    dir1l = bw;
+                    dir2x = nhx;
+                    dir2y = nhy;
+                    dir2z = nhz;
+                    dir2l = bh;
+                    break;
+            }
+            dot = nx * ncx + ny * ncy + nz * ncz;
+            if (dot < 0)
+                len = ch;
+            else
+                len = -ch;
+            ccx = pcx + len * ncx;
+            ccy = pcy + len * ncy;
+            ccz = pcz + len * ncz;
+            if (dotc >= 0.999999) {
+                tx = -ny;
+                ty = nz;
+                tz = nx;
+            }
+            else {
+                tx = nx;
+                ty = ny;
+                tz = nz;
+            }
+            len = tx * ncx + ty * ncy + tz * ncz;
+            dx = len * ncx - tx;
+            dy = len * ncy - ty;
+            dz = len * ncz - tz;
+            len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (len == 0)
+                return;
+            len = r / len;
+            dx *= len;
+            dy *= len;
+            dz *= len;
+            tx = ccx + dx;
+            ty = ccy + dy;
+            tz = ccz + dz;
+            if (dot < -0.96 || dot > 0.96) {
+                r00 = ncx * ncx * 1.5 - 0.5;
+                r01 = ncx * ncy * 1.5 - ncz * 0.866025403;
+                r02 = ncx * ncz * 1.5 + ncy * 0.866025403;
+                r10 = ncy * ncx * 1.5 + ncz * 0.866025403;
+                r11 = ncy * ncy * 1.5 - 0.5;
+                r12 = ncy * ncz * 1.5 - ncx * 0.866025403;
+                r20 = ncz * ncx * 1.5 - ncy * 0.866025403;
+                r21 = ncz * ncy * 1.5 + ncx * 0.866025403;
+                r22 = ncz * ncz * 1.5 - 0.5;
+                px = tx;
+                py = ty;
+                pz = tz;
+                pd = nx * (px - cbx) + ny * (py - cby) + nz * (pz - cbz);
+                tx = px - pd * nx - cbx;
+                ty = py - pd * ny - cby;
+                tz = pz - pd * nz - cbz;
+                sd = dir1x * tx + dir1y * ty + dir1z * tz;
+                ed = dir2x * tx + dir2y * ty + dir2z * tz;
+                if (sd < -dir1l)
+                    sd = -dir1l;
+                else if (sd > dir1l)
+                    sd = dir1l;
+                if (ed < -dir2l)
+                    ed = -dir2l;
+                else if (ed > dir2l)
+                    ed = dir2l;
+                tx = sd * dir1x + ed * dir2x;
+                ty = sd * dir1y + ed * dir2y;
+                tz = sd * dir1z + ed * dir2z;
+                px = cbx + tx;
+                py = cby + ty;
+                pz = cbz + tz;
+                manifold.addPoint(px, py, pz, nx, ny, nz, pd, this.flip);
+                px = dx * r00 + dy * r01 + dz * r02;
+                py = dx * r10 + dy * r11 + dz * r12;
+                pz = dx * r20 + dy * r21 + dz * r22;
+                px = (dx = px) + ccx;
+                py = (dy = py) + ccy;
+                pz = (dz = pz) + ccz;
+                pd = nx * (px - cbx) + ny * (py - cby) + nz * (pz - cbz);
+                if (pd <= 0) {
+                    tx = px - pd * nx - cbx;
+                    ty = py - pd * ny - cby;
+                    tz = pz - pd * nz - cbz;
+                    sd = dir1x * tx + dir1y * ty + dir1z * tz;
+                    ed = dir2x * tx + dir2y * ty + dir2z * tz;
+                    if (sd < -dir1l)
+                        sd = -dir1l;
+                    else if (sd > dir1l)
+                        sd = dir1l;
+                    if (ed < -dir2l)
+                        ed = -dir2l;
+                    else if (ed > dir2l)
+                        ed = dir2l;
+                    tx = sd * dir1x + ed * dir2x;
+                    ty = sd * dir1y + ed * dir2y;
+                    tz = sd * dir1z + ed * dir2z;
+                    px = cbx + tx;
+                    py = cby + ty;
+                    pz = cbz + tz;
+                    //manifold.addPoint(px,py,pz,nx,ny,nz,pd,b,c,2,0,false);
+                    manifold.addPoint(px, py, pz, nx, ny, nz, pd, this.flip);
+                }
+                px = dx * r00 + dy * r01 + dz * r02;
+                py = dx * r10 + dy * r11 + dz * r12;
+                pz = dx * r20 + dy * r21 + dz * r22;
+                px = (dx = px) + ccx;
+                py = (dy = py) + ccy;
+                pz = (dz = pz) + ccz;
+                pd = nx * (px - cbx) + ny * (py - cby) + nz * (pz - cbz);
+                if (pd <= 0) {
+                    tx = px - pd * nx - cbx;
+                    ty = py - pd * ny - cby;
+                    tz = pz - pd * nz - cbz;
+                    sd = dir1x * tx + dir1y * ty + dir1z * tz;
+                    ed = dir2x * tx + dir2y * ty + dir2z * tz;
+                    if (sd < -dir1l)
+                        sd = -dir1l;
+                    else if (sd > dir1l)
+                        sd = dir1l;
+                    if (ed < -dir2l)
+                        ed = -dir2l;
+                    else if (ed > dir2l)
+                        ed = dir2l;
+                    tx = sd * dir1x + ed * dir2x;
+                    ty = sd * dir1y + ed * dir2y;
+                    tz = sd * dir1z + ed * dir2z;
+                    px = cbx + tx;
+                    py = cby + ty;
+                    pz = cbz + tz;
+                    //manifold.addPoint(px,py,pz,nx,ny,nz,pd,b,c,3,0,false);
+                    manifold.addPoint(px, py, pz, nx, ny, nz, pd, this.flip);
+                }
+            }
+            else {
+                sx = tx;
+                sy = ty;
+                sz = tz;
+                sd = nx * (sx - cbx) + ny * (sy - cby) + nz * (sz - cbz);
+                sx -= sd * nx;
+                sy -= sd * ny;
+                sz -= sd * nz;
+                if (dot > 0) {
+                    ex = tx + dcx * 2;
+                    ey = ty + dcy * 2;
+                    ez = tz + dcz * 2;
+                }
+                else {
+                    ex = tx - dcx * 2;
+                    ey = ty - dcy * 2;
+                    ez = tz - dcz * 2;
+                }
+                ed = nx * (ex - cbx) + ny * (ey - cby) + nz * (ez - cbz);
+                ex -= ed * nx;
+                ey -= ed * ny;
+                ez -= ed * nz;
+                d1x = sx - cbx;
+                d1y = sy - cby;
+                d1z = sz - cbz;
+                d2x = ex - cbx;
+                d2y = ey - cby;
+                d2z = ez - cbz;
+                tx = ex - sx;
+                ty = ey - sy;
+                tz = ez - sz;
+                td = ed - sd;
+                dotw = d1x * dir1x + d1y * dir1y + d1z * dir1z;
+                doth = d2x * dir1x + d2y * dir1y + d2z * dir1z;
+                dot1 = dotw - dir1l;
+                dot2 = doth - dir1l;
+                if (dot1 > 0) {
+                    if (dot2 > 0)
+                        return;
+                    t1 = dot1 / (dot1 - dot2);
+                    sx = sx + tx * t1;
+                    sy = sy + ty * t1;
+                    sz = sz + tz * t1;
+                    sd = sd + td * t1;
+                    d1x = sx - cbx;
+                    d1y = sy - cby;
+                    d1z = sz - cbz;
+                    dotw = d1x * dir1x + d1y * dir1y + d1z * dir1z;
+                    tx = ex - sx;
+                    ty = ey - sy;
+                    tz = ez - sz;
+                    td = ed - sd;
+                }
+                else if (dot2 > 0) {
+                    t1 = dot1 / (dot1 - dot2);
+                    ex = sx + tx * t1;
+                    ey = sy + ty * t1;
+                    ez = sz + tz * t1;
+                    ed = sd + td * t1;
+                    d2x = ex - cbx;
+                    d2y = ey - cby;
+                    d2z = ez - cbz;
+                    doth = d2x * dir1x + d2y * dir1y + d2z * dir1z;
+                    tx = ex - sx;
+                    ty = ey - sy;
+                    tz = ez - sz;
+                    td = ed - sd;
+                }
+                dot1 = dotw + dir1l;
+                dot2 = doth + dir1l;
+                if (dot1 < 0) {
+                    if (dot2 < 0)
+                        return;
+                    t1 = dot1 / (dot1 - dot2);
+                    sx = sx + tx * t1;
+                    sy = sy + ty * t1;
+                    sz = sz + tz * t1;
+                    sd = sd + td * t1;
+                    d1x = sx - cbx;
+                    d1y = sy - cby;
+                    d1z = sz - cbz;
+                    tx = ex - sx;
+                    ty = ey - sy;
+                    tz = ez - sz;
+                    td = ed - sd;
+                }
+                else if (dot2 < 0) {
+                    t1 = dot1 / (dot1 - dot2);
+                    ex = sx + tx * t1;
+                    ey = sy + ty * t1;
+                    ez = sz + tz * t1;
+                    ed = sd + td * t1;
+                    d2x = ex - cbx;
+                    d2y = ey - cby;
+                    d2z = ez - cbz;
+                    tx = ex - sx;
+                    ty = ey - sy;
+                    tz = ez - sz;
+                    td = ed - sd;
+                }
+                dotw = d1x * dir2x + d1y * dir2y + d1z * dir2z;
+                doth = d2x * dir2x + d2y * dir2y + d2z * dir2z;
+                dot1 = dotw - dir2l;
+                dot2 = doth - dir2l;
+                if (dot1 > 0) {
+                    if (dot2 > 0)
+                        return;
+                    t1 = dot1 / (dot1 - dot2);
+                    sx = sx + tx * t1;
+                    sy = sy + ty * t1;
+                    sz = sz + tz * t1;
+                    sd = sd + td * t1;
+                    d1x = sx - cbx;
+                    d1y = sy - cby;
+                    d1z = sz - cbz;
+                    dotw = d1x * dir2x + d1y * dir2y + d1z * dir2z;
+                    tx = ex - sx;
+                    ty = ey - sy;
+                    tz = ez - sz;
+                    td = ed - sd;
+                }
+                else if (dot2 > 0) {
+                    t1 = dot1 / (dot1 - dot2);
+                    ex = sx + tx * t1;
+                    ey = sy + ty * t1;
+                    ez = sz + tz * t1;
+                    ed = sd + td * t1;
+                    d2x = ex - cbx;
+                    d2y = ey - cby;
+                    d2z = ez - cbz;
+                    doth = d2x * dir2x + d2y * dir2y + d2z * dir2z;
+                    tx = ex - sx;
+                    ty = ey - sy;
+                    tz = ez - sz;
+                    td = ed - sd;
+                }
+                dot1 = dotw + dir2l;
+                dot2 = doth + dir2l;
+                if (dot1 < 0) {
+                    if (dot2 < 0)
+                        return;
+                    t1 = dot1 / (dot1 - dot2);
+                    sx = sx + tx * t1;
+                    sy = sy + ty * t1;
+                    sz = sz + tz * t1;
+                    sd = sd + td * t1;
+                }
+                else if (dot2 < 0) {
+                    t1 = dot1 / (dot1 - dot2);
+                    ex = sx + tx * t1;
+                    ey = sy + ty * t1;
+                    ez = sz + tz * t1;
+                    ed = sd + td * t1;
+                }
+                if (sd < 0) {
+                    //manifold.addPoint(sx,sy,sz,nx,ny,nz,sd,b,c,1,0,false);
+                    manifold.addPoint(sx, sy, sz, nx, ny, nz, sd, this.flip);
+                }
+                if (ed < 0) {
+                    //manifold.addPoint(ex,ey,ez,nx,ny,nz,ed,b,c,4,0,false);
+                    manifold.addPoint(ex, ey, ez, nx, ny, nz, ed, this.flip);
+                }
+            }
+        }
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/narrophase/CollisionDetector.ts":
+/*!***********************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/narrophase/CollisionDetector.ts ***!
+  \***********************************************************************/
+/*! exports provided: CollisionDetector */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CollisionDetector", function() { return CollisionDetector; });
+class CollisionDetector {
+    constructor() {
+        this.flip = false;
+    }
+    detectCollision(shape1, shape2, manifold) {
+        console.error("CollisionDetector", "Inheritance error.");
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/narrophase/CylinderCylinderCollisionDetector.ts":
+/*!***************************************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/narrophase/CylinderCylinderCollisionDetector.ts ***!
+  \***************************************************************************************/
+/*! exports provided: CylinderCylinderCollisionDetector */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CylinderCylinderCollisionDetector", function() { return CylinderCylinderCollisionDetector; });
+/* harmony import */ var _CollisionDetector__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./CollisionDetector */ "./src/LTGame/3rd/oimo/collision/narrophase/CollisionDetector.ts");
+/* harmony import */ var _math_Vec3__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../math/Vec3 */ "./src/LTGame/3rd/oimo/math/Vec3.ts");
+
+
+class CylinderCylinderCollisionDetector extends _CollisionDetector__WEBPACK_IMPORTED_MODULE_0__["CollisionDetector"] {
+    constructor() {
+        super();
+    }
+    getSep(c1, c2, sep, pos, dep) {
+        var t1x;
+        var t1y;
+        var t1z;
+        var t2x;
+        var t2y;
+        var t2z;
+        var sup = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        var len;
+        var p1x;
+        var p1y;
+        var p1z;
+        var p2x;
+        var p2y;
+        var p2z;
+        var v01x = c1.position.x;
+        var v01y = c1.position.y;
+        var v01z = c1.position.z;
+        var v02x = c2.position.x;
+        var v02y = c2.position.y;
+        var v02z = c2.position.z;
+        var v0x = v02x - v01x;
+        var v0y = v02y - v01y;
+        var v0z = v02z - v01z;
+        if (v0x * v0x + v0y * v0y + v0z * v0z == 0)
+            v0y = 0.001;
+        var nx = -v0x;
+        var ny = -v0y;
+        var nz = -v0z;
+        this.supportPoint(c1, -nx, -ny, -nz, sup);
+        var v11x = sup.x;
+        var v11y = sup.y;
+        var v11z = sup.z;
+        this.supportPoint(c2, nx, ny, nz, sup);
+        var v12x = sup.x;
+        var v12y = sup.y;
+        var v12z = sup.z;
+        var v1x = v12x - v11x;
+        var v1y = v12y - v11y;
+        var v1z = v12z - v11z;
+        if (v1x * nx + v1y * ny + v1z * nz <= 0) {
+            return false;
+        }
+        nx = v1y * v0z - v1z * v0y;
+        ny = v1z * v0x - v1x * v0z;
+        nz = v1x * v0y - v1y * v0x;
+        if (nx * nx + ny * ny + nz * nz == 0) {
+            sep.set(v1x - v0x, v1y - v0y, v1z - v0z).normalize();
+            pos.set((v11x + v12x) * 0.5, (v11y + v12y) * 0.5, (v11z + v12z) * 0.5);
+            return true;
+        }
+        this.supportPoint(c1, -nx, -ny, -nz, sup);
+        var v21x = sup.x;
+        var v21y = sup.y;
+        var v21z = sup.z;
+        this.supportPoint(c2, nx, ny, nz, sup);
+        var v22x = sup.x;
+        var v22y = sup.y;
+        var v22z = sup.z;
+        var v2x = v22x - v21x;
+        var v2y = v22y - v21y;
+        var v2z = v22z - v21z;
+        if (v2x * nx + v2y * ny + v2z * nz <= 0) {
+            return false;
+        }
+        t1x = v1x - v0x;
+        t1y = v1y - v0y;
+        t1z = v1z - v0z;
+        t2x = v2x - v0x;
+        t2y = v2y - v0y;
+        t2z = v2z - v0z;
+        nx = t1y * t2z - t1z * t2y;
+        ny = t1z * t2x - t1x * t2z;
+        nz = t1x * t2y - t1y * t2x;
+        if (nx * v0x + ny * v0y + nz * v0z > 0) {
+            t1x = v1x;
+            t1y = v1y;
+            t1z = v1z;
+            v1x = v2x;
+            v1y = v2y;
+            v1z = v2z;
+            v2x = t1x;
+            v2y = t1y;
+            v2z = t1z;
+            t1x = v11x;
+            t1y = v11y;
+            t1z = v11z;
+            v11x = v21x;
+            v11y = v21y;
+            v11z = v21z;
+            v21x = t1x;
+            v21y = t1y;
+            v21z = t1z;
+            t1x = v12x;
+            t1y = v12y;
+            t1z = v12z;
+            v12x = v22x;
+            v12y = v22y;
+            v12z = v22z;
+            v22x = t1x;
+            v22y = t1y;
+            v22z = t1z;
+            nx = -nx;
+            ny = -ny;
+            nz = -nz;
+        }
+        var iterations = 0;
+        while (true) {
+            if (++iterations > 100) {
+                return false;
+            }
+            this.supportPoint(c1, -nx, -ny, -nz, sup);
+            var v31x = sup.x;
+            var v31y = sup.y;
+            var v31z = sup.z;
+            this.supportPoint(c2, nx, ny, nz, sup);
+            var v32x = sup.x;
+            var v32y = sup.y;
+            var v32z = sup.z;
+            var v3x = v32x - v31x;
+            var v3y = v32y - v31y;
+            var v3z = v32z - v31z;
+            if (v3x * nx + v3y * ny + v3z * nz <= 0) {
+                return false;
+            }
+            if ((v1y * v3z - v1z * v3y) * v0x + (v1z * v3x - v1x * v3z) * v0y + (v1x * v3y - v1y * v3x) * v0z < 0) {
+                v2x = v3x;
+                v2y = v3y;
+                v2z = v3z;
+                v21x = v31x;
+                v21y = v31y;
+                v21z = v31z;
+                v22x = v32x;
+                v22y = v32y;
+                v22z = v32z;
+                t1x = v1x - v0x;
+                t1y = v1y - v0y;
+                t1z = v1z - v0z;
+                t2x = v3x - v0x;
+                t2y = v3y - v0y;
+                t2z = v3z - v0z;
+                nx = t1y * t2z - t1z * t2y;
+                ny = t1z * t2x - t1x * t2z;
+                nz = t1x * t2y - t1y * t2x;
+                continue;
+            }
+            if ((v3y * v2z - v3z * v2y) * v0x + (v3z * v2x - v3x * v2z) * v0y + (v3x * v2y - v3y * v2x) * v0z < 0) {
+                v1x = v3x;
+                v1y = v3y;
+                v1z = v3z;
+                v11x = v31x;
+                v11y = v31y;
+                v11z = v31z;
+                v12x = v32x;
+                v12y = v32y;
+                v12z = v32z;
+                t1x = v3x - v0x;
+                t1y = v3y - v0y;
+                t1z = v3z - v0z;
+                t2x = v2x - v0x;
+                t2y = v2y - v0y;
+                t2z = v2z - v0z;
+                nx = t1y * t2z - t1z * t2y;
+                ny = t1z * t2x - t1x * t2z;
+                nz = t1x * t2y - t1y * t2x;
+                continue;
+            }
+            var hit = false;
+            while (true) {
+                t1x = v2x - v1x;
+                t1y = v2y - v1y;
+                t1z = v2z - v1z;
+                t2x = v3x - v1x;
+                t2y = v3y - v1y;
+                t2z = v3z - v1z;
+                nx = t1y * t2z - t1z * t2y;
+                ny = t1z * t2x - t1x * t2z;
+                nz = t1x * t2y - t1y * t2x;
+                len = 1 / Math.sqrt(nx * nx + ny * ny + nz * nz);
+                nx *= len;
+                ny *= len;
+                nz *= len;
+                if (nx * v1x + ny * v1y + nz * v1z >= 0 && !hit) {
+                    var b0 = (v1y * v2z - v1z * v2y) * v3x + (v1z * v2x - v1x * v2z) * v3y + (v1x * v2y - v1y * v2x) * v3z;
+                    var b1 = (v3y * v2z - v3z * v2y) * v0x + (v3z * v2x - v3x * v2z) * v0y + (v3x * v2y - v3y * v2x) * v0z;
+                    var b2 = (v0y * v1z - v0z * v1y) * v3x + (v0z * v1x - v0x * v1z) * v3y + (v0x * v1y - v0y * v1x) * v3z;
+                    var b3 = (v2y * v1z - v2z * v1y) * v0x + (v2z * v1x - v2x * v1z) * v0y + (v2x * v1y - v2y * v1x) * v0z;
+                    var sum = b0 + b1 + b2 + b3;
+                    if (sum <= 0) {
+                        b0 = 0;
+                        b1 = (v2y * v3z - v2z * v3y) * nx + (v2z * v3x - v2x * v3z) * ny + (v2x * v3y - v2y * v3x) * nz;
+                        b2 = (v3y * v2z - v3z * v2y) * nx + (v3z * v2x - v3x * v2z) * ny + (v3x * v2y - v3y * v2x) * nz;
+                        b3 = (v1y * v2z - v1z * v2y) * nx + (v1z * v2x - v1x * v2z) * ny + (v1x * v2y - v1y * v2x) * nz;
+                        sum = b1 + b2 + b3;
+                    }
+                    var inv = 1 / sum;
+                    p1x = (v01x * b0 + v11x * b1 + v21x * b2 + v31x * b3) * inv;
+                    p1y = (v01y * b0 + v11y * b1 + v21y * b2 + v31y * b3) * inv;
+                    p1z = (v01z * b0 + v11z * b1 + v21z * b2 + v31z * b3) * inv;
+                    p2x = (v02x * b0 + v12x * b1 + v22x * b2 + v32x * b3) * inv;
+                    p2y = (v02y * b0 + v12y * b1 + v22y * b2 + v32y * b3) * inv;
+                    p2z = (v02z * b0 + v12z * b1 + v22z * b2 + v32z * b3) * inv;
+                    hit = true;
+                }
+                this.supportPoint(c1, -nx, -ny, -nz, sup);
+                var v41x = sup.x;
+                var v41y = sup.y;
+                var v41z = sup.z;
+                this.supportPoint(c2, nx, ny, nz, sup);
+                var v42x = sup.x;
+                var v42y = sup.y;
+                var v42z = sup.z;
+                var v4x = v42x - v41x;
+                var v4y = v42y - v41y;
+                var v4z = v42z - v41z;
+                var separation = -(v4x * nx + v4y * ny + v4z * nz);
+                if ((v4x - v3x) * nx + (v4y - v3y) * ny + (v4z - v3z) * nz <= 0.01 || separation >= 0) {
+                    if (hit) {
+                        sep.set(-nx, -ny, -nz);
+                        pos.set((p1x + p2x) * 0.5, (p1y + p2y) * 0.5, (p1z + p2z) * 0.5);
+                        dep.x = separation;
+                        return true;
+                    }
+                    return false;
+                }
+                if ((v4y * v1z - v4z * v1y) * v0x +
+                    (v4z * v1x - v4x * v1z) * v0y +
+                    (v4x * v1y - v4y * v1x) * v0z < 0) {
+                    if ((v4y * v2z - v4z * v2y) * v0x +
+                        (v4z * v2x - v4x * v2z) * v0y +
+                        (v4x * v2y - v4y * v2x) * v0z < 0) {
+                        v1x = v4x;
+                        v1y = v4y;
+                        v1z = v4z;
+                        v11x = v41x;
+                        v11y = v41y;
+                        v11z = v41z;
+                        v12x = v42x;
+                        v12y = v42y;
+                        v12z = v42z;
+                    }
+                    else {
+                        v3x = v4x;
+                        v3y = v4y;
+                        v3z = v4z;
+                        v31x = v41x;
+                        v31y = v41y;
+                        v31z = v41z;
+                        v32x = v42x;
+                        v32y = v42y;
+                        v32z = v42z;
+                    }
+                }
+                else {
+                    if ((v4y * v3z - v4z * v3y) * v0x +
+                        (v4z * v3x - v4x * v3z) * v0y +
+                        (v4x * v3y - v4y * v3x) * v0z < 0) {
+                        v2x = v4x;
+                        v2y = v4y;
+                        v2z = v4z;
+                        v21x = v41x;
+                        v21y = v41y;
+                        v21z = v41z;
+                        v22x = v42x;
+                        v22y = v42y;
+                        v22z = v42z;
+                    }
+                    else {
+                        v1x = v4x;
+                        v1y = v4y;
+                        v1z = v4z;
+                        v11x = v41x;
+                        v11y = v41y;
+                        v11z = v41z;
+                        v12x = v42x;
+                        v12y = v42y;
+                        v12z = v42z;
+                    }
+                }
+            }
+        }
+        //return false;
+    }
+    supportPoint(c, dx, dy, dz, out) {
+        var rot = c.rotation.elements;
+        var ldx = rot[0] * dx + rot[3] * dy + rot[6] * dz;
+        var ldy = rot[1] * dx + rot[4] * dy + rot[7] * dz;
+        var ldz = rot[2] * dx + rot[5] * dy + rot[8] * dz;
+        var radx = ldx;
+        var radz = ldz;
+        var len = radx * radx + radz * radz;
+        var rad = c.radius;
+        var hh = c.halfHeight;
+        var ox;
+        var oy;
+        var oz;
+        if (len == 0) {
+            if (ldy < 0) {
+                ox = rad;
+                oy = -hh;
+                oz = 0;
+            }
+            else {
+                ox = rad;
+                oy = hh;
+                oz = 0;
+            }
+        }
+        else {
+            len = c.radius / Math.sqrt(len);
+            if (ldy < 0) {
+                ox = radx * len;
+                oy = -hh;
+                oz = radz * len;
+            }
+            else {
+                ox = radx * len;
+                oy = hh;
+                oz = radz * len;
+            }
+        }
+        ldx = rot[0] * ox + rot[1] * oy + rot[2] * oz + c.position.x;
+        ldy = rot[3] * ox + rot[4] * oy + rot[5] * oz + c.position.y;
+        ldz = rot[6] * ox + rot[7] * oy + rot[8] * oz + c.position.z;
+        out.set(ldx, ldy, ldz);
+    }
+    detectCollision(shape1, shape2, manifold) {
+        var c1;
+        var c2;
+        if (shape1.id < shape2.id) {
+            c1 = shape1;
+            c2 = shape2;
+        }
+        else {
+            c1 = shape2;
+            c2 = shape1;
+        }
+        var p1 = c1.position;
+        var p2 = c2.position;
+        var p1x = p1.x;
+        var p1y = p1.y;
+        var p1z = p1.z;
+        var p2x = p2.x;
+        var p2y = p2.y;
+        var p2z = p2.z;
+        var h1 = c1.halfHeight;
+        var h2 = c2.halfHeight;
+        var n1 = c1.normalDirection;
+        var n2 = c2.normalDirection;
+        var d1 = c1.halfDirection;
+        var d2 = c2.halfDirection;
+        var r1 = c1.radius;
+        var r2 = c2.radius;
+        var n1x = n1.x;
+        var n1y = n1.y;
+        var n1z = n1.z;
+        var n2x = n2.x;
+        var n2y = n2.y;
+        var n2z = n2.z;
+        var d1x = d1.x;
+        var d1y = d1.y;
+        var d1z = d1.z;
+        var d2x = d2.x;
+        var d2y = d2.y;
+        var d2z = d2.z;
+        var dx = p1x - p2x;
+        var dy = p1y - p2y;
+        var dz = p1z - p2z;
+        var len;
+        var c1x;
+        var c1y;
+        var c1z;
+        var c2x;
+        var c2y;
+        var c2z;
+        var tx;
+        var ty;
+        var tz;
+        var sx;
+        var sy;
+        var sz;
+        var ex;
+        var ey;
+        var ez;
+        var depth1;
+        var depth2;
+        var dot;
+        var t1;
+        var t2;
+        var sep = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        var pos = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        var dep = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        if (!this.getSep(c1, c2, sep, pos, dep))
+            return;
+        var dot1 = sep.x * n1x + sep.y * n1y + sep.z * n1z;
+        var dot2 = sep.x * n2x + sep.y * n2y + sep.z * n2z;
+        var right1 = dot1 > 0;
+        var right2 = dot2 > 0;
+        if (!right1)
+            dot1 = -dot1;
+        if (!right2)
+            dot2 = -dot2;
+        var state = 0;
+        if (dot1 > 0.999 || dot2 > 0.999) {
+            if (dot1 > dot2)
+                state = 1;
+            else
+                state = 2;
+        }
+        var nx;
+        var ny;
+        var nz;
+        var depth = dep.x;
+        var r00;
+        var r01;
+        var r02;
+        var r10;
+        var r11;
+        var r12;
+        var r20;
+        var r21;
+        var r22;
+        var px;
+        var py;
+        var pz;
+        var pd;
+        var a;
+        var b;
+        var e;
+        var f;
+        nx = sep.x;
+        ny = sep.y;
+        nz = sep.z;
+        switch (state) {
+            case 0:
+                manifold.addPoint(pos.x, pos.y, pos.z, nx, ny, nz, depth, false);
+                break;
+            case 1:
+                if (right1) {
+                    c1x = p1x + d1x;
+                    c1y = p1y + d1y;
+                    c1z = p1z + d1z;
+                    nx = n1x;
+                    ny = n1y;
+                    nz = n1z;
+                }
+                else {
+                    c1x = p1x - d1x;
+                    c1y = p1y - d1y;
+                    c1z = p1z - d1z;
+                    nx = -n1x;
+                    ny = -n1y;
+                    nz = -n1z;
+                }
+                dot = nx * n2x + ny * n2y + nz * n2z;
+                if (dot < 0)
+                    len = h2;
+                else
+                    len = -h2;
+                c2x = p2x + len * n2x;
+                c2y = p2y + len * n2y;
+                c2z = p2z + len * n2z;
+                if (dot2 >= 0.999999) {
+                    tx = -ny;
+                    ty = nz;
+                    tz = nx;
+                }
+                else {
+                    tx = nx;
+                    ty = ny;
+                    tz = nz;
+                }
+                len = tx * n2x + ty * n2y + tz * n2z;
+                dx = len * n2x - tx;
+                dy = len * n2y - ty;
+                dz = len * n2z - tz;
+                len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                if (len == 0)
+                    break;
+                len = r2 / len;
+                dx *= len;
+                dy *= len;
+                dz *= len;
+                tx = c2x + dx;
+                ty = c2y + dy;
+                tz = c2z + dz;
+                if (dot < -0.96 || dot > 0.96) {
+                    r00 = n2x * n2x * 1.5 - 0.5;
+                    r01 = n2x * n2y * 1.5 - n2z * 0.866025403;
+                    r02 = n2x * n2z * 1.5 + n2y * 0.866025403;
+                    r10 = n2y * n2x * 1.5 + n2z * 0.866025403;
+                    r11 = n2y * n2y * 1.5 - 0.5;
+                    r12 = n2y * n2z * 1.5 - n2x * 0.866025403;
+                    r20 = n2z * n2x * 1.5 - n2y * 0.866025403;
+                    r21 = n2z * n2y * 1.5 + n2x * 0.866025403;
+                    r22 = n2z * n2z * 1.5 - 0.5;
+                    px = tx;
+                    py = ty;
+                    pz = tz;
+                    pd = nx * (px - c1x) + ny * (py - c1y) + nz * (pz - c1z);
+                    tx = px - pd * nx - c1x;
+                    ty = py - pd * ny - c1y;
+                    tz = pz - pd * nz - c1z;
+                    len = tx * tx + ty * ty + tz * tz;
+                    if (len > r1 * r1) {
+                        len = r1 / Math.sqrt(len);
+                        tx *= len;
+                        ty *= len;
+                        tz *= len;
+                    }
+                    px = c1x + tx;
+                    py = c1y + ty;
+                    pz = c1z + tz;
+                    manifold.addPoint(px, py, pz, nx, ny, nz, pd, false);
+                    px = dx * r00 + dy * r01 + dz * r02;
+                    py = dx * r10 + dy * r11 + dz * r12;
+                    pz = dx * r20 + dy * r21 + dz * r22;
+                    px = (dx = px) + c2x;
+                    py = (dy = py) + c2y;
+                    pz = (dz = pz) + c2z;
+                    pd = nx * (px - c1x) + ny * (py - c1y) + nz * (pz - c1z);
+                    if (pd <= 0) {
+                        tx = px - pd * nx - c1x;
+                        ty = py - pd * ny - c1y;
+                        tz = pz - pd * nz - c1z;
+                        len = tx * tx + ty * ty + tz * tz;
+                        if (len > r1 * r1) {
+                            len = r1 / Math.sqrt(len);
+                            tx *= len;
+                            ty *= len;
+                            tz *= len;
+                        }
+                        px = c1x + tx;
+                        py = c1y + ty;
+                        pz = c1z + tz;
+                        manifold.addPoint(px, py, pz, nx, ny, nz, pd, false);
+                    }
+                    px = dx * r00 + dy * r01 + dz * r02;
+                    py = dx * r10 + dy * r11 + dz * r12;
+                    pz = dx * r20 + dy * r21 + dz * r22;
+                    px = (dx = px) + c2x;
+                    py = (dy = py) + c2y;
+                    pz = (dz = pz) + c2z;
+                    pd = nx * (px - c1x) + ny * (py - c1y) + nz * (pz - c1z);
+                    if (pd <= 0) {
+                        tx = px - pd * nx - c1x;
+                        ty = py - pd * ny - c1y;
+                        tz = pz - pd * nz - c1z;
+                        len = tx * tx + ty * ty + tz * tz;
+                        if (len > r1 * r1) {
+                            len = r1 / Math.sqrt(len);
+                            tx *= len;
+                            ty *= len;
+                            tz *= len;
+                        }
+                        px = c1x + tx;
+                        py = c1y + ty;
+                        pz = c1z + tz;
+                        manifold.addPoint(px, py, pz, nx, ny, nz, pd, false);
+                    }
+                }
+                else {
+                    sx = tx;
+                    sy = ty;
+                    sz = tz;
+                    depth1 = nx * (sx - c1x) + ny * (sy - c1y) + nz * (sz - c1z);
+                    sx -= depth1 * nx;
+                    sy -= depth1 * ny;
+                    sz -= depth1 * nz;
+                    if (dot > 0) {
+                        ex = tx + n2x * h2 * 2;
+                        ey = ty + n2y * h2 * 2;
+                        ez = tz + n2z * h2 * 2;
+                    }
+                    else {
+                        ex = tx - n2x * h2 * 2;
+                        ey = ty - n2y * h2 * 2;
+                        ez = tz - n2z * h2 * 2;
+                    }
+                    depth2 = nx * (ex - c1x) + ny * (ey - c1y) + nz * (ez - c1z);
+                    ex -= depth2 * nx;
+                    ey -= depth2 * ny;
+                    ez -= depth2 * nz;
+                    dx = c1x - sx;
+                    dy = c1y - sy;
+                    dz = c1z - sz;
+                    tx = ex - sx;
+                    ty = ey - sy;
+                    tz = ez - sz;
+                    a = dx * dx + dy * dy + dz * dz;
+                    b = dx * tx + dy * ty + dz * tz;
+                    e = tx * tx + ty * ty + tz * tz;
+                    f = b * b - e * (a - r1 * r1);
+                    if (f < 0)
+                        break;
+                    f = Math.sqrt(f);
+                    t1 = (b + f) / e;
+                    t2 = (b - f) / e;
+                    if (t2 < t1) {
+                        len = t1;
+                        t1 = t2;
+                        t2 = len;
+                    }
+                    if (t2 > 1)
+                        t2 = 1;
+                    if (t1 < 0)
+                        t1 = 0;
+                    tx = sx + (ex - sx) * t1;
+                    ty = sy + (ey - sy) * t1;
+                    tz = sz + (ez - sz) * t1;
+                    ex = sx + (ex - sx) * t2;
+                    ey = sy + (ey - sy) * t2;
+                    ez = sz + (ez - sz) * t2;
+                    sx = tx;
+                    sy = ty;
+                    sz = tz;
+                    len = depth1 + (depth2 - depth1) * t1;
+                    depth2 = depth1 + (depth2 - depth1) * t2;
+                    depth1 = len;
+                    if (depth1 < 0)
+                        manifold.addPoint(sx, sy, sz, nx, ny, nz, pd, false);
+                    if (depth2 < 0)
+                        manifold.addPoint(ex, ey, ez, nx, ny, nz, pd, false);
+                }
+                break;
+            case 2:
+                if (right2) {
+                    c2x = p2x - d2x;
+                    c2y = p2y - d2y;
+                    c2z = p2z - d2z;
+                    nx = -n2x;
+                    ny = -n2y;
+                    nz = -n2z;
+                }
+                else {
+                    c2x = p2x + d2x;
+                    c2y = p2y + d2y;
+                    c2z = p2z + d2z;
+                    nx = n2x;
+                    ny = n2y;
+                    nz = n2z;
+                }
+                dot = nx * n1x + ny * n1y + nz * n1z;
+                if (dot < 0)
+                    len = h1;
+                else
+                    len = -h1;
+                c1x = p1x + len * n1x;
+                c1y = p1y + len * n1y;
+                c1z = p1z + len * n1z;
+                if (dot1 >= 0.999999) {
+                    tx = -ny;
+                    ty = nz;
+                    tz = nx;
+                }
+                else {
+                    tx = nx;
+                    ty = ny;
+                    tz = nz;
+                }
+                len = tx * n1x + ty * n1y + tz * n1z;
+                dx = len * n1x - tx;
+                dy = len * n1y - ty;
+                dz = len * n1z - tz;
+                len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                if (len == 0)
+                    break;
+                len = r1 / len;
+                dx *= len;
+                dy *= len;
+                dz *= len;
+                tx = c1x + dx;
+                ty = c1y + dy;
+                tz = c1z + dz;
+                if (dot < -0.96 || dot > 0.96) {
+                    r00 = n1x * n1x * 1.5 - 0.5;
+                    r01 = n1x * n1y * 1.5 - n1z * 0.866025403;
+                    r02 = n1x * n1z * 1.5 + n1y * 0.866025403;
+                    r10 = n1y * n1x * 1.5 + n1z * 0.866025403;
+                    r11 = n1y * n1y * 1.5 - 0.5;
+                    r12 = n1y * n1z * 1.5 - n1x * 0.866025403;
+                    r20 = n1z * n1x * 1.5 - n1y * 0.866025403;
+                    r21 = n1z * n1y * 1.5 + n1x * 0.866025403;
+                    r22 = n1z * n1z * 1.5 - 0.5;
+                    px = tx;
+                    py = ty;
+                    pz = tz;
+                    pd = nx * (px - c2x) + ny * (py - c2y) + nz * (pz - c2z);
+                    tx = px - pd * nx - c2x;
+                    ty = py - pd * ny - c2y;
+                    tz = pz - pd * nz - c2z;
+                    len = tx * tx + ty * ty + tz * tz;
+                    if (len > r2 * r2) {
+                        len = r2 / Math.sqrt(len);
+                        tx *= len;
+                        ty *= len;
+                        tz *= len;
+                    }
+                    px = c2x + tx;
+                    py = c2y + ty;
+                    pz = c2z + tz;
+                    manifold.addPoint(px, py, pz, -nx, -ny, -nz, pd, false);
+                    px = dx * r00 + dy * r01 + dz * r02;
+                    py = dx * r10 + dy * r11 + dz * r12;
+                    pz = dx * r20 + dy * r21 + dz * r22;
+                    px = (dx = px) + c1x;
+                    py = (dy = py) + c1y;
+                    pz = (dz = pz) + c1z;
+                    pd = nx * (px - c2x) + ny * (py - c2y) + nz * (pz - c2z);
+                    if (pd <= 0) {
+                        tx = px - pd * nx - c2x;
+                        ty = py - pd * ny - c2y;
+                        tz = pz - pd * nz - c2z;
+                        len = tx * tx + ty * ty + tz * tz;
+                        if (len > r2 * r2) {
+                            len = r2 / Math.sqrt(len);
+                            tx *= len;
+                            ty *= len;
+                            tz *= len;
+                        }
+                        px = c2x + tx;
+                        py = c2y + ty;
+                        pz = c2z + tz;
+                        manifold.addPoint(px, py, pz, -nx, -ny, -nz, pd, false);
+                    }
+                    px = dx * r00 + dy * r01 + dz * r02;
+                    py = dx * r10 + dy * r11 + dz * r12;
+                    pz = dx * r20 + dy * r21 + dz * r22;
+                    px = (dx = px) + c1x;
+                    py = (dy = py) + c1y;
+                    pz = (dz = pz) + c1z;
+                    pd = nx * (px - c2x) + ny * (py - c2y) + nz * (pz - c2z);
+                    if (pd <= 0) {
+                        tx = px - pd * nx - c2x;
+                        ty = py - pd * ny - c2y;
+                        tz = pz - pd * nz - c2z;
+                        len = tx * tx + ty * ty + tz * tz;
+                        if (len > r2 * r2) {
+                            len = r2 / Math.sqrt(len);
+                            tx *= len;
+                            ty *= len;
+                            tz *= len;
+                        }
+                        px = c2x + tx;
+                        py = c2y + ty;
+                        pz = c2z + tz;
+                        manifold.addPoint(px, py, pz, -nx, -ny, -nz, pd, false);
+                    }
+                }
+                else {
+                    sx = tx;
+                    sy = ty;
+                    sz = tz;
+                    depth1 = nx * (sx - c2x) + ny * (sy - c2y) + nz * (sz - c2z);
+                    sx -= depth1 * nx;
+                    sy -= depth1 * ny;
+                    sz -= depth1 * nz;
+                    if (dot > 0) {
+                        ex = tx + n1x * h1 * 2;
+                        ey = ty + n1y * h1 * 2;
+                        ez = tz + n1z * h1 * 2;
+                    }
+                    else {
+                        ex = tx - n1x * h1 * 2;
+                        ey = ty - n1y * h1 * 2;
+                        ez = tz - n1z * h1 * 2;
+                    }
+                    depth2 = nx * (ex - c2x) + ny * (ey - c2y) + nz * (ez - c2z);
+                    ex -= depth2 * nx;
+                    ey -= depth2 * ny;
+                    ez -= depth2 * nz;
+                    dx = c2x - sx;
+                    dy = c2y - sy;
+                    dz = c2z - sz;
+                    tx = ex - sx;
+                    ty = ey - sy;
+                    tz = ez - sz;
+                    a = dx * dx + dy * dy + dz * dz;
+                    b = dx * tx + dy * ty + dz * tz;
+                    e = tx * tx + ty * ty + tz * tz;
+                    f = b * b - e * (a - r2 * r2);
+                    if (f < 0)
+                        break;
+                    f = Math.sqrt(f);
+                    t1 = (b + f) / e;
+                    t2 = (b - f) / e;
+                    if (t2 < t1) {
+                        len = t1;
+                        t1 = t2;
+                        t2 = len;
+                    }
+                    if (t2 > 1)
+                        t2 = 1;
+                    if (t1 < 0)
+                        t1 = 0;
+                    tx = sx + (ex - sx) * t1;
+                    ty = sy + (ey - sy) * t1;
+                    tz = sz + (ez - sz) * t1;
+                    ex = sx + (ex - sx) * t2;
+                    ey = sy + (ey - sy) * t2;
+                    ez = sz + (ez - sz) * t2;
+                    sx = tx;
+                    sy = ty;
+                    sz = tz;
+                    len = depth1 + (depth2 - depth1) * t1;
+                    depth2 = depth1 + (depth2 - depth1) * t2;
+                    depth1 = len;
+                    if (depth1 < 0) {
+                        manifold.addPoint(sx, sy, sz, -nx, -ny, -nz, depth1, false);
+                    }
+                    if (depth2 < 0) {
+                        manifold.addPoint(ex, ey, ez, -nx, -ny, -nz, depth2, false);
+                    }
+                }
+                break;
+        }
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/narrophase/SphereBoxCollisionDectector.ts":
+/*!*********************************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/narrophase/SphereBoxCollisionDectector.ts ***!
+  \*********************************************************************************/
+/*! exports provided: SphereBoxCollisionDetector */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SphereBoxCollisionDetector", function() { return SphereBoxCollisionDetector; });
+/* harmony import */ var _CollisionDetector__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./CollisionDetector */ "./src/LTGame/3rd/oimo/collision/narrophase/CollisionDetector.ts");
+
+class SphereBoxCollisionDetector extends _CollisionDetector__WEBPACK_IMPORTED_MODULE_0__["CollisionDetector"] {
+    constructor(flip) {
+        super();
+        this.flip = flip;
+    }
+    detectCollision(shape1, shape2, manifold) {
+        var s;
+        var b;
+        if (this.flip) {
+            s = (shape2);
+            b = (shape1);
+        }
+        else {
+            s = (shape1);
+            b = (shape2);
+        }
+        var D = b.dimentions;
+        var ps = s.position;
+        var psx = ps.x;
+        var psy = ps.y;
+        var psz = ps.z;
+        var pb = b.position;
+        var pbx = pb.x;
+        var pby = pb.y;
+        var pbz = pb.z;
+        var rad = s.radius;
+        var hw = b.halfWidth;
+        var hh = b.halfHeight;
+        var hd = b.halfDepth;
+        var dx = psx - pbx;
+        var dy = psy - pby;
+        var dz = psz - pbz;
+        var sx = D[0] * dx + D[1] * dy + D[2] * dz;
+        var sy = D[3] * dx + D[4] * dy + D[5] * dz;
+        var sz = D[6] * dx + D[7] * dy + D[8] * dz;
+        var cx;
+        var cy;
+        var cz;
+        var len;
+        var invLen;
+        var overlap = 0;
+        if (sx > hw) {
+            sx = hw;
+        }
+        else if (sx < -hw) {
+            sx = -hw;
+        }
+        else {
+            overlap = 1;
+        }
+        if (sy > hh) {
+            sy = hh;
+        }
+        else if (sy < -hh) {
+            sy = -hh;
+        }
+        else {
+            overlap |= 2;
+        }
+        if (sz > hd) {
+            sz = hd;
+        }
+        else if (sz < -hd) {
+            sz = -hd;
+        }
+        else {
+            overlap |= 4;
+        }
+        if (overlap == 7) {
+            // center of sphere is in the box
+            if (sx < 0) {
+                dx = hw + sx;
+            }
+            else {
+                dx = hw - sx;
+            }
+            if (sy < 0) {
+                dy = hh + sy;
+            }
+            else {
+                dy = hh - sy;
+            }
+            if (sz < 0) {
+                dz = hd + sz;
+            }
+            else {
+                dz = hd - sz;
+            }
+            if (dx < dy) {
+                if (dx < dz) {
+                    len = dx - hw;
+                    if (sx < 0) {
+                        sx = -hw;
+                        dx = D[0];
+                        dy = D[1];
+                        dz = D[2];
+                    }
+                    else {
+                        sx = hw;
+                        dx = -D[0];
+                        dy = -D[1];
+                        dz = -D[2];
+                    }
+                }
+                else {
+                    len = dz - hd;
+                    if (sz < 0) {
+                        sz = -hd;
+                        dx = D[6];
+                        dy = D[7];
+                        dz = D[8];
+                    }
+                    else {
+                        sz = hd;
+                        dx = -D[6];
+                        dy = -D[7];
+                        dz = -D[8];
+                    }
+                }
+            }
+            else {
+                if (dy < dz) {
+                    len = dy - hh;
+                    if (sy < 0) {
+                        sy = -hh;
+                        dx = D[3];
+                        dy = D[4];
+                        dz = D[5];
+                    }
+                    else {
+                        sy = hh;
+                        dx = -D[3];
+                        dy = -D[4];
+                        dz = -D[5];
+                    }
+                }
+                else {
+                    len = dz - hd;
+                    if (sz < 0) {
+                        sz = -hd;
+                        dx = D[6];
+                        dy = D[7];
+                        dz = D[8];
+                    }
+                    else {
+                        sz = hd;
+                        dx = -D[6];
+                        dy = -D[7];
+                        dz = -D[8];
+                    }
+                }
+            }
+            cx = pbx + sx * D[0] + sy * D[3] + sz * D[6];
+            cy = pby + sx * D[1] + sy * D[4] + sz * D[7];
+            cz = pbz + sx * D[2] + sy * D[5] + sz * D[8];
+            manifold.addPoint(psx + rad * dx, psy + rad * dy, psz + rad * dz, dx, dy, dz, len - rad, this.flip);
+        }
+        else {
+            cx = pbx + sx * D[0] + sy * D[3] + sz * D[6];
+            cy = pby + sx * D[1] + sy * D[4] + sz * D[7];
+            cz = pbz + sx * D[2] + sy * D[5] + sz * D[8];
+            dx = cx - ps.x;
+            dy = cy - ps.y;
+            dz = cz - ps.z;
+            len = dx * dx + dy * dy + dz * dz;
+            if (len > 0 && len < rad * rad) {
+                len = Math.sqrt(len);
+                invLen = 1 / len;
+                dx *= invLen;
+                dy *= invLen;
+                dz *= invLen;
+                manifold.addPoint(psx + rad * dx, psy + rad * dy, psz + rad * dz, dx, dy, dz, len - rad, this.flip);
+            }
+        }
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/narrophase/SphereCylinderCollisionDetector.ts":
+/*!*************************************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/narrophase/SphereCylinderCollisionDetector.ts ***!
+  \*************************************************************************************/
+/*! exports provided: SphereCylinderCollisionDetector */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SphereCylinderCollisionDetector", function() { return SphereCylinderCollisionDetector; });
+/* harmony import */ var _CollisionDetector__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./CollisionDetector */ "./src/LTGame/3rd/oimo/collision/narrophase/CollisionDetector.ts");
+
+class SphereCylinderCollisionDetector extends _CollisionDetector__WEBPACK_IMPORTED_MODULE_0__["CollisionDetector"] {
+    constructor(flip) {
+        super();
+        this.flip = flip;
+    }
+    detectCollision(shape1, shape2, manifold) {
+        var s;
+        var c;
+        if (this.flip) {
+            s = shape2;
+            c = shape1;
+        }
+        else {
+            s = shape1;
+            c = shape2;
+        }
+        var ps = s.position;
+        var psx = ps.x;
+        var psy = ps.y;
+        var psz = ps.z;
+        var pc = c.position;
+        var pcx = pc.x;
+        var pcy = pc.y;
+        var pcz = pc.z;
+        var dirx = c.normalDirection.x;
+        var diry = c.normalDirection.y;
+        var dirz = c.normalDirection.z;
+        var rads = s.radius;
+        var radc = c.radius;
+        var rad2 = rads + radc;
+        var halfh = c.halfHeight;
+        var dx = psx - pcx;
+        var dy = psy - pcy;
+        var dz = psz - pcz;
+        var dot = dx * dirx + dy * diry + dz * dirz;
+        if (dot < -halfh - rads || dot > halfh + rads)
+            return;
+        var cx = pcx + dot * dirx;
+        var cy = pcy + dot * diry;
+        var cz = pcz + dot * dirz;
+        var d2x = psx - cx;
+        var d2y = psy - cy;
+        var d2z = psz - cz;
+        var len = d2x * d2x + d2y * d2y + d2z * d2z;
+        if (len > rad2 * rad2)
+            return;
+        if (len > radc * radc) {
+            len = radc / Math.sqrt(len);
+            d2x *= len;
+            d2y *= len;
+            d2z *= len;
+        }
+        if (dot < -halfh)
+            dot = -halfh;
+        else if (dot > halfh)
+            dot = halfh;
+        cx = pcx + dot * dirx + d2x;
+        cy = pcy + dot * diry + d2y;
+        cz = pcz + dot * dirz + d2z;
+        dx = cx - psx;
+        dy = cy - psy;
+        dz = cz - psz;
+        len = dx * dx + dy * dy + dz * dz;
+        var invLen;
+        if (len > 0 && len < rads * rads) {
+            len = Math.sqrt(len);
+            invLen = 1 / len;
+            dx *= invLen;
+            dy *= invLen;
+            dz *= invLen;
+            ///result.addContactInfo(psx+dx*rads,psy+dy*rads,psz+dz*rads,dx,dy,dz,len-rads,s,c,0,0,false);
+            manifold.addPoint(psx + dx * rads, psy + dy * rads, psz + dz * rads, dx, dy, dz, len - rads, this.flip);
+        }
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/collision/narrophase/SphereSphereCollisionDetector.ts":
+/*!***********************************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/collision/narrophase/SphereSphereCollisionDetector.ts ***!
+  \***********************************************************************************/
+/*! exports provided: SphereSphereCollisionDetector */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SphereSphereCollisionDetector", function() { return SphereSphereCollisionDetector; });
+/* harmony import */ var _CollisionDetector__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./CollisionDetector */ "./src/LTGame/3rd/oimo/collision/narrophase/CollisionDetector.ts");
+
+class SphereSphereCollisionDetector extends _CollisionDetector__WEBPACK_IMPORTED_MODULE_0__["CollisionDetector"] {
+    detectCollision(shape1, shape2, manifold) {
+        var s1 = shape1;
+        var s2 = shape2;
+        var p1 = s1.position;
+        var p2 = s2.position;
+        var dx = p2.x - p1.x;
+        var dy = p2.y - p1.y;
+        var dz = p2.z - p1.z;
+        var len = dx * dx + dy * dy + dz * dz;
+        var r1 = s1.radius;
+        var r2 = s2.radius;
+        var rad = r1 + r2;
+        if (len > 0 && len < rad * rad) {
+            len = Math.sqrt(len);
+            var invLen = 1 / len;
+            dx *= invLen;
+            dy *= invLen;
+            dz *= invLen;
+            manifold.addPoint(p1.x + dx * r1, p1.y + dy * r1, p1.z + dz * r1, dx, dy, dz, len - rad, false);
+        }
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constants.ts":
+/*!******************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constants.ts ***!
+  \******************************************/
+/*! exports provided: REVISION, BR_NULL, BR_BRUTE_FORCE, BR_SWEEP_AND_PRUNE, BR_BOUNDING_VOLUME_TREE, BODY_NULL, BODY_DYNAMIC, BODY_STATIC, BODY_KINEMATIC, BODY_GHOST, SHAPE_NULL, SHAPE_SPHERE, SHAPE_BOX, SHAPE_CYLINDER, SHAPE_PLANE, SHAPE_PARTICLE, SHAPE_TETRA, JOINT_NULL, JOINT_DISTANCE, JOINT_BALL_AND_SOCKET, JOINT_HINGE, JOINT_WHEEL, JOINT_SLIDER, JOINT_PRISMATIC, AABB_PROX */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "REVISION", function() { return REVISION; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BR_NULL", function() { return BR_NULL; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BR_BRUTE_FORCE", function() { return BR_BRUTE_FORCE; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BR_SWEEP_AND_PRUNE", function() { return BR_SWEEP_AND_PRUNE; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BR_BOUNDING_VOLUME_TREE", function() { return BR_BOUNDING_VOLUME_TREE; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BODY_NULL", function() { return BODY_NULL; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BODY_DYNAMIC", function() { return BODY_DYNAMIC; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BODY_STATIC", function() { return BODY_STATIC; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BODY_KINEMATIC", function() { return BODY_KINEMATIC; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BODY_GHOST", function() { return BODY_GHOST; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SHAPE_NULL", function() { return SHAPE_NULL; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SHAPE_SPHERE", function() { return SHAPE_SPHERE; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SHAPE_BOX", function() { return SHAPE_BOX; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SHAPE_CYLINDER", function() { return SHAPE_CYLINDER; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SHAPE_PLANE", function() { return SHAPE_PLANE; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SHAPE_PARTICLE", function() { return SHAPE_PARTICLE; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SHAPE_TETRA", function() { return SHAPE_TETRA; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "JOINT_NULL", function() { return JOINT_NULL; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "JOINT_DISTANCE", function() { return JOINT_DISTANCE; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "JOINT_BALL_AND_SOCKET", function() { return JOINT_BALL_AND_SOCKET; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "JOINT_HINGE", function() { return JOINT_HINGE; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "JOINT_WHEEL", function() { return JOINT_WHEEL; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "JOINT_SLIDER", function() { return JOINT_SLIDER; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "JOINT_PRISMATIC", function() { return JOINT_PRISMATIC; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "AABB_PROX", function() { return AABB_PROX; });
+/*
+ * A list of constants built-in for
+ * the physics engine.
+ */
+var REVISION = '1.0.9';
+// BroadPhase
+var BR_NULL = 0;
+var BR_BRUTE_FORCE = 1;
+var BR_SWEEP_AND_PRUNE = 2;
+var BR_BOUNDING_VOLUME_TREE = 3;
+// Body type
+var BODY_NULL = 0;
+var BODY_DYNAMIC = 1;
+var BODY_STATIC = 2;
+var BODY_KINEMATIC = 3;
+var BODY_GHOST = 4;
+// Shape type
+var SHAPE_NULL = 0;
+var SHAPE_SPHERE = 1;
+var SHAPE_BOX = 2;
+var SHAPE_CYLINDER = 3;
+var SHAPE_PLANE = 4;
+var SHAPE_PARTICLE = 5;
+var SHAPE_TETRA = 6;
+// Joint type
+var JOINT_NULL = 0;
+var JOINT_DISTANCE = 1;
+var JOINT_BALL_AND_SOCKET = 2;
+var JOINT_HINGE = 3;
+var JOINT_WHEEL = 4;
+var JOINT_SLIDER = 5;
+var JOINT_PRISMATIC = 6;
+// AABB aproximation
+var AABB_PROX = 0.005;
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constraint/Constraint.ts":
+/*!******************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constraint/Constraint.ts ***!
+  \******************************************************/
+/*! exports provided: Constraint */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Constraint", function() { return Constraint; });
+class Constraint {
+    constructor() {
+        // parent world of the constraint.
+        this.parent = null;
+        // first body of the constraint.
+        this.body1 = null;
+        // second body of the constraint.
+        this.body2 = null;
+        // Internal
+        this.addedToIsland = false;
+    }
+    // Prepare for solving the constraint
+    preSolve(timeStep, invTimeStep) {
+        console.error("Constraint", "Inheritance error.");
+    }
+    // Solve the constraint. This is usually called iteratively.
+    solve() {
+        console.error("Constraint", "Inheritance error.");
+    }
+    // Do the post-processing.
+    postSolve() {
+        console.error("Constraint", "Inheritance error.");
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constraint/contact/Contact.ts":
+/*!***********************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constraint/contact/Contact.ts ***!
+  \***********************************************************/
+/*! exports provided: Contact */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Contact", function() { return Contact; });
+/* harmony import */ var _ContactLink__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./ContactLink */ "./src/LTGame/3rd/oimo/constraint/contact/ContactLink.ts");
+/* harmony import */ var _ContactManifold__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./ContactManifold */ "./src/LTGame/3rd/oimo/constraint/contact/ContactManifold.ts");
+/* harmony import */ var _ImpulseDataBuffer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./ImpulseDataBuffer */ "./src/LTGame/3rd/oimo/constraint/contact/ImpulseDataBuffer.ts");
+/* harmony import */ var _ContactConstraint__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./ContactConstraint */ "./src/LTGame/3rd/oimo/constraint/contact/ContactConstraint.ts");
+
+
+
+
+class Contact {
+    constructor() {
+        // The first shape.
+        this.shape1 = null;
+        // The second shape.
+        this.shape2 = null;
+        // The first rigid body.
+        this.body1 = null;
+        // The second rigid body.
+        this.body2 = null;
+        // The previous contact in the world.
+        this.prev = null;
+        // The next contact in the world.
+        this.next = null;
+        // Internal
+        this.persisting = false;
+        // Whether both the rigid bodies are sleeping or not.
+        this.sleeping = false;
+        // The collision detector between two shapes.
+        this.detector = null;
+        // The contact constraint of the contact.
+        this.constraint = null;
+        // Whether the shapes are touching or not.
+        this.touching = false;
+        // shapes is very close and touching 
+        this.close = false;
+        this.dist = Infinity;
+        this.b1Link = new _ContactLink__WEBPACK_IMPORTED_MODULE_0__["ContactLink"](this);
+        this.b2Link = new _ContactLink__WEBPACK_IMPORTED_MODULE_0__["ContactLink"](this);
+        this.s1Link = new _ContactLink__WEBPACK_IMPORTED_MODULE_0__["ContactLink"](this);
+        this.s2Link = new _ContactLink__WEBPACK_IMPORTED_MODULE_0__["ContactLink"](this);
+        // The contact manifold of the contact.
+        this.manifold = new _ContactManifold__WEBPACK_IMPORTED_MODULE_1__["ContactManifold"]();
+        this.buffer = [
+            new _ImpulseDataBuffer__WEBPACK_IMPORTED_MODULE_2__["ImpulseDataBuffer"](),
+            new _ImpulseDataBuffer__WEBPACK_IMPORTED_MODULE_2__["ImpulseDataBuffer"](),
+            new _ImpulseDataBuffer__WEBPACK_IMPORTED_MODULE_2__["ImpulseDataBuffer"](),
+            new _ImpulseDataBuffer__WEBPACK_IMPORTED_MODULE_2__["ImpulseDataBuffer"]()
+        ];
+        this.points = this.manifold.points;
+        this.constraint = new _ContactConstraint__WEBPACK_IMPORTED_MODULE_3__["ContactConstraint"](this.manifold);
+    }
+    mixRestitution(restitution1, restitution2) {
+        return Math.sqrt(restitution1 * restitution2);
+    }
+    mixFriction(friction1, friction2) {
+        return Math.sqrt(friction1 * friction2);
+    }
+    /**
+    * Update the contact manifold.
+    */
+    updateManifold() {
+        this.constraint.restitution = this.mixRestitution(this.shape1.restitution, this.shape2.restitution);
+        this.constraint.friction = this.mixFriction(this.shape1.friction, this.shape2.friction);
+        var numBuffers = this.manifold.numPoints;
+        var i = numBuffers;
+        while (i--) {
+            //for(var i=0;i<numBuffers;i++){
+            var b = this.buffer[i];
+            var p = this.points[i];
+            b.lp1X = p.localPoint1.x;
+            b.lp1Y = p.localPoint1.y;
+            b.lp1Z = p.localPoint1.z;
+            b.lp2X = p.localPoint2.x;
+            b.lp2Y = p.localPoint2.y;
+            b.lp2Z = p.localPoint2.z;
+            b.impulse = p.normalImpulse;
+        }
+        this.manifold.numPoints = 0;
+        this.detector.detectCollision(this.shape1, this.shape2, this.manifold);
+        var num = this.manifold.numPoints;
+        if (num == 0) {
+            this.touching = false;
+            this.close = false;
+            this.dist = Infinity;
+            return;
+        }
+        if (this.touching || this.dist < 0.001)
+            this.close = true;
+        this.touching = true;
+        i = num;
+        while (i--) {
+            //for(i=0; i<num; i++){
+            p = this.points[i];
+            var lp1x = p.localPoint1.x;
+            var lp1y = p.localPoint1.y;
+            var lp1z = p.localPoint1.z;
+            var lp2x = p.localPoint2.x;
+            var lp2y = p.localPoint2.y;
+            var lp2z = p.localPoint2.z;
+            var index = -1;
+            var minDistance = 0.0004;
+            var j = numBuffers;
+            while (j--) {
+                //for(var j=0;j<numBuffers;j++){
+                b = this.buffer[j];
+                var dx = b.lp1X - lp1x;
+                var dy = b.lp1Y - lp1y;
+                var dz = b.lp1Z - lp1z;
+                var distance1 = dx * dx + dy * dy + dz * dz;
+                dx = b.lp2X - lp2x;
+                dy = b.lp2Y - lp2y;
+                dz = b.lp2Z - lp2z;
+                var distance2 = dx * dx + dy * dy + dz * dz;
+                if (distance1 < distance2) {
+                    if (distance1 < minDistance) {
+                        minDistance = distance1;
+                        index = j;
+                    }
+                }
+                else {
+                    if (distance2 < minDistance) {
+                        minDistance = distance2;
+                        index = j;
+                    }
+                }
+                if (minDistance < this.dist)
+                    this.dist = minDistance;
+            }
+            if (index != -1) {
+                var tmp = this.buffer[index];
+                this.buffer[index] = this.buffer[--numBuffers];
+                this.buffer[numBuffers] = tmp;
+                p.normalImpulse = tmp.impulse;
+                p.warmStarted = true;
+            }
+            else {
+                p.normalImpulse = 0;
+                p.warmStarted = false;
+            }
+        }
+    }
+    /**
+    * Attach the contact to the shapes.
+    * @param   shape1
+    * @param   shape2
+    */
+    attach(shape1, shape2) {
+        this.shape1 = shape1;
+        this.shape2 = shape2;
+        this.body1 = shape1.parent;
+        this.body2 = shape2.parent;
+        this.manifold.body1 = this.body1;
+        this.manifold.body2 = this.body2;
+        this.constraint.body1 = this.body1;
+        this.constraint.body2 = this.body2;
+        this.constraint.attach();
+        this.s1Link.shape = shape2;
+        this.s1Link.body = this.body2;
+        this.s2Link.shape = shape1;
+        this.s2Link.body = this.body1;
+        if (shape1.contactLink != null)
+            (this.s1Link.next = shape1.contactLink).prev = this.s1Link;
+        else
+            this.s1Link.next = null;
+        shape1.contactLink = this.s1Link;
+        shape1.numContacts++;
+        if (shape2.contactLink != null)
+            (this.s2Link.next = shape2.contactLink).prev = this.s2Link;
+        else
+            this.s2Link.next = null;
+        shape2.contactLink = this.s2Link;
+        shape2.numContacts++;
+        this.b1Link.shape = shape2;
+        this.b1Link.body = this.body2;
+        this.b2Link.shape = shape1;
+        this.b2Link.body = this.body1;
+        if (this.body1.contactLink != null)
+            (this.b1Link.next = this.body1.contactLink).prev = this.b1Link;
+        else
+            this.b1Link.next = null;
+        this.body1.contactLink = this.b1Link;
+        this.body1.numContacts++;
+        if (this.body2.contactLink != null)
+            (this.b2Link.next = this.body2.contactLink).prev = this.b2Link;
+        else
+            this.b2Link.next = null;
+        this.body2.contactLink = this.b2Link;
+        this.body2.numContacts++;
+        this.prev = null;
+        this.next = null;
+        this.persisting = true;
+        this.sleeping = this.body1.sleeping && this.body2.sleeping;
+        this.manifold.numPoints = 0;
+    }
+    /**
+    * Detach the contact from the shapes.
+    */
+    detach() {
+        var prev = this.s1Link.prev;
+        var next = this.s1Link.next;
+        if (prev !== null)
+            prev.next = next;
+        if (next !== null)
+            next.prev = prev;
+        if (this.shape1.contactLink == this.s1Link)
+            this.shape1.contactLink = next;
+        this.s1Link.prev = null;
+        this.s1Link.next = null;
+        this.s1Link.shape = null;
+        this.s1Link.body = null;
+        this.shape1.numContacts--;
+        prev = this.s2Link.prev;
+        next = this.s2Link.next;
+        if (prev !== null)
+            prev.next = next;
+        if (next !== null)
+            next.prev = prev;
+        if (this.shape2.contactLink == this.s2Link)
+            this.shape2.contactLink = next;
+        this.s2Link.prev = null;
+        this.s2Link.next = null;
+        this.s2Link.shape = null;
+        this.s2Link.body = null;
+        this.shape2.numContacts--;
+        prev = this.b1Link.prev;
+        next = this.b1Link.next;
+        if (prev !== null)
+            prev.next = next;
+        if (next !== null)
+            next.prev = prev;
+        if (this.body1.contactLink == this.b1Link)
+            this.body1.contactLink = next;
+        this.b1Link.prev = null;
+        this.b1Link.next = null;
+        this.b1Link.shape = null;
+        this.b1Link.body = null;
+        this.body1.numContacts--;
+        prev = this.b2Link.prev;
+        next = this.b2Link.next;
+        if (prev !== null)
+            prev.next = next;
+        if (next !== null)
+            next.prev = prev;
+        if (this.body2.contactLink == this.b2Link)
+            this.body2.contactLink = next;
+        this.b2Link.prev = null;
+        this.b2Link.next = null;
+        this.b2Link.shape = null;
+        this.b2Link.body = null;
+        this.body2.numContacts--;
+        this.manifold.body1 = null;
+        this.manifold.body2 = null;
+        this.constraint.body1 = null;
+        this.constraint.body2 = null;
+        this.constraint.detach();
+        this.shape1 = null;
+        this.shape2 = null;
+        this.body1 = null;
+        this.body2 = null;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constraint/contact/ContactConstraint.ts":
+/*!*********************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constraint/contact/ContactConstraint.ts ***!
+  \*********************************************************************/
+/*! exports provided: ContactConstraint */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ContactConstraint", function() { return ContactConstraint; });
+/* harmony import */ var _Constraint__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../Constraint */ "./src/LTGame/3rd/oimo/constraint/Constraint.ts");
+/* harmony import */ var _math_Vec3__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../math/Vec3 */ "./src/LTGame/3rd/oimo/math/Vec3.ts");
+/* harmony import */ var _ContactPointDataBuffer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./ContactPointDataBuffer */ "./src/LTGame/3rd/oimo/constraint/contact/ContactPointDataBuffer.ts");
+/* harmony import */ var _math_Math__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../math/_Math */ "./src/LTGame/3rd/oimo/math/_Math.ts");
+
+
+
+
+class ContactConstraint extends _Constraint__WEBPACK_IMPORTED_MODULE_0__["Constraint"] {
+    constructor(manifold) {
+        super();
+        // The contact manifold of the constraint.
+        this.manifold = manifold;
+        // The coefficient of restitution of the constraint.
+        this.restitution = NaN;
+        // The coefficient of friction of the constraint.
+        this.friction = NaN;
+        this.p1 = null;
+        this.p2 = null;
+        this.lv1 = null;
+        this.lv2 = null;
+        this.av1 = null;
+        this.av2 = null;
+        this.i1 = null;
+        this.i2 = null;
+        //this.ii1 = null;
+        //this.ii2 = null;
+        this.tmp = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        this.tmpC1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        this.tmpC2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        this.tmpP1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        this.tmpP2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        this.tmplv1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        this.tmplv2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        this.tmpav1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        this.tmpav2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        this.m1 = NaN;
+        this.m2 = NaN;
+        this.num = 0;
+        this.ps = manifold.points;
+        this.cs = new _ContactPointDataBuffer__WEBPACK_IMPORTED_MODULE_2__["ContactPointDataBuffer"]();
+        this.cs.next = new _ContactPointDataBuffer__WEBPACK_IMPORTED_MODULE_2__["ContactPointDataBuffer"]();
+        this.cs.next.next = new _ContactPointDataBuffer__WEBPACK_IMPORTED_MODULE_2__["ContactPointDataBuffer"]();
+        this.cs.next.next.next = new _ContactPointDataBuffer__WEBPACK_IMPORTED_MODULE_2__["ContactPointDataBuffer"]();
+    }
+    // Attach the constraint to the bodies.
+    attach() {
+        this.p1 = this.body1.position;
+        this.p2 = this.body2.position;
+        this.lv1 = this.body1.linearVelocity;
+        this.av1 = this.body1.angularVelocity;
+        this.lv2 = this.body2.linearVelocity;
+        this.av2 = this.body2.angularVelocity;
+        this.i1 = this.body1.inverseInertia;
+        this.i2 = this.body2.inverseInertia;
+    }
+    // Detach the constraint from the bodies.
+    detach() {
+        this.p1 = null;
+        this.p2 = null;
+        this.lv1 = null;
+        this.lv2 = null;
+        this.av1 = null;
+        this.av2 = null;
+        this.i1 = null;
+        this.i2 = null;
+    }
+    preSolve(timeStep, invTimeStep) {
+        this.m1 = this.body1.inverseMass;
+        this.m2 = this.body2.inverseMass;
+        var m1m2 = this.m1 + this.m2;
+        this.num = this.manifold.numPoints;
+        var c = this.cs;
+        var p, rvn, len, norImp, norTar, sepV, i1, i2;
+        ;
+        for (var i = 0; i < this.num; i++) {
+            p = this.ps[i];
+            this.tmpP1.sub(p.position, this.p1);
+            this.tmpP2.sub(p.position, this.p2);
+            this.tmpC1.crossVectors(this.av1, this.tmpP1);
+            this.tmpC2.crossVectors(this.av2, this.tmpP2);
+            c.norImp = p.normalImpulse;
+            c.tanImp = p.tangentImpulse;
+            c.binImp = p.binormalImpulse;
+            c.nor.copy(p.normal);
+            this.tmp.set((this.lv2.x + this.tmpC2.x) - (this.lv1.x + this.tmpC1.x), (this.lv2.y + this.tmpC2.y) - (this.lv1.y + this.tmpC1.y), (this.lv2.z + this.tmpC2.z) - (this.lv1.z + this.tmpC1.z));
+            rvn = _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].dotVectors(c.nor, this.tmp);
+            c.tan.set(this.tmp.x - rvn * c.nor.x, this.tmp.y - rvn * c.nor.y, this.tmp.z - rvn * c.nor.z);
+            len = _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].dotVectors(c.tan, c.tan);
+            if (len <= 0.04) {
+                c.tan.tangent(c.nor);
+            }
+            c.tan.normalize();
+            c.bin.crossVectors(c.nor, c.tan);
+            c.norU1.scale(c.nor, this.m1);
+            c.norU2.scale(c.nor, this.m2);
+            c.tanU1.scale(c.tan, this.m1);
+            c.tanU2.scale(c.tan, this.m2);
+            c.binU1.scale(c.bin, this.m1);
+            c.binU2.scale(c.bin, this.m2);
+            c.norT1.crossVectors(this.tmpP1, c.nor);
+            c.tanT1.crossVectors(this.tmpP1, c.tan);
+            c.binT1.crossVectors(this.tmpP1, c.bin);
+            c.norT2.crossVectors(this.tmpP2, c.nor);
+            c.tanT2.crossVectors(this.tmpP2, c.tan);
+            c.binT2.crossVectors(this.tmpP2, c.bin);
+            i1 = this.i1;
+            i2 = this.i2;
+            c.norTU1.copy(c.norT1).applyMatrix3(i1, true);
+            c.tanTU1.copy(c.tanT1).applyMatrix3(i1, true);
+            c.binTU1.copy(c.binT1).applyMatrix3(i1, true);
+            c.norTU2.copy(c.norT2).applyMatrix3(i2, true);
+            c.tanTU2.copy(c.tanT2).applyMatrix3(i2, true);
+            c.binTU2.copy(c.binT2).applyMatrix3(i2, true);
+            /*c.norTU1.mulMat( this.i1, c.norT1 );
+            c.tanTU1.mulMat( this.i1, c.tanT1 );
+            c.binTU1.mulMat( this.i1, c.binT1 );
+
+            c.norTU2.mulMat( this.i2, c.norT2 );
+            c.tanTU2.mulMat( this.i2, c.tanT2 );
+            c.binTU2.mulMat( this.i2, c.binT2 );*/
+            this.tmpC1.crossVectors(c.norTU1, this.tmpP1);
+            this.tmpC2.crossVectors(c.norTU2, this.tmpP2);
+            this.tmp.add(this.tmpC1, this.tmpC2);
+            c.norDen = 1 / (m1m2 + _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].dotVectors(c.nor, this.tmp));
+            this.tmpC1.crossVectors(c.tanTU1, this.tmpP1);
+            this.tmpC2.crossVectors(c.tanTU2, this.tmpP2);
+            this.tmp.add(this.tmpC1, this.tmpC2);
+            c.tanDen = 1 / (m1m2 + _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].dotVectors(c.tan, this.tmp));
+            this.tmpC1.crossVectors(c.binTU1, this.tmpP1);
+            this.tmpC2.crossVectors(c.binTU2, this.tmpP2);
+            this.tmp.add(this.tmpC1, this.tmpC2);
+            c.binDen = 1 / (m1m2 + _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].dotVectors(c.bin, this.tmp));
+            if (p.warmStarted) {
+                norImp = p.normalImpulse;
+                this.lv1.addScaledVector(c.norU1, norImp);
+                this.av1.addScaledVector(c.norTU1, norImp);
+                this.lv2.subScaledVector(c.norU2, norImp);
+                this.av2.subScaledVector(c.norTU2, norImp);
+                c.norImp = norImp;
+                c.tanImp = 0;
+                c.binImp = 0;
+                rvn = 0; // disable bouncing
+            }
+            else {
+                c.norImp = 0;
+                c.tanImp = 0;
+                c.binImp = 0;
+            }
+            if (rvn > -1)
+                rvn = 0; // disable bouncing
+            norTar = this.restitution * -rvn;
+            sepV = -(p.penetration + 0.005) * invTimeStep * 0.05; // allow 0.5cm error
+            if (norTar < sepV)
+                norTar = sepV;
+            c.norTar = norTar;
+            c.last = i == this.num - 1;
+            c = c.next;
+        }
+    }
+    solve() {
+        this.tmplv1.copy(this.lv1);
+        this.tmplv2.copy(this.lv2);
+        this.tmpav1.copy(this.av1);
+        this.tmpav2.copy(this.av2);
+        var oldImp1, newImp1, oldImp2, newImp2, rvn, norImp, tanImp, binImp, max, len;
+        var c = this.cs;
+        while (true) {
+            norImp = c.norImp;
+            tanImp = c.tanImp;
+            binImp = c.binImp;
+            max = -norImp * this.friction;
+            this.tmp.sub(this.tmplv2, this.tmplv1);
+            rvn = _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].dotVectors(this.tmp, c.tan) + _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].dotVectors(this.tmpav2, c.tanT2) - _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].dotVectors(this.tmpav1, c.tanT1);
+            oldImp1 = tanImp;
+            newImp1 = rvn * c.tanDen;
+            tanImp += newImp1;
+            rvn = _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].dotVectors(this.tmp, c.bin) + _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].dotVectors(this.tmpav2, c.binT2) - _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].dotVectors(this.tmpav1, c.binT1);
+            oldImp2 = binImp;
+            newImp2 = rvn * c.binDen;
+            binImp += newImp2;
+            // cone friction clamp
+            len = tanImp * tanImp + binImp * binImp;
+            if (len > max * max) {
+                len = max / _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].sqrt(len);
+                tanImp *= len;
+                binImp *= len;
+            }
+            newImp1 = tanImp - oldImp1;
+            newImp2 = binImp - oldImp2;
+            //
+            this.tmp.set(c.tanU1.x * newImp1 + c.binU1.x * newImp2, c.tanU1.y * newImp1 + c.binU1.y * newImp2, c.tanU1.z * newImp1 + c.binU1.z * newImp2);
+            this.tmplv1.addEqual(this.tmp);
+            this.tmp.set(c.tanTU1.x * newImp1 + c.binTU1.x * newImp2, c.tanTU1.y * newImp1 + c.binTU1.y * newImp2, c.tanTU1.z * newImp1 + c.binTU1.z * newImp2);
+            this.tmpav1.addEqual(this.tmp);
+            this.tmp.set(c.tanU2.x * newImp1 + c.binU2.x * newImp2, c.tanU2.y * newImp1 + c.binU2.y * newImp2, c.tanU2.z * newImp1 + c.binU2.z * newImp2);
+            this.tmplv2.subEqual(this.tmp);
+            this.tmp.set(c.tanTU2.x * newImp1 + c.binTU2.x * newImp2, c.tanTU2.y * newImp1 + c.binTU2.y * newImp2, c.tanTU2.z * newImp1 + c.binTU2.z * newImp2);
+            this.tmpav2.subEqual(this.tmp);
+            // restitution part
+            this.tmp.sub(this.tmplv2, this.tmplv1);
+            rvn = _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].dotVectors(this.tmp, c.nor) + _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].dotVectors(this.tmpav2, c.norT2) - _math_Math__WEBPACK_IMPORTED_MODULE_3__["_Math"].dotVectors(this.tmpav1, c.norT1);
+            oldImp1 = norImp;
+            newImp1 = (rvn - c.norTar) * c.norDen;
+            norImp += newImp1;
+            if (norImp > 0)
+                norImp = 0;
+            newImp1 = norImp - oldImp1;
+            this.tmplv1.addScaledVector(c.norU1, newImp1);
+            this.tmpav1.addScaledVector(c.norTU1, newImp1);
+            this.tmplv2.subScaledVector(c.norU2, newImp1);
+            this.tmpav2.subScaledVector(c.norTU2, newImp1);
+            c.norImp = norImp;
+            c.tanImp = tanImp;
+            c.binImp = binImp;
+            if (c.last)
+                break;
+            c = c.next;
+        }
+        this.lv1.copy(this.tmplv1);
+        this.lv2.copy(this.tmplv2);
+        this.av1.copy(this.tmpav1);
+        this.av2.copy(this.tmpav2);
+    }
+    postSolve() {
+        var c = this.cs, p;
+        var i = this.num;
+        while (i--) {
+            //for(var i=0;i<this.num;i++){
+            p = this.ps[i];
+            p.normal.copy(c.nor);
+            p.tangent.copy(c.tan);
+            p.binormal.copy(c.bin);
+            p.normalImpulse = c.norImp;
+            p.tangentImpulse = c.tanImp;
+            p.binormalImpulse = c.binImp;
+            p.normalDenominator = c.norDen;
+            p.tangentDenominator = c.tanDen;
+            p.binormalDenominator = c.binDen;
+            c = c.next;
+        }
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constraint/contact/ContactLink.ts":
+/*!***************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constraint/contact/ContactLink.ts ***!
+  \***************************************************************/
+/*! exports provided: ContactLink */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ContactLink", function() { return ContactLink; });
+class ContactLink {
+    constructor(contact) {
+        // The previous contact link.
+        this.prev = null;
+        // The next contact link.
+        this.next = null;
+        // The shape of the contact.
+        this.shape = null;
+        // The other rigid body.
+        this.body = null;
+        // The contact of the link.
+        this.contact = contact;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constraint/contact/ContactManifold.ts":
+/*!*******************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constraint/contact/ContactManifold.ts ***!
+  \*******************************************************************/
+/*! exports provided: ContactManifold */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ContactManifold", function() { return ContactManifold; });
+/* harmony import */ var _ManifoldPoint__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./ManifoldPoint */ "./src/LTGame/3rd/oimo/constraint/contact/ManifoldPoint.ts");
+
+class ContactManifold {
+    constructor() {
+        // The first rigid body.
+        this.body1 = null;
+        // The second rigid body.
+        this.body2 = null;
+        // The number of manifold points.
+        this.numPoints = 0;
+        // The manifold points.
+        this.points = [
+            new _ManifoldPoint__WEBPACK_IMPORTED_MODULE_0__["ManifoldPoint"](),
+            new _ManifoldPoint__WEBPACK_IMPORTED_MODULE_0__["ManifoldPoint"](),
+            new _ManifoldPoint__WEBPACK_IMPORTED_MODULE_0__["ManifoldPoint"](),
+            new _ManifoldPoint__WEBPACK_IMPORTED_MODULE_0__["ManifoldPoint"]()
+        ];
+    }
+    //Reset the manifold.
+    reset(shape1, shape2) {
+        this.body1 = shape1.parent;
+        this.body2 = shape2.parent;
+        this.numPoints = 0;
+    }
+    //  Add a point into this manifold.
+    addPointVec(pos, norm, penetration, flip) {
+        var p = this.points[this.numPoints++];
+        p.position.copy(pos);
+        p.localPoint1.sub(pos, this.body1.position).applyMatrix3(this.body1.rotation);
+        p.localPoint2.sub(pos, this.body2.position).applyMatrix3(this.body2.rotation);
+        p.normal.copy(norm);
+        if (flip)
+            p.normal.negate();
+        p.normalImpulse = 0;
+        p.penetration = penetration;
+        p.warmStarted = false;
+    }
+    //  Add a point into this manifold.
+    addPoint(x, y, z, nx, ny, nz, penetration, flip) {
+        var p = this.points[this.numPoints++];
+        p.position.set(x, y, z);
+        p.localPoint1.sub(p.position, this.body1.position).applyMatrix3(this.body1.rotation);
+        p.localPoint2.sub(p.position, this.body2.position).applyMatrix3(this.body2.rotation);
+        p.normalImpulse = 0;
+        p.normal.set(nx, ny, nz);
+        if (flip)
+            p.normal.negate();
+        p.penetration = penetration;
+        p.warmStarted = false;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constraint/contact/ContactPointDataBuffer.ts":
+/*!**************************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constraint/contact/ContactPointDataBuffer.ts ***!
+  \**************************************************************************/
+/*! exports provided: ContactPointDataBuffer */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ContactPointDataBuffer", function() { return ContactPointDataBuffer; });
+/* harmony import */ var _math_Vec3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../math/Vec3 */ "./src/LTGame/3rd/oimo/math/Vec3.ts");
+
+class ContactPointDataBuffer {
+    constructor() {
+        this.nor = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.tan = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.bin = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.norU1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.tanU1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.binU1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.norU2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.tanU2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.binU2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.norT1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.tanT1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.binT1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.norT2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.tanT2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.binT2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.norTU1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.tanTU1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.binTU1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.norTU2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.tanTU2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.binTU2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.norImp = 0;
+        this.tanImp = 0;
+        this.binImp = 0;
+        this.norDen = 0;
+        this.tanDen = 0;
+        this.binDen = 0;
+        this.norTar = 0;
+        this.next = null;
+        this.last = false;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constraint/contact/ImpulseDataBuffer.ts":
+/*!*********************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constraint/contact/ImpulseDataBuffer.ts ***!
+  \*********************************************************************/
+/*! exports provided: ImpulseDataBuffer */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ImpulseDataBuffer", function() { return ImpulseDataBuffer; });
+class ImpulseDataBuffer {
+    constructor() {
+        this.lp1X = NaN;
+        this.lp1Y = NaN;
+        this.lp1Z = NaN;
+        this.lp2X = NaN;
+        this.lp2Y = NaN;
+        this.lp2Z = NaN;
+        this.impulse = NaN;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constraint/contact/ManifoldPoint.ts":
+/*!*****************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constraint/contact/ManifoldPoint.ts ***!
+  \*****************************************************************/
+/*! exports provided: ManifoldPoint */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ManifoldPoint", function() { return ManifoldPoint; });
+/* harmony import */ var _math_Vec3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../math/Vec3 */ "./src/LTGame/3rd/oimo/math/Vec3.ts");
+
+class ManifoldPoint {
+    constructor() {
+        // Whether this manifold point is persisting or not.
+        this.warmStarted = false;
+        //  The position of this manifold point.
+        this.position = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        // The position in the first shape's coordinate.
+        this.localPoint1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        //  The position in the second shape's coordinate.
+        this.localPoint2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        // The normal vector of this manifold point.
+        this.normal = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        // The tangent vector of this manifold point.
+        this.tangent = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        // The binormal vector of this manifold point.
+        this.binormal = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        // The impulse in normal direction.
+        this.normalImpulse = 0;
+        // The impulse in tangent direction.
+        this.tangentImpulse = 0;
+        // The impulse in binormal direction.
+        this.binormalImpulse = 0;
+        // The denominator in normal direction.
+        this.normalDenominator = 0;
+        // The denominator in tangent direction.
+        this.tangentDenominator = 0;
+        // The denominator in binormal direction.
+        this.binormalDenominator = 0;
+        // The depth of penetration.
+        this.penetration = 0;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constraint/joint/DistanceJoint.ts":
+/*!***************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constraint/joint/DistanceJoint.ts ***!
+  \***************************************************************/
+/*! exports provided: DistanceJoint */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DistanceJoint", function() { return DistanceJoint; });
+/* harmony import */ var _Joint__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Joint */ "./src/LTGame/3rd/oimo/constraint/joint/Joint.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/LTGame/3rd/oimo/constants.ts");
+/* harmony import */ var _math_Vec3__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../math/Vec3 */ "./src/LTGame/3rd/oimo/math/Vec3.ts");
+/* harmony import */ var _base_LimitMotor__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./base/LimitMotor */ "./src/LTGame/3rd/oimo/constraint/joint/base/LimitMotor.ts");
+/* harmony import */ var _base_TranslationalConstraint__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./base/TranslationalConstraint */ "./src/LTGame/3rd/oimo/constraint/joint/base/TranslationalConstraint.ts");
+
+
+
+
+
+class DistanceJoint extends _Joint__WEBPACK_IMPORTED_MODULE_0__["Joint"] {
+    constructor(config, minDistance, maxDistance) {
+        super(config);
+        this.type = _constants__WEBPACK_IMPORTED_MODULE_1__["JOINT_DISTANCE"];
+        this.nor = new _math_Vec3__WEBPACK_IMPORTED_MODULE_2__["Vec3"]();
+        // The limit and motor information of the joint.
+        this.limitMotor = new _base_LimitMotor__WEBPACK_IMPORTED_MODULE_3__["LimitMotor"](this.nor, true);
+        this.limitMotor.lowerLimit = minDistance;
+        this.limitMotor.upperLimit = maxDistance;
+        this.t = new _base_TranslationalConstraint__WEBPACK_IMPORTED_MODULE_4__["TranslationalConstraint"](this, this.limitMotor);
+    }
+    preSolve(timeStep, invTimeStep) {
+        this.updateAnchorPoints();
+        this.nor.sub(this.anchorPoint2, this.anchorPoint1).normalize();
+        // preSolve
+        this.t.preSolve(timeStep, invTimeStep);
+    }
+    solve() {
+        this.t.solve();
+    }
+    postSolve() {
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constraint/joint/Joint.ts":
+/*!*******************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constraint/joint/Joint.ts ***!
+  \*******************************************************/
+/*! exports provided: Joint */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Joint", function() { return Joint; });
+/* harmony import */ var _Constraint__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../Constraint */ "./src/LTGame/3rd/oimo/constraint/Constraint.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../constants */ "./src/LTGame/3rd/oimo/constants.ts");
+/* harmony import */ var _math_Vec3__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../math/Vec3 */ "./src/LTGame/3rd/oimo/math/Vec3.ts");
+/* harmony import */ var _JointLink__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./JointLink */ "./src/LTGame/3rd/oimo/constraint/joint/JointLink.ts");
+
+
+
+
+class Joint extends _Constraint__WEBPACK_IMPORTED_MODULE_0__["Constraint"] {
+    constructor(config) {
+        super();
+        this.scale = 1;
+        this.invScale = 1;
+        // joint name
+        this.name = "";
+        this.id = NaN;
+        // The type of the joint.
+        this.type = _constants__WEBPACK_IMPORTED_MODULE_1__["JOINT_NULL"];
+        //  The previous joint in the world.
+        this.prev = null;
+        // The next joint in the world.
+        this.next = null;
+        this.body1 = config.body1;
+        this.body2 = config.body2;
+        // anchor point on the first rigid body in local coordinate system.
+        this.localAnchorPoint1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_2__["Vec3"]().copy(config.localAnchorPoint1);
+        // anchor point on the second rigid body in local coordinate system.
+        this.localAnchorPoint2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_2__["Vec3"]().copy(config.localAnchorPoint2);
+        // anchor point on the first rigid body in world coordinate system relative to the body's origin.
+        this.relativeAnchorPoint1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_2__["Vec3"]();
+        // anchor point on the second rigid body in world coordinate system relative to the body's origin.
+        this.relativeAnchorPoint2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_2__["Vec3"]();
+        //  anchor point on the first rigid body in world coordinate system.
+        this.anchorPoint1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_2__["Vec3"]();
+        // anchor point on the second rigid body in world coordinate system.
+        this.anchorPoint2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_2__["Vec3"]();
+        // Whether allow collision between connected rigid bodies or not.
+        this.allowCollision = config.allowCollision;
+        this.b1Link = new _JointLink__WEBPACK_IMPORTED_MODULE_3__["JointLink"](this);
+        this.b2Link = new _JointLink__WEBPACK_IMPORTED_MODULE_3__["JointLink"](this);
+    }
+    setId(i) {
+        this.id = i;
+    }
+    setParent(world) {
+        this.parent = world;
+        this.scale = this.parent.scale;
+        this.invScale = this.parent.invScale;
+        this.id = this.parent.numJoints;
+        if (!this.name)
+            this.name = 'J' + this.id;
+    }
+    // Update all the anchor points.
+    updateAnchorPoints() {
+        this.relativeAnchorPoint1.copy(this.localAnchorPoint1).applyMatrix3(this.body1.rotation, true);
+        this.relativeAnchorPoint2.copy(this.localAnchorPoint2).applyMatrix3(this.body2.rotation, true);
+        this.anchorPoint1.add(this.relativeAnchorPoint1, this.body1.position);
+        this.anchorPoint2.add(this.relativeAnchorPoint2, this.body2.position);
+    }
+    // Attach the joint from the bodies.
+    attach(isX) {
+        this.b1Link.body = this.body2;
+        this.b2Link.body = this.body1;
+        if (isX) {
+            this.body1.jointLink.push(this.b1Link);
+            this.body2.jointLink.push(this.b2Link);
+            ;
+        }
+        else {
+            if (this.body1.jointLink != null)
+                (this.b1Link.next = this.body1.jointLink).prev = this.b1Link;
+            else
+                this.b1Link.next = null;
+            this.body1.jointLink = this.b1Link;
+            this.body1.numJoints++;
+            if (this.body2.jointLink != null)
+                (this.b2Link.next = this.body2.jointLink).prev = this.b2Link;
+            else
+                this.b2Link.next = null;
+            this.body2.jointLink = this.b2Link;
+            this.body2.numJoints++;
+        }
+    }
+    // Detach the joint from the bodies.
+    detach(isX) {
+        if (isX) {
+            this.body1.jointLink.splice(this.body1.jointLink.indexOf(this.b1Link), 1);
+            this.body2.jointLink.splice(this.body2.jointLink.indexOf(this.b2Link), 1);
+        }
+        else {
+            var prev = this.b1Link.prev;
+            var next = this.b1Link.next;
+            if (prev != null)
+                prev.next = next;
+            if (next != null)
+                next.prev = prev;
+            if (this.body1.jointLink == this.b1Link)
+                this.body1.jointLink = next;
+            this.b1Link.prev = null;
+            this.b1Link.next = null;
+            this.b1Link.body = null;
+            this.body1.numJoints--;
+            prev = this.b2Link.prev;
+            next = this.b2Link.next;
+            if (prev != null)
+                prev.next = next;
+            if (next != null)
+                next.prev = prev;
+            if (this.body2.jointLink == this.b2Link)
+                this.body2.jointLink = next;
+            this.b2Link.prev = null;
+            this.b2Link.next = null;
+            this.b2Link.body = null;
+            this.body2.numJoints--;
+        }
+        this.b1Link.body = null;
+        this.b2Link.body = null;
+    }
+    // Awake the bodies.
+    awake() {
+        this.body1.awake();
+        this.body2.awake();
+    }
+    // calculation function
+    preSolve(timeStep, invTimeStep) {
+    }
+    solve() {
+    }
+    postSolve() {
+    }
+    // Delete process
+    remove() {
+        this.dispose();
+    }
+    dispose() {
+        this.parent.removeJoint(this);
+    }
+    // Three js add
+    getPosition() {
+        var p1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_2__["Vec3"]().scale(this.anchorPoint1, this.scale);
+        var p2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_2__["Vec3"]().scale(this.anchorPoint2, this.scale);
+        return [p1, p2];
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constraint/joint/JointConfig.ts":
+/*!*************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constraint/joint/JointConfig.ts ***!
+  \*************************************************************/
+/*! exports provided: JointConfig */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "JointConfig", function() { return JointConfig; });
+/* harmony import */ var _math_Vec3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../math/Vec3 */ "./src/LTGame/3rd/oimo/math/Vec3.ts");
+
+class JointConfig {
+    constructor() {
+        this.scale = 1;
+        this.invScale = 1;
+        // The first rigid body of the joint.
+        this.body1 = null;
+        // The second rigid body of the joint.
+        this.body2 = null;
+        // The anchor point on the first rigid body in local coordinate system.
+        this.localAnchorPoint1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        //  The anchor point on the second rigid body in local coordinate system.
+        this.localAnchorPoint2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        // The axis in the first body's coordinate system.
+        // his property is available in some joints.
+        this.localAxis1 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        // The axis in the second body's coordinate system.
+        // This property is available in some joints.
+        this.localAxis2 = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        //  Whether allow collision between connected rigid bodies or not.
+        this.allowCollision = false;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constraint/joint/JointLink.ts":
+/*!***********************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constraint/joint/JointLink.ts ***!
+  \***********************************************************/
+/*! exports provided: JointLink */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "JointLink", function() { return JointLink; });
+class JointLink {
+    constructor(joint) {
+        // The previous joint link.
+        this.prev = null;
+        // The next joint link.
+        this.next = null;
+        // The other rigid body connected to the joint.
+        this.body = null;
+        // The joint of the link.
+        this.joint = joint;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constraint/joint/base/LimitMotor.ts":
+/*!*****************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constraint/joint/base/LimitMotor.ts ***!
+  \*****************************************************************/
+/*! exports provided: LimitMotor */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "LimitMotor", function() { return LimitMotor; });
+class LimitMotor {
+    constructor(axis, fixed) {
+        fixed = fixed || false;
+        // The axis of the constraint.
+        this.axis = axis;
+        // The current angle for rotational constraints.
+        this.angle = 0;
+        // The lower limit. Set lower > upper to disable
+        this.lowerLimit = fixed ? 0 : 1;
+        //  The upper limit. Set lower > upper to disable.
+        this.upperLimit = 0;
+        // The target motor speed.
+        this.motorSpeed = 0;
+        // The maximum motor force or torque. Set 0 to disable.
+        this.maxMotorForce = 0;
+        // The frequency of the spring. Set 0 to disable.
+        this.frequency = 0;
+        // The damping ratio of the spring. Set 0 for no damping, 1 for critical damping.
+        this.dampingRatio = 0;
+    }
+    // Set limit data into this constraint.
+    setLimit(lowerLimit, upperLimit) {
+        this.lowerLimit = lowerLimit;
+        this.upperLimit = upperLimit;
+    }
+    // Set motor data into this constraint.
+    setMotor(motorSpeed, maxMotorForce) {
+        this.motorSpeed = motorSpeed;
+        this.maxMotorForce = maxMotorForce;
+    }
+    // Set spring data into this constraint.
+    setSpring(frequency, dampingRatio) {
+        this.frequency = frequency;
+        this.dampingRatio = dampingRatio;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/constraint/joint/base/TranslationalConstraint.ts":
+/*!******************************************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/constraint/joint/base/TranslationalConstraint.ts ***!
+  \******************************************************************************/
+/*! exports provided: TranslationalConstraint */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TranslationalConstraint", function() { return TranslationalConstraint; });
+class TranslationalConstraint {
+    constructor(joint, limitMotor) {
+        this.cfm = NaN;
+        this.m1 = NaN;
+        this.m2 = NaN;
+        this.i1e00 = NaN;
+        this.i1e01 = NaN;
+        this.i1e02 = NaN;
+        this.i1e10 = NaN;
+        this.i1e11 = NaN;
+        this.i1e12 = NaN;
+        this.i1e20 = NaN;
+        this.i1e21 = NaN;
+        this.i1e22 = NaN;
+        this.i2e00 = NaN;
+        this.i2e01 = NaN;
+        this.i2e02 = NaN;
+        this.i2e10 = NaN;
+        this.i2e11 = NaN;
+        this.i2e12 = NaN;
+        this.i2e20 = NaN;
+        this.i2e21 = NaN;
+        this.i2e22 = NaN;
+        this.motorDenom = NaN;
+        this.invMotorDenom = NaN;
+        this.invDenom = NaN;
+        this.ax = NaN;
+        this.ay = NaN;
+        this.az = NaN;
+        this.r1x = NaN;
+        this.r1y = NaN;
+        this.r1z = NaN;
+        this.r2x = NaN;
+        this.r2y = NaN;
+        this.r2z = NaN;
+        this.t1x = NaN;
+        this.t1y = NaN;
+        this.t1z = NaN;
+        this.t2x = NaN;
+        this.t2y = NaN;
+        this.t2z = NaN;
+        this.l1x = NaN;
+        this.l1y = NaN;
+        this.l1z = NaN;
+        this.l2x = NaN;
+        this.l2y = NaN;
+        this.l2z = NaN;
+        this.a1x = NaN;
+        this.a1y = NaN;
+        this.a1z = NaN;
+        this.a2x = NaN;
+        this.a2y = NaN;
+        this.a2z = NaN;
+        this.lowerLimit = NaN;
+        this.upperLimit = NaN;
+        this.limitVelocity = NaN;
+        this.limitState = 0; // -1: at lower, 0: locked, 1: at upper, 2: free
+        this.enableMotor = false;
+        this.motorSpeed = NaN;
+        this.maxMotorForce = NaN;
+        this.maxMotorImpulse = NaN;
+        this.limitMotor = limitMotor;
+        this.b1 = joint.body1;
+        this.b2 = joint.body2;
+        this.p1 = joint.anchorPoint1;
+        this.p2 = joint.anchorPoint2;
+        this.r1 = joint.relativeAnchorPoint1;
+        this.r2 = joint.relativeAnchorPoint2;
+        this.l1 = this.b1.linearVelocity;
+        this.l2 = this.b2.linearVelocity;
+        this.a1 = this.b1.angularVelocity;
+        this.a2 = this.b2.angularVelocity;
+        this.i1 = this.b1.inverseInertia;
+        this.i2 = this.b2.inverseInertia;
+        this.limitImpulse = 0;
+        this.motorImpulse = 0;
+    }
+    preSolve(timeStep, invTimeStep) {
+        this.ax = this.limitMotor.axis.x;
+        this.ay = this.limitMotor.axis.y;
+        this.az = this.limitMotor.axis.z;
+        this.lowerLimit = this.limitMotor.lowerLimit;
+        this.upperLimit = this.limitMotor.upperLimit;
+        this.motorSpeed = this.limitMotor.motorSpeed;
+        this.maxMotorForce = this.limitMotor.maxMotorForce;
+        this.enableMotor = this.maxMotorForce > 0;
+        this.m1 = this.b1.inverseMass;
+        this.m2 = this.b2.inverseMass;
+        var ti1 = this.i1.elements;
+        var ti2 = this.i2.elements;
+        this.i1e00 = ti1[0];
+        this.i1e01 = ti1[1];
+        this.i1e02 = ti1[2];
+        this.i1e10 = ti1[3];
+        this.i1e11 = ti1[4];
+        this.i1e12 = ti1[5];
+        this.i1e20 = ti1[6];
+        this.i1e21 = ti1[7];
+        this.i1e22 = ti1[8];
+        this.i2e00 = ti2[0];
+        this.i2e01 = ti2[1];
+        this.i2e02 = ti2[2];
+        this.i2e10 = ti2[3];
+        this.i2e11 = ti2[4];
+        this.i2e12 = ti2[5];
+        this.i2e20 = ti2[6];
+        this.i2e21 = ti2[7];
+        this.i2e22 = ti2[8];
+        var dx = this.p2.x - this.p1.x;
+        var dy = this.p2.y - this.p1.y;
+        var dz = this.p2.z - this.p1.z;
+        var d = dx * this.ax + dy * this.ay + dz * this.az;
+        var frequency = this.limitMotor.frequency;
+        var enableSpring = frequency > 0;
+        var enableLimit = this.lowerLimit <= this.upperLimit;
+        if (enableSpring && d > 20 || d < -20) {
+            enableSpring = false;
+        }
+        if (enableLimit) {
+            if (this.lowerLimit == this.upperLimit) {
+                if (this.limitState != 0) {
+                    this.limitState = 0;
+                    this.limitImpulse = 0;
+                }
+                this.limitVelocity = this.lowerLimit - d;
+                if (!enableSpring)
+                    d = this.lowerLimit;
+            }
+            else if (d < this.lowerLimit) {
+                if (this.limitState != -1) {
+                    this.limitState = -1;
+                    this.limitImpulse = 0;
+                }
+                this.limitVelocity = this.lowerLimit - d;
+                if (!enableSpring)
+                    d = this.lowerLimit;
+            }
+            else if (d > this.upperLimit) {
+                if (this.limitState != 1) {
+                    this.limitState = 1;
+                    this.limitImpulse = 0;
+                }
+                this.limitVelocity = this.upperLimit - d;
+                if (!enableSpring)
+                    d = this.upperLimit;
+            }
+            else {
+                this.limitState = 2;
+                this.limitImpulse = 0;
+                this.limitVelocity = 0;
+            }
+            if (!enableSpring) {
+                if (this.limitVelocity > 0.005)
+                    this.limitVelocity -= 0.005;
+                else if (this.limitVelocity < -0.005)
+                    this.limitVelocity += 0.005;
+                else
+                    this.limitVelocity = 0;
+            }
+        }
+        else {
+            this.limitState = 2;
+            this.limitImpulse = 0;
+        }
+        if (this.enableMotor && (this.limitState != 0 || enableSpring)) {
+            this.maxMotorImpulse = this.maxMotorForce * timeStep;
+        }
+        else {
+            this.motorImpulse = 0;
+            this.maxMotorImpulse = 0;
+        }
+        var rdx = d * this.ax;
+        var rdy = d * this.ay;
+        var rdz = d * this.az;
+        var w1 = this.m1 / (this.m1 + this.m2);
+        var w2 = 1 - w1;
+        this.r1x = this.r1.x + rdx * w1;
+        this.r1y = this.r1.y + rdy * w1;
+        this.r1z = this.r1.z + rdz * w1;
+        this.r2x = this.r2.x - rdx * w2;
+        this.r2y = this.r2.y - rdy * w2;
+        this.r2z = this.r2.z - rdz * w2;
+        this.t1x = this.r1y * this.az - this.r1z * this.ay;
+        this.t1y = this.r1z * this.ax - this.r1x * this.az;
+        this.t1z = this.r1x * this.ay - this.r1y * this.ax;
+        this.t2x = this.r2y * this.az - this.r2z * this.ay;
+        this.t2y = this.r2z * this.ax - this.r2x * this.az;
+        this.t2z = this.r2x * this.ay - this.r2y * this.ax;
+        this.l1x = this.ax * this.m1;
+        this.l1y = this.ay * this.m1;
+        this.l1z = this.az * this.m1;
+        this.l2x = this.ax * this.m2;
+        this.l2y = this.ay * this.m2;
+        this.l2z = this.az * this.m2;
+        this.a1x = this.t1x * this.i1e00 + this.t1y * this.i1e01 + this.t1z * this.i1e02;
+        this.a1y = this.t1x * this.i1e10 + this.t1y * this.i1e11 + this.t1z * this.i1e12;
+        this.a1z = this.t1x * this.i1e20 + this.t1y * this.i1e21 + this.t1z * this.i1e22;
+        this.a2x = this.t2x * this.i2e00 + this.t2y * this.i2e01 + this.t2z * this.i2e02;
+        this.a2y = this.t2x * this.i2e10 + this.t2y * this.i2e11 + this.t2z * this.i2e12;
+        this.a2z = this.t2x * this.i2e20 + this.t2y * this.i2e21 + this.t2z * this.i2e22;
+        this.motorDenom =
+            this.m1 + this.m2 +
+                this.ax * (this.a1y * this.r1z - this.a1z * this.r1y + this.a2y * this.r2z - this.a2z * this.r2y) +
+                this.ay * (this.a1z * this.r1x - this.a1x * this.r1z + this.a2z * this.r2x - this.a2x * this.r2z) +
+                this.az * (this.a1x * this.r1y - this.a1y * this.r1x + this.a2x * this.r2y - this.a2y * this.r2x);
+        this.invMotorDenom = 1 / this.motorDenom;
+        if (enableSpring && this.limitState != 2) {
+            var omega = 6.2831853 * frequency;
+            var k = omega * omega * timeStep;
+            var dmp = invTimeStep / (k + 2 * this.limitMotor.dampingRatio * omega);
+            this.cfm = this.motorDenom * dmp;
+            this.limitVelocity *= k * dmp;
+        }
+        else {
+            this.cfm = 0;
+            this.limitVelocity *= invTimeStep * 0.05;
+        }
+        this.invDenom = 1 / (this.motorDenom + this.cfm);
+        var totalImpulse = this.limitImpulse + this.motorImpulse;
+        this.l1.x += totalImpulse * this.l1x;
+        this.l1.y += totalImpulse * this.l1y;
+        this.l1.z += totalImpulse * this.l1z;
+        this.a1.x += totalImpulse * this.a1x;
+        this.a1.y += totalImpulse * this.a1y;
+        this.a1.z += totalImpulse * this.a1z;
+        this.l2.x -= totalImpulse * this.l2x;
+        this.l2.y -= totalImpulse * this.l2y;
+        this.l2.z -= totalImpulse * this.l2z;
+        this.a2.x -= totalImpulse * this.a2x;
+        this.a2.y -= totalImpulse * this.a2y;
+        this.a2.z -= totalImpulse * this.a2z;
+    }
+    solve() {
+        var rvn = this.ax * (this.l2.x - this.l1.x) + this.ay * (this.l2.y - this.l1.y) + this.az * (this.l2.z - this.l1.z) +
+            this.t2x * this.a2.x - this.t1x * this.a1.x + this.t2y * this.a2.y - this.t1y * this.a1.y + this.t2z * this.a2.z - this.t1z * this.a1.z;
+        // motor part
+        var newMotorImpulse;
+        if (this.enableMotor) {
+            newMotorImpulse = (rvn - this.motorSpeed) * this.invMotorDenom;
+            var oldMotorImpulse = this.motorImpulse;
+            this.motorImpulse += newMotorImpulse;
+            if (this.motorImpulse > this.maxMotorImpulse)
+                this.motorImpulse = this.maxMotorImpulse;
+            else if (this.motorImpulse < -this.maxMotorImpulse)
+                this.motorImpulse = -this.maxMotorImpulse;
+            newMotorImpulse = this.motorImpulse - oldMotorImpulse;
+            rvn -= newMotorImpulse * this.motorDenom;
+        }
+        else
+            newMotorImpulse = 0;
+        // limit part
+        var newLimitImpulse;
+        if (this.limitState != 2) {
+            newLimitImpulse = (rvn - this.limitVelocity - this.limitImpulse * this.cfm) * this.invDenom;
+            var oldLimitImpulse = this.limitImpulse;
+            this.limitImpulse += newLimitImpulse;
+            if (this.limitImpulse * this.limitState < 0)
+                this.limitImpulse = 0;
+            newLimitImpulse = this.limitImpulse - oldLimitImpulse;
+        }
+        else
+            newLimitImpulse = 0;
+        var totalImpulse = newLimitImpulse + newMotorImpulse;
+        this.l1.x += totalImpulse * this.l1x;
+        this.l1.y += totalImpulse * this.l1y;
+        this.l1.z += totalImpulse * this.l1z;
+        this.a1.x += totalImpulse * this.a1x;
+        this.a1.y += totalImpulse * this.a1y;
+        this.a1.z += totalImpulse * this.a1z;
+        this.l2.x -= totalImpulse * this.l2x;
+        this.l2.y -= totalImpulse * this.l2y;
+        this.l2.z -= totalImpulse * this.l2z;
+        this.a2.x -= totalImpulse * this.a2x;
+        this.a2.y -= totalImpulse * this.a2y;
+        this.a2.z -= totalImpulse * this.a2z;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/core/RigidBody.ts":
+/*!***********************************************!*\
+  !*** ./src/LTGame/3rd/oimo/core/RigidBody.ts ***!
+  \***********************************************/
+/*! exports provided: RigidBody */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "RigidBody", function() { return RigidBody; });
+/* harmony import */ var _math_Vec3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../math/Vec3 */ "./src/LTGame/3rd/oimo/math/Vec3.ts");
+/* harmony import */ var _math_Quat__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../math/Quat */ "./src/LTGame/3rd/oimo/math/Quat.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../constants */ "./src/LTGame/3rd/oimo/constants.ts");
+/* harmony import */ var _shape_MassInfo__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../shape/MassInfo */ "./src/LTGame/3rd/oimo/shape/MassInfo.ts");
+/* harmony import */ var _math_Mat33__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../math/Mat33 */ "./src/LTGame/3rd/oimo/math/Mat33.ts");
+/* harmony import */ var _math_Math__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../math/_Math */ "./src/LTGame/3rd/oimo/math/_Math.ts");
+
+
+
+
+
+
+class RigidBody {
+    constructor(position, rotation) {
+        this.position = position || new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.orientation = rotation || new _math_Quat__WEBPACK_IMPORTED_MODULE_1__["Quat"]();
+        this.scale = 1;
+        this.invScale = 1;
+        // possible link to three Mesh;
+        this.mesh = null;
+        this.id = NaN;
+        this.name = "";
+        // The maximum number of shapes that can be added to a one rigid.
+        //this.MAX_SHAPES = 64;//64;
+        this.prev = null;
+        this.next = null;
+        // I represent the kind of rigid body.
+        // Please do not change from the outside this variable.
+        // If you want to change the type of rigid body, always
+        // Please specify the type you want to set the arguments of setupMass method.
+        this.type = _constants__WEBPACK_IMPORTED_MODULE_2__["BODY_NULL"];
+        this.massInfo = new _shape_MassInfo__WEBPACK_IMPORTED_MODULE_3__["MassInfo"]();
+        this.newPosition = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.controlPos = false;
+        this.newOrientation = new _math_Quat__WEBPACK_IMPORTED_MODULE_1__["Quat"]();
+        this.newRotation = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.currentRotation = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        this.controlRot = false;
+        this.controlRotInTime = false;
+        this.quaternion = new _math_Quat__WEBPACK_IMPORTED_MODULE_1__["Quat"]();
+        this.pos = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        // Is the translational velocity.
+        this.linearVelocity = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        // Is the angular velocity.
+        this.angularVelocity = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        //--------------------------------------------
+        //  Please do not change from the outside this variables.
+        //--------------------------------------------
+        // It is a world that rigid body has been added.
+        this.parent = null;
+        this.contactLink = null;
+        this.numContacts = 0;
+        // An array of shapes that are included in the rigid body.
+        this.shapes = null;
+        // The number of shapes that are included in the rigid body.
+        this.numShapes = 0;
+        // It is the link array of joint that is connected to the rigid body.
+        this.jointLink = null;
+        // The number of joints that are connected to the rigid body.
+        this.numJoints = 0;
+        // It is the world coordinate of the center of gravity in the sleep just before.
+        this.sleepPosition = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        // It is a quaternion that represents the attitude of sleep just before.
+        this.sleepOrientation = new _math_Quat__WEBPACK_IMPORTED_MODULE_1__["Quat"]();
+        // I will show this rigid body to determine whether it is a rigid body static.
+        this.isStatic = false;
+        // I indicates that this rigid body to determine whether it is a rigid body dynamic.
+        this.isDynamic = false;
+        this.isKinematic = false;
+        // It is a rotation matrix representing the orientation.
+        this.rotation = new _math_Mat33__WEBPACK_IMPORTED_MODULE_4__["Mat33"]();
+        //--------------------------------------------
+        // It will be recalculated automatically from the shape, which is included.
+        //--------------------------------------------
+        // This is the weight.
+        this.mass = 0;
+        // It is the reciprocal of the mass.
+        this.inverseMass = 0;
+        // It is the inverse of the inertia tensor in the world system.
+        this.inverseInertia = new _math_Mat33__WEBPACK_IMPORTED_MODULE_4__["Mat33"]();
+        // It is the inertia tensor in the initial state.
+        this.localInertia = new _math_Mat33__WEBPACK_IMPORTED_MODULE_4__["Mat33"]();
+        // It is the inverse of the inertia tensor in the initial state.
+        this.inverseLocalInertia = new _math_Mat33__WEBPACK_IMPORTED_MODULE_4__["Mat33"]();
+        this.tmpInertia = new _math_Mat33__WEBPACK_IMPORTED_MODULE_4__["Mat33"]();
+        // I indicates rigid body whether it has been added to the simulation Island.
+        this.addedToIsland = false;
+        // It shows how to sleep rigid body.
+        this.allowSleep = true;
+        // This is the time from when the rigid body at rest.
+        this.sleepTime = 0;
+        // I shows rigid body to determine whether it is a sleep state.
+        this.sleeping = false;
+    }
+    setParent(world) {
+        this.parent = world;
+        this.scale = this.parent.scale;
+        this.invScale = this.parent.invScale;
+        this.id = this.parent.numRigidBodies;
+        if (!this.name)
+            this.name = this.id + "";
+        this.updateMesh();
+    }
+    /**
+     * I'll add a shape to rigid body.
+     * If you add a shape, please call the setupMass method to step up to the start of the next.
+     * @param   shape shape to Add
+     */
+    addShape(shape) {
+        if (shape.parent) {
+            console.error("RigidBody", "It is not possible that you add a shape which already has an associated body.");
+        }
+        if (this.shapes != null)
+            (this.shapes.prev = shape).next = this.shapes;
+        this.shapes = shape;
+        shape.parent = this;
+        if (this.parent)
+            this.parent.addShape(shape);
+        this.numShapes++;
+    }
+    /**
+     * I will delete the shape from the rigid body.
+     * If you delete a shape, please call the setupMass method to step up to the start of the next.
+     * @param shape {Shape} to delete
+     * @return void
+     */
+    removeShape(shape) {
+        let remove = shape;
+        if (remove.parent != this)
+            return;
+        let prev = remove.prev;
+        let next = remove.next;
+        if (prev != null)
+            prev.next = next;
+        if (next != null)
+            next.prev = prev;
+        if (this.shapes == remove)
+            this.shapes = next;
+        remove.prev = null;
+        remove.next = null;
+        remove.parent = null;
+        if (this.parent)
+            this.parent.removeShape(remove);
+        this.numShapes--;
+    }
+    remove() {
+        this.dispose();
+    }
+    dispose() {
+        this.parent.removeRigidBody(this);
+    }
+    checkContact(name) {
+        return this.parent.checkContact(this.name, name);
+    }
+    /**
+     * Calulates mass datas(center of gravity, mass, moment inertia, etc...).
+     * If the parameter type is set to BODY_STATIC, the rigid body will be fixed to the space.
+     * If the parameter adjustPosition is set to true, the shapes' relative positions and
+     * the rigid body's position will be adjusted to the center of gravity.
+     * @param type
+     * @param adjust
+     * @return void
+     */
+    setupMass(type, adjust) {
+        let adjustPosition = (adjust !== undefined) ? adjust : true;
+        this.type = type || _constants__WEBPACK_IMPORTED_MODULE_2__["BODY_STATIC"];
+        this.isDynamic = this.type === _constants__WEBPACK_IMPORTED_MODULE_2__["BODY_DYNAMIC"];
+        this.isStatic = this.type === _constants__WEBPACK_IMPORTED_MODULE_2__["BODY_STATIC"];
+        this.mass = 0;
+        this.localInertia.set(0, 0, 0, 0, 0, 0, 0, 0, 0);
+        let tmpM = new _math_Mat33__WEBPACK_IMPORTED_MODULE_4__["Mat33"]();
+        let tmpV = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        for (let shape = this.shapes; shape !== null; shape = shape.next) {
+            shape.calculateMassInfo(this.massInfo);
+            let shapeMass = this.massInfo.mass;
+            tmpV.addScaledVector(shape.relativePosition, shapeMass);
+            this.mass += shapeMass;
+            this.rotateInertia(shape.relativeRotation, this.massInfo.inertia, tmpM);
+            this.localInertia.add(tmpM);
+            // add offset inertia
+            this.localInertia.addOffset(shapeMass, shape.relativePosition);
+        }
+        this.inverseMass = 1 / this.mass;
+        tmpV.scaleEqual(this.inverseMass);
+        if (adjustPosition) {
+            this.position.add(tmpV);
+            for (let shape = this.shapes; shape !== null; shape = shape.next) {
+                shape.relativePosition.subEqual(tmpV);
+            }
+            // subtract offset inertia
+            this.localInertia.subOffset(this.mass, tmpV);
+        }
+        this.inverseLocalInertia.invert(this.localInertia);
+        //}
+        if (this.type === _constants__WEBPACK_IMPORTED_MODULE_2__["BODY_STATIC"]) {
+            this.inverseMass = 0;
+            this.inverseLocalInertia.set(0, 0, 0, 0, 0, 0, 0, 0, 0);
+        }
+        this.syncShapes();
+        this.awake();
+    }
+    /**
+     * Awake the rigid body.
+     */
+    awake() {
+        if (!this.allowSleep || !this.sleeping)
+            return;
+        this.sleeping = false;
+        this.sleepTime = 0;
+        // awake connected constraints
+        let cs = this.contactLink;
+        while (cs != null) {
+            cs.body.sleepTime = 0;
+            cs.body.sleeping = false;
+            cs = cs.next;
+        }
+        let js = this.jointLink;
+        while (js != null) {
+            js.body.sleepTime = 0;
+            js.body.sleeping = false;
+            js = js.next;
+        }
+        for (let shape = this.shapes; shape != null; shape = shape.next) {
+            shape.updateProxy();
+        }
+    }
+    /**
+     * Sleep the rigid body.
+     */
+    sleep() {
+        if (!this.allowSleep || this.sleeping)
+            return;
+        this.linearVelocity.set(0, 0, 0);
+        this.angularVelocity.set(0, 0, 0);
+        this.sleepPosition.copy(this.position);
+        this.sleepOrientation.copy(this.orientation);
+        this.sleepTime = 0;
+        this.sleeping = true;
+        for (let shape = this.shapes; shape != null; shape = shape.next) {
+            shape.updateProxy();
+        }
+    }
+    testWakeUp() {
+        if (this.linearVelocity.testZero()
+            || this.angularVelocity.testZero()
+            || this.position.testDiff(this.sleepPosition)
+            || this.orientation.testDiff(this.sleepOrientation))
+            this.awake(); // awake the body
+    }
+    /**
+     * Get whether the rigid body has not any connection with others.
+     */
+    isLonely() {
+        return this.numJoints == 0 && this.numContacts == 0;
+    }
+    /**
+     * The time integration of the motion of a rigid body, you can update the information such as the shape.
+     * This method is invoked automatically when calling the step of the World,
+     * There is no need to call from outside usually.
+     */
+    updatePosition(timeStep) {
+        switch (this.type) {
+            case _constants__WEBPACK_IMPORTED_MODULE_2__["BODY_STATIC"]:
+                this.linearVelocity.set(0, 0, 0);
+                this.angularVelocity.set(0, 0, 0);
+                // ONLY FOR TEST
+                if (this.controlPos) {
+                    this.position.copy(this.newPosition);
+                    this.controlPos = false;
+                }
+                if (this.controlRot) {
+                    this.orientation.copy(this.newOrientation);
+                    this.controlRot = false;
+                }
+                /*this.linearVelocity.x=0;
+                this.linearVelocity.y=0;
+                this.linearVelocity.z=0;
+                this.angularVelocity.x=0;
+                this.angularVelocity.y=0;
+                this.angularVelocity.z=0;*/
+                break;
+            case _constants__WEBPACK_IMPORTED_MODULE_2__["BODY_DYNAMIC"]:
+                if (this.isKinematic) {
+                    this.linearVelocity.set(0, 0, 0);
+                    this.angularVelocity.set(0, 0, 0);
+                }
+                if (this.controlPos) {
+                    this.linearVelocity.subVectors(this.newPosition, this.position).multiplyScalar(1 / timeStep);
+                    this.controlPos = false;
+                }
+                if (this.controlRot) {
+                    this.angularVelocity.copy(this.getAxis());
+                    this.orientation.copy(this.newOrientation);
+                    this.controlRot = false;
+                }
+                this.position.addScaledVector(this.linearVelocity, timeStep);
+                this.orientation.addTime(this.angularVelocity, timeStep);
+                this.updateMesh();
+                break;
+            default:
+                console.error("RigidBody", "无效rigbody类型", this.type);
+        }
+        this.syncShapes();
+        this.updateMesh();
+    }
+    getAxis() {
+        return new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"](0, 1, 0).applyMatrix3(this.inverseLocalInertia, true).normalize();
+    }
+    rotateInertia(rot, inertia, out) {
+        this.tmpInertia.multiplyMatrices(rot, inertia);
+        out.multiplyMatrices(this.tmpInertia, rot, true);
+    }
+    syncShapes() {
+        this.rotation.setQuat(this.orientation);
+        this.rotateInertia(this.rotation, this.inverseLocalInertia, this.inverseInertia);
+        for (let shape = this.shapes; shape != null; shape = shape.next) {
+            shape.position.copy(shape.relativePosition).applyMatrix3(this.rotation, true).add(this.position);
+            // add by QuaziKb
+            shape.rotation.multiplyMatrices(this.rotation, shape.relativeRotation);
+            shape.updateProxy();
+        }
+    }
+    /**
+     * APPLY IMPULSE FORCE
+     * @param position
+     * @param force
+     */
+    applyImpulse(position, force) {
+        this.linearVelocity.addScaledVector(force, this.inverseMass);
+        let rel = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]().copy(position).sub(this.position).cross(force).applyMatrix3(this.inverseInertia, true);
+        this.angularVelocity.add(rel);
+    }
+    setPosition(pos) {
+        this.newPosition.copy(pos).multiplyScalar(this.invScale);
+        this.controlPos = true;
+        if (!this.isKinematic)
+            this.isKinematic = true;
+    }
+    setQuaternion(q) {
+        this.newOrientation.set(q.x, q.y, q.z, q.w);
+        this.controlRot = true;
+        if (!this.isKinematic)
+            this.isKinematic = true;
+    }
+    setRotation(rot) {
+        this.newOrientation = new _math_Quat__WEBPACK_IMPORTED_MODULE_1__["Quat"]().setFromEuler(rot.x * _math_Math__WEBPACK_IMPORTED_MODULE_5__["_Math"].degtorad, rot.y * _math_Math__WEBPACK_IMPORTED_MODULE_5__["_Math"].degtorad, rot.z * _math_Math__WEBPACK_IMPORTED_MODULE_5__["_Math"].degtorad); //this.rotationVectToQuad( rot );
+        this.controlRot = true;
+    }
+    //---------------------------------------------
+    // RESET DYNAMIQUE POSITION AND ROTATION
+    //---------------------------------------------
+    resetPosition(x, y, z) {
+        this.linearVelocity.set(0, 0, 0);
+        this.angularVelocity.set(0, 0, 0);
+        this.position.set(x, y, z).multiplyScalar(this.invScale);
+        //this.position.set( x*OIMO.WorldScale.invScale, y*OIMO.WorldScale.invScale, z*OIMO.WorldScale.invScale );
+        this.awake();
+    }
+    resetQuaternion(q) {
+        this.angularVelocity.set(0, 0, 0);
+        this.orientation = new _math_Quat__WEBPACK_IMPORTED_MODULE_1__["Quat"](q.x, q.y, q.z, q.w);
+        this.awake();
+    }
+    resetRotation(x, y, z) {
+        this.angularVelocity.set(0, 0, 0);
+        this.orientation = new _math_Quat__WEBPACK_IMPORTED_MODULE_1__["Quat"]().setFromEuler(x * _math_Math__WEBPACK_IMPORTED_MODULE_5__["_Math"].degtorad, y * _math_Math__WEBPACK_IMPORTED_MODULE_5__["_Math"].degtorad, z * _math_Math__WEBPACK_IMPORTED_MODULE_5__["_Math"].degtorad); //this.rotationVectToQuad( new Vec3(x,y,z) );
+        this.awake();
+    }
+    //---------------------------------------------
+    // GET POSITION AND ROTATION
+    //---------------------------------------------
+    getPosition() {
+        return this.pos;
+    }
+    getQuaternion() {
+        return this.quaternion;
+    }
+    //---------------------------------------------
+    // AUTO UPDATE THREE MESH
+    //---------------------------------------------
+    connectMesh(mesh) {
+        this.mesh = mesh;
+        this.updateMesh();
+    }
+    updateMesh() {
+        this.pos.scale(this.position, this.scale);
+        this.quaternion.copy(this.orientation);
+        if (this.mesh === null)
+            return;
+        this.mesh.position.copy(this.getPosition());
+        this.mesh.quaternion.copy(this.getQuaternion());
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/core/World.ts":
+/*!*******************************************!*\
+  !*** ./src/LTGame/3rd/oimo/core/World.ts ***!
+  \*******************************************/
+/*! exports provided: World */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "World", function() { return World; });
+/* harmony import */ var _RigidBody__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./RigidBody */ "./src/LTGame/3rd/oimo/core/RigidBody.ts");
+/* harmony import */ var _collision_broadphase_BruteForceBroadPhase__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../collision/broadphase/BruteForceBroadPhase */ "./src/LTGame/3rd/oimo/collision/broadphase/BruteForceBroadPhase.ts");
+/* harmony import */ var _collision_broadphase_sap_SAPBroadPhase__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../collision/broadphase/sap/SAPBroadPhase */ "./src/LTGame/3rd/oimo/collision/broadphase/sap/SAPBroadPhase.ts");
+/* harmony import */ var _collision_broadphase_dbvt_DBVTBroadPhase__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../collision/broadphase/dbvt/DBVTBroadPhase */ "./src/LTGame/3rd/oimo/collision/broadphase/dbvt/DBVTBroadPhase.ts");
+/* harmony import */ var _math_Vec3__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../math/Vec3 */ "./src/LTGame/3rd/oimo/math/Vec3.ts");
+/* harmony import */ var _collision_narrophase_SphereSphereCollisionDetector__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../collision/narrophase/SphereSphereCollisionDetector */ "./src/LTGame/3rd/oimo/collision/narrophase/SphereSphereCollisionDetector.ts");
+/* harmony import */ var _collision_narrophase_SphereBoxCollisionDectector__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../collision/narrophase/SphereBoxCollisionDectector */ "./src/LTGame/3rd/oimo/collision/narrophase/SphereBoxCollisionDectector.ts");
+/* harmony import */ var _collision_narrophase_BoxBoxCollisionDetector__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../collision/narrophase/BoxBoxCollisionDetector */ "./src/LTGame/3rd/oimo/collision/narrophase/BoxBoxCollisionDetector.ts");
+/* harmony import */ var _collision_narrophase_CylinderCylinderCollisionDetector__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../collision/narrophase/CylinderCylinderCollisionDetector */ "./src/LTGame/3rd/oimo/collision/narrophase/CylinderCylinderCollisionDetector.ts");
+/* harmony import */ var _collision_narrophase_BoxCylinderCollisionDetector__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../collision/narrophase/BoxCylinderCollisionDetector */ "./src/LTGame/3rd/oimo/collision/narrophase/BoxCylinderCollisionDetector.ts");
+/* harmony import */ var _collision_narrophase_SphereCylinderCollisionDetector__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../collision/narrophase/SphereCylinderCollisionDetector */ "./src/LTGame/3rd/oimo/collision/narrophase/SphereCylinderCollisionDetector.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../constants */ "./src/LTGame/3rd/oimo/constants.ts");
+/* harmony import */ var _math_Math__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../math/_Math */ "./src/LTGame/3rd/oimo/math/_Math.ts");
+/* harmony import */ var _shape_ShapeConfig__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../shape/ShapeConfig */ "./src/LTGame/3rd/oimo/shape/ShapeConfig.ts");
+/* harmony import */ var _shape_Box__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ../shape/Box */ "./src/LTGame/3rd/oimo/shape/Box.ts");
+/* harmony import */ var _math_Quat__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ../math/Quat */ "./src/LTGame/3rd/oimo/math/Quat.ts");
+/* harmony import */ var _constraint_contact_Contact__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ../constraint/contact/Contact */ "./src/LTGame/3rd/oimo/constraint/contact/Contact.ts");
+/* harmony import */ var _constraint_joint_JointConfig__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! ../constraint/joint/JointConfig */ "./src/LTGame/3rd/oimo/constraint/joint/JointConfig.ts");
+/* harmony import */ var _constraint_joint_DistanceJoint__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(/*! ../constraint/joint/DistanceJoint */ "./src/LTGame/3rd/oimo/constraint/joint/DistanceJoint.ts");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class World {
+    constructor(o) {
+        if (!(o instanceof Object))
+            o = {};
+        // this world scale defaut is 0.1 to 10 meters max for dynamique body
+        this.scale = o.worldscale || 1;
+        this.invScale = 1 / this.scale;
+        // The time between each step
+        this.timeStep = o.timestep || 0.01666; // 1/60;
+        this.timerate = this.timeStep * 1000;
+        this.timer = null;
+        this.preLoop = null; //function(){};
+        this.postLoop = null; //function(){};
+        // The number of iterations for constraint solvers.
+        this.numIterations = o.iterations || 8;
+        // It is a wide-area collision judgment that is used in order to reduce as much as possible a detailed collision judgment.
+        switch (o.broadphase || 2) {
+            case 1:
+                this.broadPhase = new _collision_broadphase_BruteForceBroadPhase__WEBPACK_IMPORTED_MODULE_1__["BruteForceBroadPhase"]();
+                break;
+            case 2:
+            default:
+                this.broadPhase = new _collision_broadphase_sap_SAPBroadPhase__WEBPACK_IMPORTED_MODULE_2__["SAPBroadPhase"]();
+                break;
+            case 3:
+                this.broadPhase = new _collision_broadphase_dbvt_DBVTBroadPhase__WEBPACK_IMPORTED_MODULE_3__["DBVTBroadPhase"]();
+                break;
+        }
+        this.Btypes = ['None', 'BruteForce', 'Sweep & Prune', 'Bounding Volume Tree'];
+        this.broadPhaseType = this.Btypes[o.broadphase || 2];
+        /**
+         * Whether the constraints randomizer is enabled or not.
+         *
+         * @property enableRandomizer
+         * @type {Boolean}
+         */
+        this.enableRandomizer = o.random !== undefined ? o.random : true;
+        // The rigid body list
+        this.rigidBodies = null;
+        // number of rigid body
+        this.numRigidBodies = 0;
+        // The contact list
+        this.contacts = null;
+        this.unusedContacts = null;
+        // The number of contact
+        this.numContacts = 0;
+        // The number of contact points
+        this.numContactPoints = 0;
+        //  The joint list
+        this.joints = null;
+        // The number of joints.
+        this.numJoints = 0;
+        // The number of simulation islands.
+        this.numIslands = 0;
+        // The gravity in the world.
+        this.gravity = new _math_Vec3__WEBPACK_IMPORTED_MODULE_4__["Vec3"](0, -9.8, 0);
+        if (o.gravity !== undefined)
+            this.gravity.fromArray(o.gravity);
+        let numShapeTypes = 5; //4;//3;
+        this.detectors = [];
+        this.detectors.length = numShapeTypes;
+        let i = numShapeTypes;
+        while (i--) {
+            this.detectors[i] = [];
+            this.detectors[i].length = numShapeTypes;
+        }
+        this.detectors[_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_SPHERE"]][_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_SPHERE"]] = new _collision_narrophase_SphereSphereCollisionDetector__WEBPACK_IMPORTED_MODULE_5__["SphereSphereCollisionDetector"]();
+        this.detectors[_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_SPHERE"]][_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_BOX"]] = new _collision_narrophase_SphereBoxCollisionDectector__WEBPACK_IMPORTED_MODULE_6__["SphereBoxCollisionDetector"](false);
+        this.detectors[_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_BOX"]][_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_SPHERE"]] = new _collision_narrophase_SphereBoxCollisionDectector__WEBPACK_IMPORTED_MODULE_6__["SphereBoxCollisionDetector"](true);
+        this.detectors[_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_BOX"]][_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_BOX"]] = new _collision_narrophase_BoxBoxCollisionDetector__WEBPACK_IMPORTED_MODULE_7__["BoxBoxCollisionDetector"]();
+        // CYLINDER add
+        this.detectors[_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_CYLINDER"]][_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_CYLINDER"]] = new _collision_narrophase_CylinderCylinderCollisionDetector__WEBPACK_IMPORTED_MODULE_8__["CylinderCylinderCollisionDetector"]();
+        this.detectors[_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_CYLINDER"]][_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_BOX"]] = new _collision_narrophase_BoxCylinderCollisionDetector__WEBPACK_IMPORTED_MODULE_9__["BoxCylinderCollisionDetector"](true);
+        this.detectors[_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_BOX"]][_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_CYLINDER"]] = new _collision_narrophase_BoxCylinderCollisionDetector__WEBPACK_IMPORTED_MODULE_9__["BoxCylinderCollisionDetector"](false);
+        this.detectors[_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_CYLINDER"]][_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_SPHERE"]] = new _collision_narrophase_SphereCylinderCollisionDetector__WEBPACK_IMPORTED_MODULE_10__["SphereCylinderCollisionDetector"](true);
+        this.detectors[_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_SPHERE"]][_constants__WEBPACK_IMPORTED_MODULE_11__["SHAPE_CYLINDER"]] = new _collision_narrophase_SphereCylinderCollisionDetector__WEBPACK_IMPORTED_MODULE_10__["SphereCylinderCollisionDetector"](false);
+        this.randX = 65535;
+        this.randA = 98765;
+        this.randB = 123456789;
+        this.islandRigidBodies = [];
+        this.islandStack = [];
+        this.islandConstraints = [];
+    }
+    setGravity(ar) {
+        this.gravity.fromArray(ar);
+    }
+    clear() {
+        this.preLoop = null;
+        this.postLoop = null;
+        this.randX = 65535;
+        while (this.joints !== null) {
+            this.removeJoint(this.joints);
+        }
+        while (this.contacts !== null) {
+            this.removeContact(this.contacts);
+        }
+        while (this.rigidBodies !== null) {
+            this.removeRigidBody(this.rigidBodies);
+        }
+    }
+    /**
+    * I'll add a rigid body to the world.
+    * Rigid body that has been added will be the operands of each step.
+    * @param  rigidBody  Rigid body that you want to add
+    */
+    addRigidBody(rigidBody) {
+        if (rigidBody.parent) {
+            console.error("World", "It is not possible to be added to more than one world one of the rigid body");
+        }
+        rigidBody.setParent(this);
+        //rigidBody.awake();
+        for (let shape = rigidBody.shapes; shape !== null; shape = shape.next) {
+            this.addShape(shape);
+        }
+        if (this.rigidBodies !== null)
+            (this.rigidBodies.prev = rigidBody).next = this.rigidBodies;
+        this.rigidBodies = rigidBody;
+        this.numRigidBodies++;
+    }
+    /**
+    * I will remove the rigid body from the world.
+    * Rigid body that has been deleted is excluded from the calculation on a step-by-step basis.
+    * @param  rigidBody  Rigid body to be removed
+    */
+    removeRigidBody(rigidBody) {
+        let remove = rigidBody;
+        if (remove.parent !== this)
+            return;
+        remove.awake();
+        let js = remove.jointLink;
+        while (js != null) {
+            let joint = js.joint;
+            js = js.next;
+            this.removeJoint(joint);
+        }
+        for (let shape = rigidBody.shapes; shape !== null; shape = shape.next) {
+            this.removeShape(shape);
+        }
+        let prev = remove.prev;
+        let next = remove.next;
+        if (prev !== null)
+            prev.next = next;
+        if (next !== null)
+            next.prev = prev;
+        if (this.rigidBodies == remove)
+            this.rigidBodies = next;
+        remove.prev = null;
+        remove.next = null;
+        remove.parent = null;
+        this.numRigidBodies--;
+    }
+    getByName(name) {
+        let body = this.rigidBodies;
+        while (body !== null) {
+            if (body.name === name)
+                return body;
+            body = body.next;
+        }
+        let joint = this.joints;
+        while (joint !== null) {
+            if (joint.name === name)
+                return joint;
+            joint = joint.next;
+        }
+        return null;
+    }
+    /**
+    * I'll add a shape to the world..
+    * Add to the rigid world, and if you add a shape to a rigid body that has been added to the world,
+    * Shape will be added to the world automatically, please do not call from outside this method.
+    * @param  shape  Shape you want to add
+    */
+    addShape(shape) {
+        if (!shape.parent || !shape.parent.parent) {
+            console.error("World", "It is not possible to be added alone to shape world");
+        }
+        shape.proxy = this.broadPhase.createProxy(shape);
+        shape.updateProxy();
+        this.broadPhase.addProxy(shape.proxy);
+    }
+    /**
+    * I will remove the shape from the world.
+    * Add to the rigid world, and if you add a shape to a rigid body that has been added to the world,
+    * Shape will be added to the world automatically, please do not call from outside this method.
+    * @param  shape  Shape you want to delete
+    */
+    removeShape(shape) {
+        this.broadPhase.removeProxy(shape.proxy);
+        shape.proxy = null;
+    }
+    /**
+    * I'll add a joint to the world.
+    * Joint that has been added will be the operands of each step.
+    * @param  shape Joint to be added
+    */
+    addJoint(joint) {
+        if (joint.parent) {
+            console.error("World", "It is not possible to be added to more than one world one of the joint");
+        }
+        if (this.joints != null)
+            (this.joints.prev = joint).next = this.joints;
+        this.joints = joint;
+        joint.setParent(this);
+        this.numJoints++;
+        joint.awake();
+        joint.attach();
+    }
+    /**
+    * I will remove the joint from the world.
+    * Joint that has been added will be the operands of each step.
+    * @param  shape Joint to be deleted
+    */
+    removeJoint(joint) {
+        let remove = joint;
+        let prev = remove.prev;
+        let next = remove.next;
+        if (prev !== null)
+            prev.next = next;
+        if (next !== null)
+            next.prev = prev;
+        if (this.joints == remove)
+            this.joints = next;
+        remove.prev = null;
+        remove.next = null;
+        this.numJoints--;
+        remove.awake();
+        remove.detach();
+        remove.parent = null;
+    }
+    addContact(s1, s2) {
+        let newContact;
+        if (this.unusedContacts !== null) {
+            newContact = this.unusedContacts;
+            this.unusedContacts = this.unusedContacts.next;
+        }
+        else {
+            newContact = new _constraint_contact_Contact__WEBPACK_IMPORTED_MODULE_16__["Contact"]();
+        }
+        newContact.attach(s1, s2);
+        newContact.detector = this.detectors[s1.type][s2.type];
+        if (this.contacts)
+            (this.contacts.prev = newContact).next = this.contacts;
+        this.contacts = newContact;
+        this.numContacts++;
+    }
+    removeContact(contact) {
+        let prev = contact.prev;
+        let next = contact.next;
+        if (next)
+            next.prev = prev;
+        if (prev)
+            prev.next = next;
+        if (this.contacts == contact)
+            this.contacts = next;
+        contact.prev = null;
+        contact.next = null;
+        contact.detach();
+        contact.next = this.unusedContacts;
+        this.unusedContacts = contact;
+        this.numContacts--;
+    }
+    getContact(b1, b2) {
+        b1 = b1.constructor === _RigidBody__WEBPACK_IMPORTED_MODULE_0__["RigidBody"] ? b1.name : b1;
+        b2 = b2.constructor === _RigidBody__WEBPACK_IMPORTED_MODULE_0__["RigidBody"] ? b2.name : b2;
+        let n1, n2;
+        let contact = this.contacts;
+        while (contact !== null) {
+            n1 = contact.body1.name;
+            n2 = contact.body2.name;
+            if ((n1 === b1 && n2 === b2) || (n2 === b1 && n1 === b2)) {
+                if (contact.touching)
+                    return contact;
+                else
+                    return null;
+            }
+            else
+                contact = contact.next;
+        }
+        return null;
+    }
+    checkContact(name1, name2) {
+        let n1, n2;
+        let contact = this.contacts;
+        while (contact !== null) {
+            n1 = contact.body1.name || ' ';
+            n2 = contact.body2.name || ' ';
+            if ((n1 == name1 && n2 == name2) || (n2 == name1 && n1 == name2)) {
+                if (contact.touching)
+                    return true;
+                else
+                    return false;
+            }
+            else
+                contact = contact.next;
+        }
+        return false;
+    }
+    callSleep(body) {
+        if (!body.allowSleep)
+            return false;
+        if (body.linearVelocity.lengthSq() > 0.04)
+            return false;
+        if (body.angularVelocity.lengthSq() > 0.25)
+            return false;
+        return true;
+    }
+    /**
+    * I will proceed only time step seconds time of World.
+    */
+    step() {
+        let body = this.rigidBodies;
+        while (body !== null) {
+            body.addedToIsland = false;
+            if (body.sleeping)
+                body.testWakeUp();
+            body = body.next;
+        }
+        //------------------------------------------------------
+        //   UPDATE BROADPHASE CONTACT
+        //------------------------------------------------------
+        this.broadPhase.detectPairs();
+        let pairs = this.broadPhase.pairs;
+        let i = this.broadPhase.numPairs;
+        let contact;
+        while (i--) {
+            let pair = pairs[i];
+            let s1;
+            let s2;
+            if (pair.shape1.id < pair.shape2.id) {
+                s1 = pair.shape1;
+                s2 = pair.shape2;
+            }
+            else {
+                s1 = pair.shape2;
+                s2 = pair.shape1;
+            }
+            let link;
+            if (s1.numContacts < s2.numContacts)
+                link = s1.contactLink;
+            else
+                link = s2.contactLink;
+            let exists = false;
+            while (link) {
+                contact = link.contact;
+                if (contact.shape1 == s1 && contact.shape2 == s2) {
+                    contact.persisting = true;
+                    exists = true; // contact already exists
+                    break;
+                }
+                link = link.next;
+            }
+            if (!exists) {
+                this.addContact(s1, s2);
+            }
+        }
+        //------------------------------------------------------
+        //   UPDATE NARROWPHASE CONTACT
+        //------------------------------------------------------
+        // update & narrow phase
+        this.numContactPoints = 0;
+        contact = this.contacts;
+        while (contact !== null) {
+            if (!contact.persisting) {
+                if (contact.shape1.aabb.intersectTest(contact.shape2.aabb)) {
+                    let next = contact.next;
+                    this.removeContact(contact);
+                    contact = next;
+                    continue;
+                }
+            }
+            let b1 = contact.body1;
+            let b2 = contact.body2;
+            if (b1.isDynamic && !b1.sleeping || b2.isDynamic && !b2.sleeping)
+                contact.updateManifold();
+            this.numContactPoints += contact.manifold.numPoints;
+            contact.persisting = false;
+            contact.constraint.addedToIsland = false;
+            contact = contact.next;
+        }
+        //------------------------------------------------------
+        //   SOLVE ISLANDS
+        //------------------------------------------------------
+        let invTimeStep = 1 / this.timeStep;
+        let joint;
+        let constraint;
+        for (joint = this.joints; joint !== null; joint = joint.next) {
+            joint.addedToIsland = false;
+        }
+        // clear old island array
+        this.islandRigidBodies = [];
+        this.islandConstraints = [];
+        this.islandStack = [];
+        this.numIslands = 0;
+        // build and solve simulation islands
+        for (let base = this.rigidBodies; base !== null; base = base.next) {
+            if (base.addedToIsland || base.isStatic || base.sleeping)
+                continue; // ignore
+            if (base.isLonely()) { // update single body
+                if (base.isDynamic) {
+                    base.linearVelocity.addScaledVector(this.gravity, this.timeStep);
+                }
+                if (this.callSleep(base)) {
+                    base.sleepTime += this.timeStep;
+                    if (base.sleepTime > 0.5)
+                        base.sleep();
+                    else
+                        base.updatePosition(this.timeStep);
+                }
+                else {
+                    base.sleepTime = 0;
+                    base.updatePosition(this.timeStep);
+                }
+                this.numIslands++;
+                continue;
+            }
+            let islandNumRigidBodies = 0;
+            let islandNumConstraints = 0;
+            let stackCount = 1;
+            // add rigid body to stack
+            this.islandStack[0] = base;
+            base.addedToIsland = true;
+            let next;
+            // build an island
+            do {
+                // get rigid body from stack
+                body = this.islandStack[--stackCount];
+                this.islandStack[stackCount] = null;
+                body.sleeping = false;
+                // add rigid body to the island
+                this.islandRigidBodies[islandNumRigidBodies++] = body;
+                if (body.isStatic)
+                    continue;
+                // search connections
+                for (let cs = body.contactLink; cs !== null; cs = cs.next) {
+                    let contact = cs.contact;
+                    constraint = contact.constraint;
+                    if (constraint.addedToIsland || !contact.touching)
+                        continue; // ignore
+                    // add constraint to the island
+                    this.islandConstraints[islandNumConstraints++] = constraint;
+                    constraint.addedToIsland = true;
+                    next = cs.body;
+                    if (next.addedToIsland)
+                        continue;
+                    // add rigid body to stack
+                    this.islandStack[stackCount++] = next;
+                    next.addedToIsland = true;
+                }
+                for (let js = body.jointLink; js !== null; js = js.next) {
+                    constraint = js.joint;
+                    if (constraint.addedToIsland)
+                        continue; // ignore
+                    // add constraint to the island
+                    this.islandConstraints[islandNumConstraints++] = constraint;
+                    constraint.addedToIsland = true;
+                    next = js.body;
+                    if (next.addedToIsland || !next.isDynamic)
+                        continue;
+                    // add rigid body to stack
+                    this.islandStack[stackCount++] = next;
+                    next.addedToIsland = true;
+                }
+            } while (stackCount != 0);
+            // update velocities
+            let gVel = new _math_Vec3__WEBPACK_IMPORTED_MODULE_4__["Vec3"]().addScaledVector(this.gravity, this.timeStep);
+            /*let gx=this.gravity.x*this.timeStep;
+            let gy=this.gravity.y*this.timeStep;
+            let gz=this.gravity.z*this.timeStep;*/
+            let j = islandNumRigidBodies;
+            while (j--) {
+                //or(let j=0, l=islandNumRigidBodies; j<l; j++){
+                body = this.islandRigidBodies[j];
+                if (body.isDynamic) {
+                    body.linearVelocity.addEqual(gVel);
+                    /*body.linearVelocity.x+=gx;
+                    body.linearVelocity.y+=gy;
+                    body.linearVelocity.z+=gz;*/
+                }
+            }
+            // randomizing order
+            if (this.enableRandomizer) {
+                //for(let j=1, l=islandNumConstraints; j<l; j++){
+                j = islandNumConstraints;
+                while (j--) {
+                    if (j !== 0) {
+                        let swap = (this.randX = (this.randX * this.randA + this.randB & 0x7fffffff)) / 2147483648.0 * j | 0;
+                        constraint = this.islandConstraints[j];
+                        this.islandConstraints[j] = this.islandConstraints[swap];
+                        this.islandConstraints[swap] = constraint;
+                    }
+                }
+            }
+            // solve contraints
+            j = islandNumConstraints;
+            while (j--) {
+                //for(j=0, l=islandNumConstraints; j<l; j++){
+                this.islandConstraints[j].preSolve(this.timeStep, invTimeStep); // pre-solve
+            }
+            let k = this.numIterations;
+            while (k--) {
+                //for(let k=0, l=this.numIterations; k<l; k++){
+                j = islandNumConstraints;
+                while (j--) {
+                    //for(j=0, m=islandNumConstraints; j<m; j++){
+                    this.islandConstraints[j].solve(); // main-solve
+                }
+            }
+            j = islandNumConstraints;
+            while (j--) {
+                //for(j=0, l=islandNumConstraints; j<l; j++){
+                this.islandConstraints[j].postSolve(); // post-solve
+                this.islandConstraints[j] = null; // gc
+            }
+            // sleeping check
+            let sleepTime = 10;
+            j = islandNumRigidBodies;
+            while (j--) {
+                //for(j=0, l=islandNumRigidBodies;j<l;j++){
+                body = this.islandRigidBodies[j];
+                if (this.callSleep(body)) {
+                    body.sleepTime += this.timeStep;
+                    if (body.sleepTime < sleepTime)
+                        sleepTime = body.sleepTime;
+                }
+                else {
+                    body.sleepTime = 0;
+                    sleepTime = 0;
+                    continue;
+                }
+            }
+            if (sleepTime > 0.5) {
+                // sleep the island
+                j = islandNumRigidBodies;
+                while (j--) {
+                    //for(j=0, l=islandNumRigidBodies;j<l;j++){
+                    this.islandRigidBodies[j].sleep();
+                    this.islandRigidBodies[j] = null; // gc
+                }
+            }
+            else {
+                // update positions
+                j = islandNumRigidBodies;
+                while (j--) {
+                    //for(j=0, l=islandNumRigidBodies;j<l;j++){
+                    this.islandRigidBodies[j].updatePosition(this.timeStep);
+                    this.islandRigidBodies[j] = null; // gc
+                }
+            }
+            this.numIslands++;
+        }
+        //------------------------------------------------------
+        //   END SIMULATION
+        //------------------------------------------------------
+        if (this.postLoop !== null)
+            this.postLoop();
+    }
+    // remove someting to world
+    remove(obj) {
+    }
+    add(o) {
+        o = o || {};
+        let type = o.type || "box";
+        if (type.constructor === String)
+            type = [type];
+        let isJoint = type[0].substring(0, 5) === 'joint' ? true : false;
+        if (isJoint) {
+            return this.initJoint(type[0], o);
+        }
+        else {
+            return this.initBody(type, o);
+        }
+    }
+    initBody(type, o) {
+        let invScale = this.invScale;
+        // body dynamic or static
+        let move = o.move || false;
+        let kinematic = o.kinematic || false;
+        // POSITION
+        // body position
+        let p = o.pos || [0, 0, 0];
+        p = p.map(function (x) { return x * invScale; });
+        // shape position
+        let p2 = o.posShape || [0, 0, 0];
+        p2 = p2.map(function (x) { return x * invScale; });
+        // ROTATION
+        // body rotation in degree
+        let r = o.rot || [0, 0, 0];
+        r = r.map(function (x) { return x * _math_Math__WEBPACK_IMPORTED_MODULE_12__["_Math"].degtorad; });
+        // shape rotation in degree
+        let r2 = o.rotShape || [0, 0, 0];
+        r2 = r.map(function (x) { return x * _math_Math__WEBPACK_IMPORTED_MODULE_12__["_Math"].degtorad; });
+        // SIZE
+        // shape size
+        let s = o.size === undefined ? [1, 1, 1] : o.size;
+        if (s.length === 1) {
+            s[1] = s[0];
+        }
+        if (s.length === 2) {
+            s[2] = s[0];
+        }
+        s = s.map(function (x) { return x * invScale; });
+        // body physics settings
+        let sc = new _shape_ShapeConfig__WEBPACK_IMPORTED_MODULE_13__["ShapeConfig"]();
+        // The density of the shape.
+        if (o.density !== undefined)
+            sc.density = o.density;
+        // The coefficient of friction of the shape.
+        if (o.friction !== undefined)
+            sc.friction = o.friction;
+        // The coefficient of restitution of the shape.
+        if (o.restitution !== undefined)
+            sc.restitution = o.restitution;
+        // The bits of the collision groups to which the shape belongs.
+        if (o.belongsTo !== undefined)
+            sc.belongsTo = o.belongsTo;
+        // The bits of the collision groups with which the shape collides.
+        if (o.collidesWith !== undefined)
+            sc.collidesWith = o.collidesWith;
+        if (o.config !== undefined) {
+            if (o.config[0] !== undefined)
+                sc.density = o.config[0];
+            if (o.config[1] !== undefined)
+                sc.friction = o.config[1];
+            if (o.config[2] !== undefined)
+                sc.restitution = o.config[2];
+            if (o.config[3] !== undefined)
+                sc.belongsTo = o.config[3];
+            if (o.config[4] !== undefined)
+                sc.collidesWith = o.config[4];
+        }
+        /* if(o.massPos){
+            o.massPos = o.massPos.map(function(x) { return x * invScale; });
+            sc.relativePosition.set( o.massPos[0], o.massPos[1], o.massPos[2] );
+        }
+        if(o.massRot){
+            o.massRot = o.massRot.map(function(x) { return x * _Math.degtorad; });
+            let q = new Quat().setFromEuler( o.massRot[0], o.massRot[1], o.massRot[2] );
+            sc.relativeRotation = new Mat33().setQuat( q );//_Math.EulerToMatrix( o.massRot[0], o.massRot[1], o.massRot[2] );
+        }*/
+        let position = new _math_Vec3__WEBPACK_IMPORTED_MODULE_4__["Vec3"](p[0], p[1], p[2]);
+        let rotation = new _math_Quat__WEBPACK_IMPORTED_MODULE_15__["Quat"]().setFromEuler(r[0], r[1], r[2]);
+        // rigidbody
+        let body = new _RigidBody__WEBPACK_IMPORTED_MODULE_0__["RigidBody"](position, rotation);
+        //let body = new RigidBody( p[0], p[1], p[2], r[0], r[1], r[2], r[3], this.scale, this.invScale );
+        // SHAPES
+        let shape, n;
+        for (let i = 0; i < type.length; i++) {
+            n = i * 3;
+            if (p2[n] !== undefined)
+                sc.relativePosition.set(p2[n], p2[n + 1], p2[n + 2]);
+            if (r2[n] !== undefined)
+                sc.relativeRotation.setQuat(new _math_Quat__WEBPACK_IMPORTED_MODULE_15__["Quat"]().setFromEuler(r2[n], r2[n + 1], r2[n + 2]));
+            switch (type[i]) {
+                case "box":
+                    shape = new _shape_Box__WEBPACK_IMPORTED_MODULE_14__["Box"](sc, s[n], s[n + 1], s[n + 2]);
+                    break;
+                default:
+                    console.error("暂未实现的shape", type[i]);
+                    break;
+            }
+            body.addShape(shape);
+        }
+        // body can sleep or not
+        if (o.neverSleep || kinematic)
+            body.allowSleep = false;
+        else
+            body.allowSleep = true;
+        body.isKinematic = kinematic;
+        // body static or dynamic
+        if (move) {
+            if (o.massPos || o.massRot)
+                body.setupMass(_constants__WEBPACK_IMPORTED_MODULE_11__["BODY_DYNAMIC"], false);
+            else
+                body.setupMass(_constants__WEBPACK_IMPORTED_MODULE_11__["BODY_DYNAMIC"], true);
+            // body can sleep or not
+            //if( o.neverSleep ) body.allowSleep = false;
+            //else body.allowSleep = true;
+        }
+        else {
+            body.setupMass(_constants__WEBPACK_IMPORTED_MODULE_11__["BODY_STATIC"]);
+        }
+        if (o.name !== undefined)
+            body.name = o.name;
+        //else if( move ) body.name = this.numRigidBodies;
+        // finaly add to physics world
+        this.addRigidBody(body);
+        // force sleep on not
+        if (move) {
+            if (o.sleep)
+                body.sleep();
+            else
+                body.awake();
+        }
+        return body;
+    }
+    initJoint(type, o) {
+        //let type = type;
+        let invScale = this.invScale;
+        let axe1 = o.axe1 || [1, 0, 0];
+        let axe2 = o.axe2 || [1, 0, 0];
+        let pos1 = o.pos1 || [0, 0, 0];
+        let pos2 = o.pos2 || [0, 0, 0];
+        pos1 = pos1.map(function (x) { return x * invScale; });
+        pos2 = pos2.map(function (x) { return x * invScale; });
+        let min, max;
+        if (type === "jointDistance") {
+            min = o.min || 0;
+            max = o.max || 10;
+            min = min * invScale;
+            max = max * invScale;
+        }
+        else {
+            min = o.min || 57.29578;
+            max = o.max || 0;
+            min = min * _math_Math__WEBPACK_IMPORTED_MODULE_12__["_Math"].degtorad;
+            max = max * _math_Math__WEBPACK_IMPORTED_MODULE_12__["_Math"].degtorad;
+        }
+        let limit = o.limit || null;
+        let spring = o.spring || null;
+        let motor = o.motor || null;
+        // joint setting
+        let jc = new _constraint_joint_JointConfig__WEBPACK_IMPORTED_MODULE_17__["JointConfig"]();
+        jc.scale = this.scale;
+        jc.invScale = this.invScale;
+        jc.allowCollision = o.collision || false;
+        jc.localAxis1.set(axe1[0], axe1[1], axe1[2]);
+        jc.localAxis2.set(axe2[0], axe2[1], axe2[2]);
+        jc.localAnchorPoint1.set(pos1[0], pos1[1], pos1[2]);
+        jc.localAnchorPoint2.set(pos2[0], pos2[1], pos2[2]);
+        let b1 = null;
+        let b2 = null;
+        if (o.body1 === undefined || o.body2 === undefined)
+            return console.error('World', "Can't add joint if attach rigidbodys not define !");
+        if (o.body1.constructor === String) {
+            b1 = this.getByName(o.body1);
+        }
+        else if (o.body1.constructor === Number) {
+            b1 = this.getByName(o.body1);
+        }
+        else if (o.body1.constructor === _RigidBody__WEBPACK_IMPORTED_MODULE_0__["RigidBody"]) {
+            b1 = o.body1;
+        }
+        if (o.body2.constructor === String) {
+            b2 = this.getByName(o.body2);
+        }
+        else if (o.body2.constructor === Number) {
+            b2 = this.getByName(o.body2);
+        }
+        else if (o.body2.constructor === _RigidBody__WEBPACK_IMPORTED_MODULE_0__["RigidBody"]) {
+            b2 = o.body2;
+        }
+        if (b1 === null || b2 === null)
+            return console.error('World', "Can't add joint attach rigidbodys not find !");
+        jc.body1 = b1;
+        jc.body2 = b2;
+        let joint;
+        switch (type) {
+            case "jointDistance":
+                joint = new _constraint_joint_DistanceJoint__WEBPACK_IMPORTED_MODULE_18__["DistanceJoint"](jc, min, max);
+                if (spring !== null)
+                    joint.limitMotor.setSpring(spring[0], spring[1]);
+                if (motor !== null)
+                    joint.limitMotor.setMotor(motor[0], motor[1]);
+                break;
+            default:
+                console.error("未实现的joint", type);
+                break;
+        }
+        joint.name = o.name || '';
+        // finaly add to physics world
+        this.addJoint(joint);
+        return joint;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/math/AABB.ts":
+/*!******************************************!*\
+  !*** ./src/LTGame/3rd/oimo/math/AABB.ts ***!
+  \******************************************/
+/*! exports provided: AABB */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "AABB", function() { return AABB; });
+class AABB {
+    constructor(minX, maxX, minY, maxY, minZ, maxZ) {
+        this.elements = new Float32Array(6);
+        var te = this.elements;
+        te[0] = minX || 0;
+        te[1] = minY || 0;
+        te[2] = minZ || 0;
+        te[3] = maxX || 0;
+        te[4] = maxY || 0;
+        te[5] = maxZ || 0;
+    }
+    set(minX, maxX, minY, maxY, minZ, maxZ) {
+        let te = this.elements;
+        te[0] = minX;
+        te[3] = maxX;
+        te[1] = minY;
+        te[4] = maxY;
+        te[2] = minZ;
+        te[5] = maxZ;
+        return this;
+    }
+    intersectTest(aabb) {
+        let te = this.elements;
+        let ue = aabb.elements;
+        return te[0] > ue[3] || te[1] > ue[4] || te[2] > ue[5] || te[3] < ue[0] || te[4] < ue[1] || te[5] < ue[2];
+    }
+    intersectTestTwo(aabb) {
+        let te = this.elements;
+        let ue = aabb.elements;
+        return te[0] < ue[0] || te[1] < ue[1] || te[2] < ue[2] || te[3] > ue[3] || te[4] > ue[4] || te[5] > ue[5] ? true : false;
+    }
+    copy(aabb, margin) {
+        let m = margin || 0;
+        let me = aabb.elements;
+        this.set(me[0] - m, me[3] + m, me[1] - m, me[4] + m, me[2] - m, me[5] + m);
+        return this;
+    }
+    fromArray(array) {
+        this.elements.set(array);
+        return this;
+    }
+    clone() {
+        return new AABB().fromArray(this.elements);
+    }
+    combine(aabb1, aabb2) {
+        let a = aabb1.elements;
+        let b = aabb2.elements;
+        let te = this.elements;
+        te[0] = a[0] < b[0] ? a[0] : b[0];
+        te[1] = a[1] < b[1] ? a[1] : b[1];
+        te[2] = a[2] < b[2] ? a[2] : b[2];
+        te[3] = a[3] > b[3] ? a[3] : b[3];
+        te[4] = a[4] > b[4] ? a[4] : b[4];
+        te[5] = a[5] > b[5] ? a[5] : b[5];
+        return this;
+    }
+    surfaceArea() {
+        let te = this.elements;
+        let a = te[3] - te[0];
+        let h = te[4] - te[1];
+        let d = te[5] - te[2];
+        return 2 * (a * (h + d) + h * d);
+    }
+    intersectsWithPoint(x, y, z) {
+        let te = this.elements;
+        return x >= te[0] && x <= te[3] && y >= te[1] && y <= te[4] && z >= te[2] && z <= te[5];
+    }
+    makeEmpty() {
+        this.set(-Infinity, -Infinity, -Infinity, Infinity, Infinity, Infinity);
+    }
+    expandByPoint(pt) {
+        let te = this.elements;
+        this.set(Math.min(te[0], pt.x), Math.min(te[1], pt.y), Math.min(te[2], pt.z), Math.max(te[3], pt.x), Math.max(te[4], pt.y), Math.max(te[5], pt.z));
+    }
+    setFromPoints(arr) {
+        this.makeEmpty();
+        for (var i = 0; i < arr.length; i++) {
+            this.expandByPoint(arr[i]);
+        }
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/math/Mat33.ts":
+/*!*******************************************!*\
+  !*** ./src/LTGame/3rd/oimo/math/Mat33.ts ***!
+  \*******************************************/
+/*! exports provided: Mat33 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Mat33", function() { return Mat33; });
+class Mat33 {
+    constructor() {
+        this.elements = [
+            1, 0, 0,
+            0, 1, 0,
+            0, 0, 1
+        ];
+    }
+    set(e00, e01, e02, e10, e11, e12, e20, e21, e22) {
+        let te = this.elements;
+        te[0] = e00;
+        te[1] = e01;
+        te[2] = e02;
+        te[3] = e10;
+        te[4] = e11;
+        te[5] = e12;
+        te[6] = e20;
+        te[7] = e21;
+        te[8] = e22;
+        return this;
+    }
+    add(a, b) {
+        if (b !== undefined)
+            return this.addMatrixs(a, b);
+        let e = this.elements, te = a.elements;
+        e[0] += te[0];
+        e[1] += te[1];
+        e[2] += te[2];
+        e[3] += te[3];
+        e[4] += te[4];
+        e[5] += te[5];
+        e[6] += te[6];
+        e[7] += te[7];
+        e[8] += te[8];
+        return this;
+    }
+    addMatrixs(a, b) {
+        let te = this.elements, tem1 = a.elements, tem2 = b.elements;
+        te[0] = tem1[0] + tem2[0];
+        te[1] = tem1[1] + tem2[1];
+        te[2] = tem1[2] + tem2[2];
+        te[3] = tem1[3] + tem2[3];
+        te[4] = tem1[4] + tem2[4];
+        te[5] = tem1[5] + tem2[5];
+        te[6] = tem1[6] + tem2[6];
+        te[7] = tem1[7] + tem2[7];
+        te[8] = tem1[8] + tem2[8];
+        return this;
+    }
+    addEqual(m) {
+        let te = this.elements, tem = m.elements;
+        te[0] += tem[0];
+        te[1] += tem[1];
+        te[2] += tem[2];
+        te[3] += tem[3];
+        te[4] += tem[4];
+        te[5] += tem[5];
+        te[6] += tem[6];
+        te[7] += tem[7];
+        te[8] += tem[8];
+        return this;
+    }
+    sub(a, b) {
+        if (b !== undefined)
+            return this.subMatrixs(a, b);
+        let e = this.elements, te = a.elements;
+        e[0] -= te[0];
+        e[1] -= te[1];
+        e[2] -= te[2];
+        e[3] -= te[3];
+        e[4] -= te[4];
+        e[5] -= te[5];
+        e[6] -= te[6];
+        e[7] -= te[7];
+        e[8] -= te[8];
+        return this;
+    }
+    subMatrixs(a, b) {
+        let te = this.elements, tem1 = a.elements, tem2 = b.elements;
+        te[0] = tem1[0] - tem2[0];
+        te[1] = tem1[1] - tem2[1];
+        te[2] = tem1[2] - tem2[2];
+        te[3] = tem1[3] - tem2[3];
+        te[4] = tem1[4] - tem2[4];
+        te[5] = tem1[5] - tem2[5];
+        te[6] = tem1[6] - tem2[6];
+        te[7] = tem1[7] - tem2[7];
+        te[8] = tem1[8] - tem2[8];
+        return this;
+    }
+    subEqual(m) {
+        let te = this.elements, tem = m.elements;
+        te[0] -= tem[0];
+        te[1] -= tem[1];
+        te[2] -= tem[2];
+        te[3] -= tem[3];
+        te[4] -= tem[4];
+        te[5] -= tem[5];
+        te[6] -= tem[6];
+        te[7] -= tem[7];
+        te[8] -= tem[8];
+        return this;
+    }
+    scale(m, s) {
+        let te = this.elements, tm = m.elements;
+        te[0] = tm[0] * s;
+        te[1] = tm[1] * s;
+        te[2] = tm[2] * s;
+        te[3] = tm[3] * s;
+        te[4] = tm[4] * s;
+        te[5] = tm[5] * s;
+        te[6] = tm[6] * s;
+        te[7] = tm[7] * s;
+        te[8] = tm[8] * s;
+        return this;
+    }
+    scaleEqual(s) {
+        let te = this.elements;
+        te[0] *= s;
+        te[1] *= s;
+        te[2] *= s;
+        te[3] *= s;
+        te[4] *= s;
+        te[5] *= s;
+        te[6] *= s;
+        te[7] *= s;
+        te[8] *= s;
+        return this;
+    }
+    transpose(m) {
+        if (m !== undefined) {
+            let a = m.elements;
+            this.set(a[0], a[3], a[6], a[1], a[4], a[7], a[2], a[5], a[8]);
+            return this;
+        }
+        let te = this.elements;
+        let a01 = te[1], a02 = te[2], a12 = te[5];
+        te[1] = te[3];
+        te[2] = te[6];
+        te[3] = a01;
+        te[5] = te[7];
+        te[6] = a02;
+        te[7] = a12;
+        return this;
+    }
+    multiplyMatrices(m1, m2, transpose) {
+        if (transpose)
+            m2 = m2.clone().transpose();
+        let te = this.elements;
+        let tm1 = m1.elements;
+        let tm2 = m2.elements;
+        let a0 = tm1[0], a3 = tm1[3], a6 = tm1[6];
+        let a1 = tm1[1], a4 = tm1[4], a7 = tm1[7];
+        let a2 = tm1[2], a5 = tm1[5], a8 = tm1[8];
+        let b0 = tm2[0], b3 = tm2[3], b6 = tm2[6];
+        let b1 = tm2[1], b4 = tm2[4], b7 = tm2[7];
+        let b2 = tm2[2], b5 = tm2[5], b8 = tm2[8];
+        te[0] = a0 * b0 + a1 * b3 + a2 * b6;
+        te[1] = a0 * b1 + a1 * b4 + a2 * b7;
+        te[2] = a0 * b2 + a1 * b5 + a2 * b8;
+        te[3] = a3 * b0 + a4 * b3 + a5 * b6;
+        te[4] = a3 * b1 + a4 * b4 + a5 * b7;
+        te[5] = a3 * b2 + a4 * b5 + a5 * b8;
+        te[6] = a6 * b0 + a7 * b3 + a8 * b6;
+        te[7] = a6 * b1 + a7 * b4 + a8 * b7;
+        te[8] = a6 * b2 + a7 * b5 + a8 * b8;
+        return this;
+    }
+    setQuat(q) {
+        let te = this.elements;
+        let x = q.x, y = q.y, z = q.z, w = q.w;
+        let x2 = x + x, y2 = y + y, z2 = z + z;
+        let xx = x * x2, xy = x * y2, xz = x * z2;
+        let yy = y * y2, yz = y * z2, zz = z * z2;
+        let wx = w * x2, wy = w * y2, wz = w * z2;
+        te[0] = 1 - (yy + zz);
+        te[1] = xy - wz;
+        te[2] = xz + wy;
+        te[3] = xy + wz;
+        te[4] = 1 - (xx + zz);
+        te[5] = yz - wx;
+        te[6] = xz - wy;
+        te[7] = yz + wx;
+        te[8] = 1 - (xx + yy);
+        return this;
+    }
+    invert(m) {
+        let te = this.elements, tm = m.elements, a00 = tm[0], a10 = tm[3], a20 = tm[6], a01 = tm[1], a11 = tm[4], a21 = tm[7], a02 = tm[2], a12 = tm[5], a22 = tm[8], b01 = a22 * a11 - a12 * a21, b11 = -a22 * a10 + a12 * a20, b21 = a21 * a10 - a11 * a20, det = a00 * b01 + a01 * b11 + a02 * b21;
+        if (det === 0) {
+            console.log("can't invert matrix, determinant is 0");
+            return this.identity();
+        }
+        det = 1.0 / det;
+        te[0] = b01 * det;
+        te[1] = (-a22 * a01 + a02 * a21) * det;
+        te[2] = (a12 * a01 - a02 * a11) * det;
+        te[3] = b11 * det;
+        te[4] = (a22 * a00 - a02 * a20) * det;
+        te[5] = (-a12 * a00 + a02 * a10) * det;
+        te[6] = b21 * det;
+        te[7] = (-a21 * a00 + a01 * a20) * det;
+        te[8] = (a11 * a00 - a01 * a10) * det;
+        return this;
+    }
+    addOffset(m, v) {
+        let relX = v.x;
+        let relY = v.y;
+        let relZ = v.z;
+        let te = this.elements;
+        te[0] += m * (relY * relY + relZ * relZ);
+        te[4] += m * (relX * relX + relZ * relZ);
+        te[8] += m * (relX * relX + relY * relY);
+        let xy = m * relX * relY;
+        let yz = m * relY * relZ;
+        let zx = m * relZ * relX;
+        te[1] -= xy;
+        te[3] -= xy;
+        te[2] -= yz;
+        te[6] -= yz;
+        te[5] -= zx;
+        te[7] -= zx;
+        return this;
+    }
+    subOffset(m, v) {
+        let relX = v.x;
+        let relY = v.y;
+        let relZ = v.z;
+        let te = this.elements;
+        te[0] -= m * (relY * relY + relZ * relZ);
+        te[4] -= m * (relX * relX + relZ * relZ);
+        te[8] -= m * (relX * relX + relY * relY);
+        let xy = m * relX * relY;
+        let yz = m * relY * relZ;
+        let zx = m * relZ * relX;
+        te[1] += xy;
+        te[3] += xy;
+        te[2] += yz;
+        te[6] += yz;
+        te[5] += zx;
+        te[7] += zx;
+        return this;
+    }
+    multiplyScalar(s) {
+        let te = this.elements;
+        te[0] *= s;
+        te[3] *= s;
+        te[6] *= s;
+        te[1] *= s;
+        te[4] *= s;
+        te[7] *= s;
+        te[2] *= s;
+        te[5] *= s;
+        te[8] *= s;
+        return this;
+    }
+    identity() {
+        this.set(1, 0, 0, 0, 1, 0, 0, 0, 1);
+        return this;
+    }
+    clone() {
+        return new Mat33().fromArray(this.elements);
+    }
+    copy(m) {
+        for (let i = 0; i < 9; i++)
+            this.elements[i] = m.elements[i];
+        return this;
+    }
+    determinant() {
+        let te = this.elements;
+        let a = te[0], b = te[1], c = te[2], d = te[3], e = te[4], f = te[5], g = te[6], h = te[7], i = te[8];
+        return a * e * i - a * f * h - b * d * i + b * f * g + c * d * h - c * e * g;
+    }
+    fromArray(array, offset) {
+        if (offset === undefined)
+            offset = 0;
+        for (let i = 0; i < 9; i++) {
+            this.elements[i] = array[i + offset];
+        }
+        return this;
+    }
+    toArray(array, offset) {
+        if (array === undefined)
+            array = [];
+        if (offset === undefined)
+            offset = 0;
+        let te = this.elements;
+        array[offset] = te[0];
+        array[offset + 1] = te[1];
+        array[offset + 2] = te[2];
+        array[offset + 3] = te[3];
+        array[offset + 4] = te[4];
+        array[offset + 5] = te[5];
+        array[offset + 6] = te[6];
+        array[offset + 7] = te[7];
+        array[offset + 8] = te[8];
+        return array;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/math/Quat.ts":
+/*!******************************************!*\
+  !*** ./src/LTGame/3rd/oimo/math/Quat.ts ***!
+  \******************************************/
+/*! exports provided: Quat */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Quat", function() { return Quat; });
+/* harmony import */ var _Vec3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Vec3 */ "./src/LTGame/3rd/oimo/math/Vec3.ts");
+/* harmony import */ var _Math__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./_Math */ "./src/LTGame/3rd/oimo/math/_Math.ts");
+
+
+class Quat {
+    constructor(x, y, z, w) {
+        this.x = x || 0;
+        this.y = y || 0;
+        this.z = z || 0;
+        this.w = (w !== undefined) ? w : 1;
+    }
+    set(x, y, z, w) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.w = w;
+        return this;
+    }
+    addTime(v, t) {
+        let ax = v.x, ay = v.y, az = v.z;
+        let qw = this.w, qx = this.x, qy = this.y, qz = this.z;
+        t *= 0.5;
+        this.x += t * (ax * qw + ay * qz - az * qy);
+        this.y += t * (ay * qw + az * qx - ax * qz);
+        this.z += t * (az * qw + ax * qy - ay * qx);
+        this.w += t * (-ax * qx - ay * qy - az * qz);
+        this.normalize();
+        return this;
+    }
+    /*mul( q1, q2 ){
+
+        let ax = q1.x, ay = q1.y, az = q1.z, as = q1.w,
+        bx = q2.x, by = q2.y, bz = q2.z, bs = q2.w;
+        this.x = ax * bs + as * bx + ay * bz - az * by;
+        this.y = ay * bs + as * by + az * bx - ax * bz;
+        this.z = az * bs + as * bz + ax * by - ay * bx;
+        this.w = as * bs - ax * bx - ay * by - az * bz;
+        return this;
+
+    }*/
+    multiply(q, p) {
+        if (p !== undefined)
+            return this.multiplyQuaternions(q, p);
+        return this.multiplyQuaternions(this, q);
+    }
+    multiplyQuaternions(a, b) {
+        let qax = a.x, qay = a.y, qaz = a.z, qaw = a.w;
+        let qbx = b.x, qby = b.y, qbz = b.z, qbw = b.w;
+        this.x = qax * qbw + qaw * qbx + qay * qbz - qaz * qby;
+        this.y = qay * qbw + qaw * qby + qaz * qbx - qax * qbz;
+        this.z = qaz * qbw + qaw * qbz + qax * qby - qay * qbx;
+        this.w = qaw * qbw - qax * qbx - qay * qby - qaz * qbz;
+        return this;
+    }
+    setFromUnitVectors(v1, v2) {
+        let vx = new _Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        let r = v1.dot(v2) + 1;
+        if (r < _Math__WEBPACK_IMPORTED_MODULE_1__["_Math"].EPZ2) {
+            r = 0;
+            if (Math.abs(v1.x) > Math.abs(v1.z))
+                vx.set(-v1.y, v1.x, 0);
+            else
+                vx.set(0, -v1.z, v1.y);
+        }
+        else {
+            vx.crossVectors(v1, v2);
+        }
+        this.x = vx.x;
+        this.y = vx.y;
+        this.z = vx.z;
+        this.w = r;
+        return this.normalize();
+    }
+    arc(v1, v2) {
+        let x1 = v1.x;
+        let y1 = v1.y;
+        let z1 = v1.z;
+        let x2 = v2.x;
+        let y2 = v2.y;
+        let z2 = v2.z;
+        let d = x1 * x2 + y1 * y2 + z1 * z2;
+        if (d == -1) {
+            x2 = y1 * x1 - z1 * z1;
+            y2 = -z1 * y1 - x1 * x1;
+            z2 = x1 * z1 + y1 * y1;
+            d = 1 / Math.sqrt(x2 * x2 + y2 * y2 + z2 * z2);
+            this.w = 0;
+            this.x = x2 * d;
+            this.y = y2 * d;
+            this.z = z2 * d;
+            return this;
+        }
+        let cx = y1 * z2 - z1 * y2;
+        let cy = z1 * x2 - x1 * z2;
+        let cz = x1 * y2 - y1 * x2;
+        this.w = Math.sqrt((1 + d) * 0.5);
+        d = 0.5 / this.w;
+        this.x = cx * d;
+        this.y = cy * d;
+        this.z = cz * d;
+        return this;
+    }
+    normalize() {
+        let l = this.length();
+        if (l === 0) {
+            this.set(0, 0, 0, 1);
+        }
+        else {
+            l = 1 / l;
+            this.x = this.x * l;
+            this.y = this.y * l;
+            this.z = this.z * l;
+            this.w = this.w * l;
+        }
+        return this;
+    }
+    inverse() {
+        return this.conjugate().normalize();
+    }
+    invert(q) {
+        this.x = q.x;
+        this.y = q.y;
+        this.z = q.z;
+        this.w = q.w;
+        this.conjugate().normalize();
+        return this;
+    }
+    conjugate() {
+        this.x *= -1;
+        this.y *= -1;
+        this.z *= -1;
+        return this;
+    }
+    length() {
+        return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w);
+    }
+    lengthSq() {
+        return this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w;
+    }
+    copy(q) {
+        this.x = q.x;
+        this.y = q.y;
+        this.z = q.z;
+        this.w = q.w;
+        return this;
+    }
+    clone(q) {
+        return new Quat(this.x, this.y, this.z, this.w);
+    }
+    testDiff(q) {
+        return this.equals(q) ? false : true;
+    }
+    equals(q) {
+        return this.x === q.x && this.y === q.y && this.z === q.z && this.w === q.w;
+    }
+    toString() {
+        return "Quat[" + this.x.toFixed(4) + ", (" + this.y.toFixed(4) + ", " + this.z.toFixed(4) + ", " + this.w.toFixed(4) + ")]";
+    }
+    setFromEuler(x, y, z) {
+        let c1 = Math.cos(x * 0.5);
+        let c2 = Math.cos(y * 0.5);
+        let c3 = Math.cos(z * 0.5);
+        let s1 = Math.sin(x * 0.5);
+        let s2 = Math.sin(y * 0.5);
+        let s3 = Math.sin(z * 0.5);
+        // XYZ
+        this.x = s1 * c2 * c3 + c1 * s2 * s3;
+        this.y = c1 * s2 * c3 - s1 * c2 * s3;
+        this.z = c1 * c2 * s3 + s1 * s2 * c3;
+        this.w = c1 * c2 * c3 - s1 * s2 * s3;
+        return this;
+    }
+    setFromAxis(axis, rad) {
+        axis.normalize();
+        rad = rad * 0.5;
+        let s = Math.sin(rad);
+        this.x = s * axis.x;
+        this.y = s * axis.y;
+        this.z = s * axis.z;
+        this.w = Math.cos(rad);
+        return this;
+    }
+    setFromMat33(m) {
+        let trace = m[0] + m[4] + m[8];
+        let s;
+        if (trace > 0) {
+            s = Math.sqrt(trace + 1.0);
+            this.w = 0.5 / s;
+            s = 0.5 / s;
+            this.x = (m[5] - m[7]) * s;
+            this.y = (m[6] - m[2]) * s;
+            this.z = (m[1] - m[3]) * s;
+        }
+        else {
+            let out = [];
+            let i = 0;
+            if (m[4] > m[0])
+                i = 1;
+            if (m[8] > m[i * 3 + i])
+                i = 2;
+            let j = (i + 1) % 3;
+            let k = (i + 2) % 3;
+            let fRoot = 1;
+            s = Math.sqrt(m[i * 3 + i] - m[j * 3 + j] - m[k * 3 + k] + 1.0);
+            out[i] = 0.5 * fRoot;
+            s = 0.5 / fRoot;
+            this.w = (m[j * 3 + k] - m[k * 3 + j]) * s;
+            out[j] = (m[j * 3 + i] + m[i * 3 + j]) * s;
+            out[k] = (m[k * 3 + i] + m[i * 3 + k]) * s;
+            this.x = out[1];
+            this.y = out[2];
+            this.z = out[3];
+        }
+        return this;
+    }
+    toArray(array, offset) {
+        offset = offset || 0;
+        array[offset] = this.x;
+        array[offset + 1] = this.y;
+        array[offset + 2] = this.z;
+        array[offset + 3] = this.w;
+    }
+    fromArray(array, offset) {
+        offset = offset || 0;
+        this.set(array[offset], array[offset + 1], array[offset + 2], array[offset + 3]);
+        return this;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/math/Vec3.ts":
+/*!******************************************!*\
+  !*** ./src/LTGame/3rd/oimo/math/Vec3.ts ***!
+  \******************************************/
+/*! exports provided: Vec3 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Vec3", function() { return Vec3; });
+/* harmony import */ var _Math__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./_Math */ "./src/LTGame/3rd/oimo/math/_Math.ts");
+
+class Vec3 {
+    constructor(x, y, z) {
+        this.Vec3 = true;
+        this.x = x || 0;
+        this.y = y || 0;
+        this.z = z || 0;
+    }
+    set(x, y, z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        return this;
+    }
+    addVectors(a, b) {
+        this.x = a.x + b.x;
+        this.y = a.y + b.y;
+        this.z = a.z + b.z;
+        return this;
+    }
+    add(a, b) {
+        if (b !== undefined)
+            return this.addVectors(a, b);
+        this.x += a.x;
+        this.y += a.y;
+        this.z += a.z;
+        return this;
+    }
+    addEqual(v) {
+        this.x += v.x;
+        this.y += v.y;
+        this.z += v.z;
+        return this;
+    }
+    subVectors(a, b) {
+        this.x = a.x - b.x;
+        this.y = a.y - b.y;
+        this.z = a.z - b.z;
+        return this;
+    }
+    sub(a, b) {
+        if (b !== undefined)
+            return this.subVectors(a, b);
+        this.x -= a.x;
+        this.y -= a.y;
+        this.z -= a.z;
+        return this;
+    }
+    subEqual(v) {
+        this.x -= v.x;
+        this.y -= v.y;
+        this.z -= v.z;
+        return this;
+    }
+    scale(v, s) {
+        this.x = v.x * s;
+        this.y = v.y * s;
+        this.z = v.z * s;
+        return this;
+    }
+    scaleEqual(s) {
+        this.x *= s;
+        this.y *= s;
+        this.z *= s;
+        return this;
+    }
+    multiply(v) {
+        this.x *= v.x;
+        this.y *= v.y;
+        this.z *= v.z;
+        return this;
+    }
+    addScaledVector(v, s) {
+        this.x += v.x * s;
+        this.y += v.y * s;
+        this.z += v.z * s;
+        return this;
+    }
+    subScaledVector(v, s) {
+        this.x -= v.x * s;
+        this.y -= v.y * s;
+        this.z -= v.z * s;
+        return this;
+    }
+    cross(a, b) {
+        if (b !== undefined)
+            return this.crossVectors(a, b);
+        let x = this.x, y = this.y, z = this.z;
+        this.x = y * a.z - z * a.y;
+        this.y = z * a.x - x * a.z;
+        this.z = x * a.y - y * a.x;
+        return this;
+    }
+    angleTo(v) {
+        var normalized = this.clone().normalize();
+        var normalized2 = v.clone().normalize();
+        var num = Math.acos(_Math__WEBPACK_IMPORTED_MODULE_0__["_Math"].Clamp(normalized.dot(normalized2), -1, 1)) * 57.29578;
+        return num;
+    }
+    crossVectors(a, b) {
+        let ax = a.x, ay = a.y, az = a.z;
+        let bx = b.x, by = b.y, bz = b.z;
+        this.x = ay * bz - az * by;
+        this.y = az * bx - ax * bz;
+        this.z = ax * by - ay * bx;
+        return this;
+    }
+    tangent(a) {
+        let ax = a.x, ay = a.y, az = a.z;
+        this.x = ay * ax - az * az;
+        this.y = -az * ay - ax * ax;
+        this.z = ax * az + ay * ay;
+        return this;
+    }
+    invert(v) {
+        this.x = -v.x;
+        this.y = -v.y;
+        this.z = -v.z;
+        return this;
+    }
+    negate() {
+        this.x = -this.x;
+        this.y = -this.y;
+        this.z = -this.z;
+        return this;
+    }
+    dot(v) {
+        return this.x * v.x + this.y * v.y + this.z * v.z;
+    }
+    addition() {
+        return this.x + this.y + this.z;
+    }
+    lengthSq() {
+        return this.x * this.x + this.y * this.y + this.z * this.z;
+    }
+    length() {
+        return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
+    }
+    copy(v) {
+        this.x = v.x;
+        this.y = v.y;
+        this.z = v.z;
+        return this;
+    }
+    applyMatrix3(m, transpose) {
+        //if( transpose ) m = m.clone().transpose();
+        let x = this.x, y = this.y, z = this.z;
+        let e = m.elements;
+        if (transpose) {
+            this.x = e[0] * x + e[1] * y + e[2] * z;
+            this.y = e[3] * x + e[4] * y + e[5] * z;
+            this.z = e[6] * x + e[7] * y + e[8] * z;
+        }
+        else {
+            this.x = e[0] * x + e[3] * y + e[6] * z;
+            this.y = e[1] * x + e[4] * y + e[7] * z;
+            this.z = e[2] * x + e[5] * y + e[8] * z;
+        }
+        return this;
+    }
+    applyQuaternion(q) {
+        let x = this.x;
+        let y = this.y;
+        let z = this.z;
+        let qx = q.x;
+        let qy = q.y;
+        let qz = q.z;
+        let qw = q.w;
+        // calculate quat * vector
+        let ix = qw * x + qy * z - qz * y;
+        let iy = qw * y + qz * x - qx * z;
+        let iz = qw * z + qx * y - qy * x;
+        let iw = -qx * x - qy * y - qz * z;
+        // calculate result * inverse quat
+        this.x = ix * qw + iw * -qx + iy * -qz - iz * -qy;
+        this.y = iy * qw + iw * -qy + iz * -qx - ix * -qz;
+        this.z = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+        return this;
+    }
+    testZero() {
+        if (this.x !== 0 || this.y !== 0 || this.z !== 0)
+            return true;
+        else
+            return false;
+    }
+    testDiff(v) {
+        return this.equals(v) ? false : true;
+    }
+    equals(v) {
+        return v.x === this.x && v.y === this.y && v.z === this.z;
+    }
+    clone() {
+        return new Vec3(this.x, this.y, this.z);
+    }
+    toString() {
+        return "Vec3[" + this.x.toFixed(4) + ", " + this.y.toFixed(4) + ", " + this.z.toFixed(4) + "]";
+    }
+    multiplyScalar(scalar) {
+        if (isFinite(scalar)) {
+            this.x *= scalar;
+            this.y *= scalar;
+            this.z *= scalar;
+        }
+        else {
+            this.x = 0;
+            this.y = 0;
+            this.z = 0;
+        }
+        return this;
+    }
+    divideScalar(scalar) {
+        return this.multiplyScalar(1 / scalar);
+    }
+    normalize() {
+        return this.divideScalar(this.length());
+    }
+    toArray(array, offset) {
+        if (offset === undefined)
+            offset = 0;
+        array[offset] = this.x;
+        array[offset + 1] = this.y;
+        array[offset + 2] = this.z;
+    }
+    fromArray(array, offset) {
+        if (offset === undefined)
+            offset = 0;
+        this.x = array[offset];
+        this.y = array[offset + 1];
+        this.z = array[offset + 2];
+        return this;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/math/_Math.ts":
+/*!*******************************************!*\
+  !*** ./src/LTGame/3rd/oimo/math/_Math.ts ***!
+  \*******************************************/
+/*! exports provided: _Math */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "_Math", function() { return _Math; });
+var _Math = {
+    sqrt: Math.sqrt,
+    EPZ2: 0.000001,
+    degtorad: 0.0174532925199432957,
+    Clamp: function (value, min, max) {
+        if (value < min)
+            return min;
+        if (value > max)
+            return max;
+        return value;
+    },
+    dotVectors: function (a, b) {
+        return a.x * b.x + a.y * b.y + a.z * b.z;
+    }
+};
+
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/shape/Box.ts":
+/*!******************************************!*\
+  !*** ./src/LTGame/3rd/oimo/shape/Box.ts ***!
+  \******************************************/
+/*! exports provided: Box */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Box", function() { return Box; });
+/* harmony import */ var _Shape__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Shape */ "./src/LTGame/3rd/oimo/shape/Shape.ts");
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../constants */ "./src/LTGame/3rd/oimo/constants.ts");
+
+
+class Box extends _Shape__WEBPACK_IMPORTED_MODULE_0__["Shape"] {
+    constructor(config, width, height, depth) {
+        super(config);
+        this.type = _constants__WEBPACK_IMPORTED_MODULE_1__["SHAPE_BOX"];
+        this.width = width;
+        this.height = height;
+        this.depth = depth;
+        this.halfWidth = width * 0.5;
+        this.halfHeight = height * 0.5;
+        this.halfDepth = depth * 0.5;
+        this.dimentions = new Float32Array(18);
+        this.elements = new Float32Array(24);
+    }
+    calculateMassInfo(out) {
+        let mass = this.width * this.height * this.depth * this.density;
+        let divid = 1 / 12;
+        out.mass = mass;
+        out.inertia.set(mass * (this.height * this.height + this.depth * this.depth) * divid, 0, 0, 0, mass * (this.width * this.width + this.depth * this.depth) * divid, 0, 0, 0, mass * (this.width * this.width + this.height * this.height) * divid);
+    }
+    updateProxy() {
+        let te = this.rotation.elements;
+        let di = this.dimentions;
+        // Width
+        di[0] = te[0];
+        di[1] = te[3];
+        di[2] = te[6];
+        // Height
+        di[3] = te[1];
+        di[4] = te[4];
+        di[5] = te[7];
+        // Depth
+        di[6] = te[2];
+        di[7] = te[5];
+        di[8] = te[8];
+        // half Width
+        di[9] = te[0] * this.halfWidth;
+        di[10] = te[3] * this.halfWidth;
+        di[11] = te[6] * this.halfWidth;
+        // half Height
+        di[12] = te[1] * this.halfHeight;
+        di[13] = te[4] * this.halfHeight;
+        di[14] = te[7] * this.halfHeight;
+        // half Depth
+        di[15] = te[2] * this.halfDepth;
+        di[16] = te[5] * this.halfDepth;
+        di[17] = te[8] * this.halfDepth;
+        let wx = di[9];
+        let wy = di[10];
+        let wz = di[11];
+        let hx = di[12];
+        let hy = di[13];
+        let hz = di[14];
+        let dx = di[15];
+        let dy = di[16];
+        let dz = di[17];
+        let x = this.position.x;
+        let y = this.position.y;
+        let z = this.position.z;
+        let v = this.elements;
+        //v1
+        v[0] = x + wx + hx + dx;
+        v[1] = y + wy + hy + dy;
+        v[2] = z + wz + hz + dz;
+        //v2
+        v[3] = x + wx + hx - dx;
+        v[4] = y + wy + hy - dy;
+        v[5] = z + wz + hz - dz;
+        //v3
+        v[6] = x + wx - hx + dx;
+        v[7] = y + wy - hy + dy;
+        v[8] = z + wz - hz + dz;
+        //v4
+        v[9] = x + wx - hx - dx;
+        v[10] = y + wy - hy - dy;
+        v[11] = z + wz - hz - dz;
+        //v5
+        v[12] = x - wx + hx + dx;
+        v[13] = y - wy + hy + dy;
+        v[14] = z - wz + hz + dz;
+        //v6
+        v[15] = x - wx + hx - dx;
+        v[16] = y - wy + hy - dy;
+        v[17] = z - wz + hz - dz;
+        //v7
+        v[18] = x - wx - hx + dx;
+        v[19] = y - wy - hy + dy;
+        v[20] = z - wz - hz + dz;
+        //v8
+        v[21] = x - wx - hx - dx;
+        v[22] = y - wy - hy - dy;
+        v[23] = z - wz - hz - dz;
+        let w = di[9] < 0 ? -di[9] : di[9];
+        let h = di[10] < 0 ? -di[10] : di[10];
+        let d = di[11] < 0 ? -di[11] : di[11];
+        w = di[12] < 0 ? w - di[12] : w + di[12];
+        h = di[13] < 0 ? h - di[13] : h + di[13];
+        d = di[14] < 0 ? d - di[14] : d + di[14];
+        w = di[15] < 0 ? w - di[15] : w + di[15];
+        h = di[16] < 0 ? h - di[16] : h + di[16];
+        d = di[17] < 0 ? d - di[17] : d + di[17];
+        let p = _constants__WEBPACK_IMPORTED_MODULE_1__["AABB_PROX"];
+        this.aabb.set(this.position.x - w - p, this.position.x + w + p, this.position.y - h - p, this.position.y + h + p, this.position.z - d - p, this.position.z + d + p);
+        if (this.proxy != null)
+            this.proxy.update();
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/shape/MassInfo.ts":
+/*!***********************************************!*\
+  !*** ./src/LTGame/3rd/oimo/shape/MassInfo.ts ***!
+  \***********************************************/
+/*! exports provided: MassInfo */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MassInfo", function() { return MassInfo; });
+/* harmony import */ var _math_Mat33__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../math/Mat33 */ "./src/LTGame/3rd/oimo/math/Mat33.ts");
+
+class MassInfo {
+    constructor() {
+        /**
+         * Mass of the shape.
+         */
+        this.mass = 0;
+        /**
+         * The moment inertia of the shape.
+         */
+        this.inertia = new _math_Mat33__WEBPACK_IMPORTED_MODULE_0__["Mat33"]();
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/shape/Shape.ts":
+/*!********************************************!*\
+  !*** ./src/LTGame/3rd/oimo/shape/Shape.ts ***!
+  \********************************************/
+/*! exports provided: Shape */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "Shape", function() { return Shape; });
+/* harmony import */ var _constants__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../constants */ "./src/LTGame/3rd/oimo/constants.ts");
+/* harmony import */ var _math_Vec3__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../math/Vec3 */ "./src/LTGame/3rd/oimo/math/Vec3.ts");
+/* harmony import */ var _math_Mat33__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../math/Mat33 */ "./src/LTGame/3rd/oimo/math/Mat33.ts");
+/* harmony import */ var _math_AABB__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../math/AABB */ "./src/LTGame/3rd/oimo/math/AABB.ts");
+
+
+
+
+var count = 0;
+function ShapeIdCount() { return count++; }
+class Shape {
+    constructor(config) {
+        this.type = _constants__WEBPACK_IMPORTED_MODULE_0__["SHAPE_NULL"];
+        /**
+         * global identification of the shape should be unique to the shape.
+         */
+        this.id = ShapeIdCount();
+        this.type = _constants__WEBPACK_IMPORTED_MODULE_0__["SHAPE_NULL"];
+        // global identification of the shape should be unique to the shape.
+        this.id = ShapeIdCount();
+        // previous shape in parent rigid body. Used for fast interations.
+        this.prev = null;
+        // next shape in parent rigid body. Used for fast interations.
+        this.next = null;
+        // proxy of the shape used for broad-phase collision detection.
+        this.proxy = null;
+        // parent rigid body of the shape.
+        this.parent = null;
+        // linked list of the contacts with the shape.
+        this.contactLink = null;
+        // number of the contacts with the shape.
+        this.numContacts = 0;
+        // center of gravity of the shape in world coordinate system.
+        this.position = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]();
+        // rotation matrix of the shape in world coordinate system.
+        this.rotation = new _math_Mat33__WEBPACK_IMPORTED_MODULE_2__["Mat33"]();
+        // position of the shape in parent's coordinate system.
+        this.relativePosition = new _math_Vec3__WEBPACK_IMPORTED_MODULE_1__["Vec3"]().copy(config.relativePosition);
+        // rotation matrix of the shape in parent's coordinate system.
+        this.relativeRotation = new _math_Mat33__WEBPACK_IMPORTED_MODULE_2__["Mat33"]().copy(config.relativeRotation);
+        // axis-aligned bounding box of the shape.
+        this.aabb = new _math_AABB__WEBPACK_IMPORTED_MODULE_3__["AABB"]();
+        // density of the shape.
+        this.density = config.density;
+        // coefficient of friction of the shape.
+        this.friction = config.friction;
+        // coefficient of restitution of the shape.
+        this.restitution = config.restitution;
+        // bits of the collision groups to which the shape belongs.
+        this.belongsTo = config.belongsTo;
+        // bits of the collision groups with which the shape collides.
+        this.collidesWith = config.collidesWith;
+    }
+    calculateMassInfo(out) {
+        console.error("Shape", "Inheritance error.");
+    }
+    updateProxy() {
+        console.error("Shape", "Inheritance error.");
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/3rd/oimo/shape/ShapeConfig.ts":
+/*!**************************************************!*\
+  !*** ./src/LTGame/3rd/oimo/shape/ShapeConfig.ts ***!
+  \**************************************************/
+/*! exports provided: ShapeConfig */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ShapeConfig", function() { return ShapeConfig; });
+/* harmony import */ var _math_Vec3__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../math/Vec3 */ "./src/LTGame/3rd/oimo/math/Vec3.ts");
+/* harmony import */ var _math_Mat33__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../math/Mat33 */ "./src/LTGame/3rd/oimo/math/Mat33.ts");
+
+
+class ShapeConfig {
+    constructor() {
+        // position of the shape in parent's coordinate system.
+        this.relativePosition = new _math_Vec3__WEBPACK_IMPORTED_MODULE_0__["Vec3"]();
+        // rotation matrix of the shape in parent's coordinate system.
+        this.relativeRotation = new _math_Mat33__WEBPACK_IMPORTED_MODULE_1__["Mat33"]();
+        // coefficient of friction of the shape.
+        this.friction = 0.2; // 0.4
+        // coefficient of restitution of the shape.
+        this.restitution = 0.2;
+        // density of the shape.
+        this.density = 1;
+        // bits of the collision groups to which the shape belongs.
+        this.belongsTo = 1;
+        // bits of the collision groups with which the shape collides.
+        this.collidesWith = 0xffffffff;
+    }
+}
+
+
+/***/ }),
+
 /***/ "./src/LTGame/Async/Awaiters.ts":
 /*!**************************************!*\
   !*** ./src/LTGame/Async/Awaiters.ts ***!
@@ -462,6 +9600,13 @@ class StateMachine {
         console.error("不存在的状态ID:" + id);
         return false;
     }
+    LogicUpdate(dt) {
+        let nextState = this.currState.GetNextState();
+        if (nextState != 0) {
+            this.ChangeState(nextState);
+        }
+        this.OnRunning(null, dt);
+    }
     OnRunning(param, dt) {
         if (null == this.currState) {
             return;
@@ -517,6 +9662,40 @@ class ArrayEx {
             result.push(arr[i]);
         }
         return result;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/LTUtils/CameraEx.ts":
+/*!****************************************!*\
+  !*** ./src/LTGame/LTUtils/CameraEx.ts ***!
+  \****************************************/
+/*! exports provided: CameraEx */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CameraEx", function() { return CameraEx; });
+/* harmony import */ var _Vector3Ex__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./Vector3Ex */ "./src/LTGame/LTUtils/Vector3Ex.ts");
+
+class CameraEx {
+    static ScreenPosToWorldPos(camera, screenPos, fakeYPos) {
+        let ray = new Laya.Ray(_Vector3Ex__WEBPACK_IMPORTED_MODULE_0__["default"].zero, _Vector3Ex__WEBPACK_IMPORTED_MODULE_0__["default"].zero);
+        camera.viewportPointToRay(screenPos, ray);
+        let downVec = _Vector3Ex__WEBPACK_IMPORTED_MODULE_0__["default"].s_down;
+        let dotValue = _Vector3Ex__WEBPACK_IMPORTED_MODULE_0__["default"].Dot(downVec, ray.direction);
+        let heightValue = ray.origin.y;
+        let scaleValue = heightValue / dotValue;
+        let finalDir = _Vector3Ex__WEBPACK_IMPORTED_MODULE_0__["default"].Scale(ray.direction, scaleValue);
+        return _Vector3Ex__WEBPACK_IMPORTED_MODULE_0__["default"].Add(ray.origin, finalDir);
+    }
+    static ScreenPosToRay(camera, screenPos) {
+        let ray = new Laya.Ray(_Vector3Ex__WEBPACK_IMPORTED_MODULE_0__["default"].zero, _Vector3Ex__WEBPACK_IMPORTED_MODULE_0__["default"].zero);
+        let clickPoint = new Laya.Vector2(screenPos.x / Laya.stage.width, screenPos.y / Laya.stage.height);
+        camera.normalizedViewportPointToRay(clickPoint, ray);
+        return ray;
     }
 }
 
@@ -1111,6 +10290,105 @@ var EActionType;
 
 /***/ }),
 
+/***/ "./src/LTGame/LTUtils/QuaternionEx.ts":
+/*!********************************************!*\
+  !*** ./src/LTGame/LTUtils/QuaternionEx.ts ***!
+  \********************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return QuaternionEx; });
+/* harmony import */ var _MathEx__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./MathEx */ "./src/LTGame/LTUtils/MathEx.ts");
+/* harmony import */ var _Vector3Ex__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./Vector3Ex */ "./src/LTGame/LTUtils/Vector3Ex.ts");
+
+
+class QuaternionEx {
+    static get identify() { return QuaternionEx.FromEulerAngle(0, 0, 0); }
+    static FromVector3(elurAngle) {
+        return this.FromEulerAngle(elurAngle.x, elurAngle.y, elurAngle.z);
+    }
+    static ToEulerAngle(q) {
+        var eulerE = new Laya.Vector3();
+        q.getYawPitchRoll(eulerE);
+        var rotationEulerE = new Laya.Vector3();
+        rotationEulerE.x = eulerE.y * QuaternionEx._angleToRandin;
+        rotationEulerE.y = eulerE.x * QuaternionEx._angleToRandin;
+        rotationEulerE.z = eulerE.z * QuaternionEx._angleToRandin;
+        return rotationEulerE;
+    }
+    static WrapFromUnity(x, y, z, w) {
+        return new Laya.Quaternion(-x, y, z, -w);
+    }
+    static ConvertFromUnity(q) {
+        return new Laya.Quaternion(-q.x, q.y, q.z, -q.w);
+    }
+    static Euler(x, y, z) {
+        return this.FromEulerAngle(x, y, z);
+    }
+    static FromEulerAngle(x, y, z) {
+        var eulerX = x / 2 * _MathEx__WEBPACK_IMPORTED_MODULE_0__["default"].Deg2Rad;
+        var cX = Math.cos(eulerX);
+        var sX = Math.sin(eulerX);
+        var eulerY = y / 2 * _MathEx__WEBPACK_IMPORTED_MODULE_0__["default"].Deg2Rad;
+        var cY = Math.cos(eulerY);
+        var sY = Math.sin(eulerY);
+        var eulerZ = z / 2 * _MathEx__WEBPACK_IMPORTED_MODULE_0__["default"].Deg2Rad;
+        var cZ = Math.cos(eulerZ);
+        var sZ = Math.sin(eulerZ);
+        var ix = sX * cY * cZ - cX * sY * sZ;
+        var iy = cX * sY * cZ + sX * cY * sZ;
+        var iz = cX * cY * sZ - sX * sY * cZ;
+        var iw = cX * cY * cZ + sX * sY * sZ;
+        var q = new Laya.Quaternion(ix, iy, iz, iw);
+        return q;
+    }
+    static MultiplyQ(r1, r2) {
+        var result = Laya.Quaternion.DEFAULT;
+        Laya.Quaternion.multiply(r1, r2, result);
+        return result;
+    }
+    static Copy(src) {
+        return new Laya.Quaternion(src.x, src.y, src.z, src.w);
+    }
+    static Multiply(r, v) {
+        var x = r.x + r.x;
+        var y = r.y + r.y;
+        var z = r.z + r.z;
+        var xx = r.x * x;
+        var yy = r.y * y;
+        var zz = r.z * z;
+        var xy = r.x * y;
+        var xz = r.x * z;
+        var yz = r.y * z;
+        var wx = r.w * x;
+        var wy = r.w * y;
+        var wz = r.w * z;
+        var res = _Vector3Ex__WEBPACK_IMPORTED_MODULE_1__["default"].zero;
+        res.x = (((1 - (yy + zz)) * v.x
+            + (xy - wz) * v.y
+            + (xz + wy) * v.z));
+        res.y = (((xy + wz) * v.x
+            + (1 - (xx + zz)) * v.y
+            + (yz - wx) * v.z));
+        res.z = (((xz - wy) * v.x
+            + (yz + wx) * v.y
+            + (1 - (xx + yy)) * v.z));
+        return res;
+    }
+    static Lerp(from, to, value) {
+        var q = Laya.Quaternion.DEFAULT;
+        Laya.Quaternion.lerp(from, to, value, q);
+        return q;
+    }
+}
+QuaternionEx.cacheVec0 = new Laya.Quaternion();
+QuaternionEx._angleToRandin = 180 / Math.PI;
+
+
+/***/ }),
+
 /***/ "./src/LTGame/LTUtils/StringEx.ts":
 /*!****************************************!*\
   !*** ./src/LTGame/LTUtils/StringEx.ts ***!
@@ -1156,6 +10434,284 @@ class StringEx {
 
 /***/ }),
 
+/***/ "./src/LTGame/LTUtils/Vector3Ex.ts":
+/*!*****************************************!*\
+  !*** ./src/LTGame/LTUtils/Vector3Ex.ts ***!
+  \*****************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return Vector3Ex; });
+/* harmony import */ var _MathEx__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./MathEx */ "./src/LTGame/LTUtils/MathEx.ts");
+
+class Vector3Ex {
+    static get temp() {
+        if (!Vector3Ex.__temp__) {
+            Vector3Ex.__temp__ = Vector3Ex.zero;
+        }
+        Vector3Ex.__temp__.setValue(0, 0, 0);
+        return Vector3Ex.__temp__;
+    }
+    static get s_up() {
+        if (!Vector3Ex.__up__) {
+            Vector3Ex.__up__ = Vector3Ex.up;
+        }
+        Vector3Ex.__up__.setValue(0, 1, 0);
+        return Vector3Ex.__up__;
+    }
+    static get s_down() {
+        if (!Vector3Ex.__down__) {
+            Vector3Ex.__down__ = Vector3Ex.down;
+        }
+        Vector3Ex.__down__.setValue(0, -1, 0);
+        return Vector3Ex.__down__;
+    }
+    static get s_forward() {
+        if (!Vector3Ex.__forward__) {
+            Vector3Ex.__forward__ = Vector3Ex.forward;
+        }
+        Vector3Ex.__forward__.setValue(0, 0, 1);
+        return Vector3Ex.__forward__;
+    }
+    static get s_zero() {
+        if (!Vector3Ex.__zero__) {
+            Vector3Ex.__zero__ = Vector3Ex.zero;
+        }
+        Vector3Ex.__zero__.setValue(0, 0, 0);
+        return Vector3Ex.__zero__;
+    }
+    static get s_one() {
+        if (!Vector3Ex.__one__) {
+            Vector3Ex.__one__ = Vector3Ex.one;
+        }
+        Vector3Ex.__one__.setValue(1, 1, 1);
+        return Vector3Ex.__one__;
+    }
+    static get up() {
+        return new Laya.Vector3(0, 1, 0);
+    }
+    static get down() {
+        return new Laya.Vector3(0, -1, 0);
+    }
+    static get forward() {
+        return new Laya.Vector3(0, 0, 1);
+    }
+    static get zero() {
+        return new Laya.Vector3(0, 0, 0);
+    }
+    static get one() {
+        return new Laya.Vector3(1, 1, 1);
+    }
+    static get back() {
+        return new Laya.Vector3(0, 0, -1);
+    }
+    static get left() {
+        return new Laya.Vector3(-1, 0, 0);
+    }
+    static get right() {
+        return new Laya.Vector3(1, 0, 0);
+    }
+    static Cross(right, left) {
+        var result = new Laya.Vector3(0, 0, 0);
+        Laya.Vector3.cross(right, left, result);
+        return result;
+    }
+    static Subtract(right, left) {
+        var result = new Laya.Vector3(0, 0, 0);
+        Laya.Vector3.subtract(right, left, result);
+        return result;
+    }
+    static ClampMagnitude(vector, maxLength) {
+        var result = new Laya.Vector3(0, 0, 0);
+        var sqrMagnitude = 0;
+        if (Laya.Vector3.distanceSquared(vector, result) > maxLength * maxLength) {
+            result = Vector3Ex.Scale(Vector3Ex.Normalize(vector), maxLength);
+        }
+        else {
+            result = vector;
+        }
+        return result;
+    }
+    static Normalize(vec) {
+        var result = new Laya.Vector3(0, 0, 0);
+        Laya.Vector3.normalize(vec, result);
+        return result;
+    }
+    static Add(...vecs) {
+        var result = new Laya.Vector3(0, 0, 0);
+        for (var i = 0; i < vecs.length; ++i) {
+            var vec = vecs[i];
+            result.x += vec.x;
+            result.y += vec.y;
+            result.z += vec.z;
+        }
+        return result;
+    }
+    static Scale(vec, scale) {
+        var result = new Laya.Vector3(0, 0, 0);
+        Laya.Vector3.scale(vec, scale, result);
+        return result;
+    }
+    static ScaleV3(vec, scale) {
+        var result = new Laya.Vector3(vec.x * scale.x, vec.y * scale.y, vec.z * scale.z);
+        return result;
+    }
+    static Dot(left, right) {
+        return Laya.Vector3.dot(left, right);
+    }
+    static Lerp(from, to, v) {
+        var result = new Laya.Vector3(0, 0, 0);
+        Laya.Vector3.lerp(from, to, v, result);
+        return result;
+    }
+    static MagnitudeSqrt(v3) {
+        return v3.x * v3.x + v3.y * v3.y + v3.z * v3.z;
+    }
+    static Magnitude(v3) {
+        return Math.sqrt(this.MagnitudeSqrt(v3));
+    }
+    static Magnitude2D(v3) {
+        return Math.sqrt(v3.x * v3.x + v3.z * v3.z);
+    }
+    static Distance(from, to) {
+        var offset = Vector3Ex.Subtract(from, to);
+        return Vector3Ex.Magnitude(offset);
+    }
+    static Distance2D(from, to) {
+        let xOffset = from.x - to.x;
+        let zOffset = from.z - to.z;
+        return Math.sqrt(xOffset * xOffset + zOffset * zOffset);
+    }
+    static DistanceSqrt(from, to) {
+        let offset = Vector3Ex.Subtract(from, to);
+        return offset.x * offset.x + offset.y * offset.y + offset.z * offset.z;
+    }
+    static DistanceSqrt2D(from, to) {
+        let offset = Vector3Ex.Subtract(from, to);
+        return offset.x * offset.x + offset.z * offset.z;
+    }
+    /**
+     * 计算在指定轴上的旋转,带符号
+     * @param from
+     * @param to
+     * @param asix
+     */
+    static SignAngleAsix(from, to, asix) {
+        let normalAsix = Vector3Ex.Normalize(asix);
+        let dotFrom = Vector3Ex.Dot(from, normalAsix);
+        let wrapFrom = Vector3Ex.Subtract(from, Vector3Ex.Scale(normalAsix, dotFrom));
+        let dotTo = Vector3Ex.Dot(to, normalAsix);
+        let wrapTo = Vector3Ex.Subtract(to, Vector3Ex.Scale(normalAsix, dotTo));
+        let normalized = Vector3Ex.Normalize(wrapFrom);
+        let normalized2 = Vector3Ex.Normalize(wrapTo);
+        let num = Math.acos(_MathEx__WEBPACK_IMPORTED_MODULE_0__["default"].Clamp(Laya.Vector3.dot(normalized, normalized2), -1, 1)) * 57.29578;
+        let cross = Vector3Ex.Cross(normalized, normalized2);
+        let num2 = _MathEx__WEBPACK_IMPORTED_MODULE_0__["default"].Sign(Laya.Vector3.dot(asix, cross));
+        return num * num2;
+    }
+    static SignedAngle(from, to, asix) {
+        var normalized = Vector3Ex.Normalize(from);
+        var normalized2 = Vector3Ex.Normalize(to);
+        var num = Math.acos(_MathEx__WEBPACK_IMPORTED_MODULE_0__["default"].Clamp(Laya.Vector3.dot(normalized, normalized2), -1, 1)) * 57.29578;
+        var cross = Vector3Ex.Cross(normalized, normalized2);
+        var num2 = _MathEx__WEBPACK_IMPORTED_MODULE_0__["default"].Sign(Laya.Vector3.dot(asix, cross));
+        return num * num2;
+    }
+    static Angle(from, to, asix) {
+        var normalized = Vector3Ex.Normalize(from);
+        var normalized2 = Vector3Ex.Normalize(to);
+        var num = Math.acos(_MathEx__WEBPACK_IMPORTED_MODULE_0__["default"].Clamp(Laya.Vector3.dot(normalized, normalized2), -1, 1)) * 57.29578;
+        return num;
+    }
+    static SmoothDamp(current, target, currentVelocity, smoothTime, maxSpeed, deltaTime) {
+        var num = 2 / smoothTime;
+        var num2 = num * deltaTime;
+        var d = 1 / (1 + num2 + 0.48 * num2 * num2 + 0.235 * num2 * num2 * num2);
+        var vector = Vector3Ex.Subtract(current, target);
+        var vector2 = target.clone();
+        var maxLength = maxSpeed * smoothTime;
+        vector = Vector3Ex.ClampMagnitude(vector, maxLength);
+        var target2 = Vector3Ex.Subtract(current, vector);
+        var vector3 = Vector3Ex.Scale(Vector3Ex.Add(currentVelocity, Vector3Ex.Scale(vector, num)), deltaTime);
+        var cacheV = Vector3Ex.Scale(Vector3Ex.Subtract(currentVelocity, Vector3Ex.Scale(vector3, num)), d);
+        currentVelocity.x = cacheV.x;
+        currentVelocity.y = cacheV.y;
+        currentVelocity.z = cacheV.z;
+        var vector4 = Vector3Ex.Add(target2, Vector3Ex.Scale(Vector3Ex.Add(vector, vector3), d));
+        if (Vector3Ex.Dot(Vector3Ex.Subtract(vector2, current), Vector3Ex.Subtract(vector4, vector2)) > 0) {
+            vector4 = vector2;
+            currentVelocity.x = 0;
+            currentVelocity.y = 0;
+            currentVelocity.z = 0;
+        }
+        return vector4;
+    }
+    static Fix(vec, limit) {
+        if (Math.abs(vec.x) < limit) {
+            vec.x = 0;
+        }
+        if (Math.abs(vec.y) < limit) {
+            vec.y = 0;
+        }
+        if (Math.abs(vec.z) < limit) {
+            vec.z = 0;
+        }
+    }
+    static IsSame(v1, v2) {
+        return v1.x == v2.x && v1.y == v2.y && v1.z == v2.z;
+    }
+    static WrapFromUnity(x, y, z) {
+        return new Laya.Vector3(-x, y, z);
+    }
+    /**
+     * 计算带加速度的移动位置
+     * @param time
+     * @param startVelocity
+     * @param aSpeed
+     * @param startPos
+     */
+    static CalcPosWithASpeed(time, startVelocity, aSpeed, startPos) {
+        let xt = Vector3Ex.Scale(startVelocity, time);
+        let at2 = Vector3Ex.Scale(aSpeed, time * time / 2);
+        return Vector3Ex.Add(xt, at2, startPos);
+    }
+    /**
+     * 重置空间信息
+     * @param trs
+     */
+    static InitialTransform(trs) {
+        trs.localPosition = Vector3Ex.s_zero;
+        trs.localScale = Vector3Ex.s_one;
+        trs.rotationEuler = Vector3Ex.s_zero;
+    }
+    /**
+     * 判定目标点，是否在以中心点为扇心，指定扇形内
+     * @param center 扇形中心点
+     * @param target 目标点
+     * @param range 扇形半径
+     * @param halfAngle 扇形半角
+     * @param forward 扇形正向
+     * @param axis 垂直于扇面的轴向
+     */
+    static InSector(center, target, range, halfAngle, forward, axis) {
+        let dir = Vector3Ex.temp;
+        dir.setValue((target.x - center.x) * (1 - axis.x), (target.y - center.y) * (1 - axis.y), (target.z - center.z) * (1 - axis.z));
+        if (Vector3Ex.MagnitudeSqrt(dir) <= range * range) {
+            let angle = Vector3Ex.Angle(forward, dir, axis);
+            if (angle <= halfAngle) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+Vector3Ex.cacheVec0 = new Laya.Vector3();
+
+
+/***/ }),
+
 /***/ "./src/LTGame/LTVersion.ts":
 /*!*********************************!*\
   !*** ./src/LTGame/LTVersion.ts ***!
@@ -1170,6 +10726,857 @@ class LTVersion {
 }
 LTVersion.version = "0.0.1";
 
+
+/***/ }),
+
+/***/ "./src/LTGame/Material/HeightFogManager.ts":
+/*!*************************************************!*\
+  !*** ./src/LTGame/Material/HeightFogManager.ts ***!
+  \*************************************************/
+/*! exports provided: HeightFogManager */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "HeightFogManager", function() { return HeightFogManager; });
+/* harmony import */ var _LTUtils_Vector3Ex__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../LTUtils/Vector3Ex */ "./src/LTGame/LTUtils/Vector3Ex.ts");
+
+class HeightFogManager {
+    constructor() {
+        this._fogColor = new Laya.Vector3(0, 0, 0);
+        this._fogStartHeight = 5;
+        this._fogDistance = 5;
+        this._matList = [];
+    }
+    static get instance() {
+        if (this._instance == null) {
+            this._instance = new HeightFogManager();
+        }
+        return this._instance;
+    }
+    get fogColor() {
+        return this._fogColor;
+    }
+    set fogColor(value) {
+        if (_LTUtils_Vector3Ex__WEBPACK_IMPORTED_MODULE_0__["default"].IsSame(this._fogColor, value))
+            return;
+        this._fogColor = value;
+        for (let i = 0; i < this._matList.length; ++i) {
+            let mat = this._matList[i];
+            if (mat != null) {
+                mat.heightFogColor = this._fogColor;
+            }
+        }
+    }
+    get fogStartHeight() {
+        return this._fogStartHeight;
+    }
+    set fogStartHeight(value) {
+        if (this._fogStartHeight == value)
+            return;
+        this._fogStartHeight = value;
+        for (let i = 0; i < this._matList.length; ++i) {
+            let mat = this._matList[i];
+            if (mat != null) {
+                mat.heightFogStartY = this._fogStartHeight;
+            }
+        }
+    }
+    get fogDistance() {
+        return this._fogDistance;
+    }
+    set fogDistance(value) {
+        if (this._fogDistance == value)
+            return;
+        this._fogDistance = value;
+        for (let i = 0; i < this._matList.length; ++i) {
+            let mat = this._matList[i];
+            if (mat != null) {
+                mat.heightFogDistance = this._fogDistance;
+            }
+        }
+    }
+    RegistFogMat(mat) {
+        this._matList.push(mat);
+        mat.heightFogColor = this._fogColor;
+        mat.heightFogStartY = this._fogStartHeight;
+        mat.heightFogDistance = this._fogDistance;
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/Material/LTBlinnPhong_HeightFog.ts":
+/*!*******************************************************!*\
+  !*** ./src/LTGame/Material/LTBlinnPhong_HeightFog.ts ***!
+  \*******************************************************/
+/*! exports provided: LTBlinnPhong_HeightFog */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "LTBlinnPhong_HeightFog", function() { return LTBlinnPhong_HeightFog; });
+/* harmony import */ var _shader_LT_Mesh_BlinnPhong_DepthFog_vs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./shader/LT-Mesh-BlinnPhong-DepthFog.vs */ "./src/LTGame/Material/shader/LT-Mesh-BlinnPhong-DepthFog.vs");
+/* harmony import */ var _shader_LT_Mesh_BlinnPhong_DepthFog_fs__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./shader/LT-Mesh-BlinnPhong-DepthFog.fs */ "./src/LTGame/Material/shader/LT-Mesh-BlinnPhong-DepthFog.fs");
+/* harmony import */ var _shader_Mesh_BlinnPhongShadowCaster_vs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./shader/Mesh-BlinnPhongShadowCaster.vs */ "./src/LTGame/Material/shader/Mesh-BlinnPhongShadowCaster.vs");
+/* harmony import */ var _shader_Mesh_BlinnPhongShadowCaster_fs__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./shader/Mesh-BlinnPhongShadowCaster.fs */ "./src/LTGame/Material/shader/Mesh-BlinnPhongShadowCaster.fs");
+/* harmony import */ var _HeightFogManager__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./HeightFogManager */ "./src/LTGame/Material/HeightFogManager.ts");
+
+
+
+
+
+class LTBlinnPhong_HeightFog extends Laya.Material {
+    /**
+     * 创建一个 <code>BlinnPhongMaterial</code> 实例。
+     */
+    constructor() {
+        super();
+        this._enableVertexColor = false;
+        LTBlinnPhong_HeightFog.InitShader();
+        this.setShaderName(LTBlinnPhong_HeightFog._shaderName);
+        this._albedoIntensity = 1.0;
+        this._albedoColor = new Laya.Vector4(1.0, 1.0, 1.0, 1.0);
+        let sv = this._shaderValues;
+        sv.setVector(LTBlinnPhong_HeightFog.ALBEDO_COLOR, new Laya.Vector4(1.0, 1.0, 1.0, 1.0));
+        sv.setVector(LTBlinnPhong_HeightFog.MATERIAL_SPECULAR, new Laya.Vector4(1.0, 1.0, 1.0, 1.0));
+        sv.setNumber(LTBlinnPhong_HeightFog.SHININESS, 0.078125);
+        sv.setNumber(Laya.Material.ALPHATESTVALUE, 0.5);
+        sv.setVector(LTBlinnPhong_HeightFog.TILING_OFFSET, new Laya.Vector4(1.0, 1.0, 0.0, 0.0));
+        this._enableLighting = true;
+        this.renderMode = LTBlinnPhong_HeightFog.RENDERMODE_OPAQUE;
+        _HeightFogManager__WEBPACK_IMPORTED_MODULE_4__["HeightFogManager"].instance.RegistFogMat(this);
+    }
+    /**
+     * @internal
+     */
+    static __initDefine__() {
+        LTBlinnPhong_HeightFog.SHADERDEFINE_DIFFUSEMAP = Laya.Shader3D.getDefineByName("DIFFUSEMAP");
+        LTBlinnPhong_HeightFog.SHADERDEFINE_NORMALMAP = Laya.Shader3D.getDefineByName("NORMALMAP");
+        LTBlinnPhong_HeightFog.SHADERDEFINE_SPECULARMAP = Laya.Shader3D.getDefineByName("SPECULARMAP");
+        LTBlinnPhong_HeightFog.SHADERDEFINE_TILINGOFFSET = Laya.Shader3D.getDefineByName("TILINGOFFSET");
+        LTBlinnPhong_HeightFog.SHADERDEFINE_ENABLEVERTEXCOLOR = Laya.Shader3D.getDefineByName("ENABLEVERTEXCOLOR");
+    }
+    /**
+     * 高度雾范围
+     */
+    get heightFogDistance() {
+        return this._heightFogDistance;
+    }
+    set heightFogDistance(value) {
+        this._heightFogDistance = value;
+        this._shaderValues.setNumber(LTBlinnPhong_HeightFog.HEIGHT_FOG_DISTANCE, value);
+    }
+    /**
+     * 高度雾开始高度
+     */
+    get heightFogStartY() {
+        return this._heightFogStartY;
+    }
+    set heightFogStartY(value) {
+        this._heightFogStartY = value;
+        this._shaderValues.setNumber(LTBlinnPhong_HeightFog.HEIGHT_FOG_STARTY, value);
+    }
+    /**
+     * 高度雾颜色
+     */
+    get heightFogColor() {
+        return this._heightFogColor;
+    }
+    set heightFogColor(value) {
+        this._heightFogColor = value;
+        this._shaderValues.setVector3(LTBlinnPhong_HeightFog.HEIGHT_FOG_COLOR, value);
+    }
+    /**
+     * @internal
+     */
+    get _ColorR() {
+        return this._albedoColor.x;
+    }
+    set _ColorR(value) {
+        this._albedoColor.x = value;
+        this.albedoColor = this._albedoColor;
+    }
+    /**
+     * @internal
+     */
+    get _ColorG() {
+        return this._albedoColor.y;
+    }
+    set _ColorG(value) {
+        this._albedoColor.y = value;
+        this.albedoColor = this._albedoColor;
+    }
+    /**
+     * @internal
+     */
+    get _ColorB() {
+        return this._albedoColor.z;
+    }
+    set _ColorB(value) {
+        this._albedoColor.z = value;
+        this.albedoColor = this._albedoColor;
+    }
+    /**
+     * @internal
+     */
+    get _ColorA() {
+        return this._albedoColor.w;
+    }
+    set _ColorA(value) {
+        this._albedoColor.w = value;
+        this.albedoColor = this._albedoColor;
+    }
+    /**
+     * @internal
+     */
+    get _Color() {
+        return this._shaderValues.getVector(LTBlinnPhong_HeightFog.ALBEDO_COLOR);
+    }
+    set _Color(value) {
+        this.albedoColor = value;
+    }
+    /**
+     * @internal
+     */
+    get _SpecColorR() {
+        return this._shaderValues.getVector(LTBlinnPhong_HeightFog.MATERIAL_SPECULAR).x;
+    }
+    set _SpecColorR(value) {
+        this._shaderValues.getVector(LTBlinnPhong_HeightFog.MATERIAL_SPECULAR).x = value;
+    }
+    /**
+     * @internal
+     */
+    get _SpecColorG() {
+        return this._shaderValues.getVector(LTBlinnPhong_HeightFog.MATERIAL_SPECULAR).y;
+    }
+    set _SpecColorG(value) {
+        this._shaderValues.getVector(LTBlinnPhong_HeightFog.MATERIAL_SPECULAR).y = value;
+    }
+    /**
+     * @internal
+     */
+    get _SpecColorB() {
+        return this._shaderValues.getVector(LTBlinnPhong_HeightFog.MATERIAL_SPECULAR).z;
+    }
+    set _SpecColorB(value) {
+        this._shaderValues.getVector(LTBlinnPhong_HeightFog.MATERIAL_SPECULAR).z = value;
+    }
+    /**
+     * @internal
+     */
+    get _SpecColorA() {
+        return this._shaderValues.getVector(LTBlinnPhong_HeightFog.MATERIAL_SPECULAR).w;
+    }
+    set _SpecColorA(value) {
+        this._shaderValues.getVector(LTBlinnPhong_HeightFog.MATERIAL_SPECULAR).w = value;
+    }
+    /**
+     * @internal
+     */
+    get _SpecColor() {
+        return this._shaderValues.getVector(LTBlinnPhong_HeightFog.MATERIAL_SPECULAR);
+    }
+    set _SpecColor(value) {
+        this.specularColor = value;
+    }
+    /**
+     * @internal
+     */
+    get _AlbedoIntensity() {
+        return this._albedoIntensity;
+    }
+    set _AlbedoIntensity(value) {
+        if (this._albedoIntensity !== value) {
+            var finalAlbedo = this._shaderValues.getVector(LTBlinnPhong_HeightFog.ALBEDO_COLOR);
+            Laya.Vector4.scale(this._albedoColor, value, finalAlbedo);
+            this._albedoIntensity = value;
+            this._shaderValues.setVector(LTBlinnPhong_HeightFog.ALBEDO_COLOR, finalAlbedo); //修改值后必须调用此接口,否则NATIVE不生效
+        }
+    }
+    /**
+     * @internal
+     */
+    get _Shininess() {
+        return this._shaderValues.getNumber(LTBlinnPhong_HeightFog.SHININESS);
+    }
+    set _Shininess(value) {
+        value = Math.max(0.0, Math.min(1.0, value));
+        this._shaderValues.setNumber(LTBlinnPhong_HeightFog.SHININESS, value);
+    }
+    /**
+     * @internal
+     */
+    get _MainTex_STX() {
+        return this._shaderValues.getVector(LTBlinnPhong_HeightFog.TILING_OFFSET).x;
+    }
+    set _MainTex_STX(x) {
+        var tilOff = this._shaderValues.getVector(LTBlinnPhong_HeightFog.TILING_OFFSET);
+        tilOff.x = x;
+        this.tilingOffset = tilOff;
+    }
+    /**
+     * @internal
+     */
+    get _MainTex_STY() {
+        return this._shaderValues.getVector(LTBlinnPhong_HeightFog.TILING_OFFSET).y;
+    }
+    set _MainTex_STY(y) {
+        var tilOff = this._shaderValues.getVector(LTBlinnPhong_HeightFog.TILING_OFFSET);
+        tilOff.y = y;
+        this.tilingOffset = tilOff;
+    }
+    /**
+     * @internal
+     */
+    get _MainTex_STZ() {
+        return this._shaderValues.getVector(LTBlinnPhong_HeightFog.TILING_OFFSET).z;
+    }
+    set _MainTex_STZ(z) {
+        var tilOff = this._shaderValues.getVector(LTBlinnPhong_HeightFog.TILING_OFFSET);
+        tilOff.z = z;
+        this.tilingOffset = tilOff;
+    }
+    /**
+     * @internal
+     */
+    get _MainTex_STW() {
+        return this._shaderValues.getVector(LTBlinnPhong_HeightFog.TILING_OFFSET).w;
+    }
+    set _MainTex_STW(w) {
+        var tilOff = this._shaderValues.getVector(LTBlinnPhong_HeightFog.TILING_OFFSET);
+        tilOff.w = w;
+        this.tilingOffset = tilOff;
+    }
+    /**
+     * @internal
+     */
+    get _MainTex_ST() {
+        return this._shaderValues.getVector(LTBlinnPhong_HeightFog.TILING_OFFSET);
+    }
+    set _MainTex_ST(value) {
+        this.tilingOffset = value;
+    }
+    /**
+     * @internal
+     */
+    get _Cutoff() {
+        return this.alphaTestValue;
+    }
+    set _Cutoff(value) {
+        this.alphaTestValue = value;
+    }
+    /**
+     * 设置渲染模式。
+     */
+    set renderMode(value) {
+        switch (value) {
+            case LTBlinnPhong_HeightFog.RENDERMODE_OPAQUE:
+                this.alphaTest = false;
+                this.renderQueue = Laya.Material.RENDERQUEUE_OPAQUE;
+                this.depthWrite = true;
+                this.cull = Laya.RenderState.CULL_BACK;
+                this.blend = Laya.RenderState.BLEND_DISABLE;
+                this.depthTest = Laya.RenderState.DEPTHTEST_LESS;
+                break;
+            case LTBlinnPhong_HeightFog.RENDERMODE_CUTOUT:
+                this.renderQueue = Laya.Material.RENDERQUEUE_ALPHATEST;
+                this.alphaTest = true;
+                this.depthWrite = true;
+                this.cull = Laya.RenderState.CULL_BACK;
+                this.blend = Laya.RenderState.BLEND_DISABLE;
+                this.depthTest = Laya.RenderState.DEPTHTEST_LESS;
+                break;
+            case LTBlinnPhong_HeightFog.RENDERMODE_TRANSPARENT:
+                this.renderQueue = Laya.Material.RENDERQUEUE_TRANSPARENT;
+                this.alphaTest = false;
+                this.depthWrite = false;
+                this.cull = Laya.RenderState.CULL_BACK;
+                this.blend = Laya.RenderState.BLEND_ENABLE_ALL;
+                this.blendSrc = Laya.RenderState.BLENDPARAM_SRC_ALPHA;
+                this.blendDst = Laya.RenderState.BLENDPARAM_ONE_MINUS_SRC_ALPHA;
+                this.depthTest = Laya.RenderState.DEPTHTEST_LESS;
+                break;
+            default:
+                throw new Error("Material:renderMode value error.");
+        }
+    }
+    /**
+     * 是否支持顶点色。
+     */
+    get enableVertexColor() {
+        return this._enableVertexColor;
+    }
+    set enableVertexColor(value) {
+        this._enableVertexColor = value;
+        if (value)
+            this._shaderValues.addDefine(LTBlinnPhong_HeightFog.SHADERDEFINE_ENABLEVERTEXCOLOR);
+        else
+            this._shaderValues.removeDefine(LTBlinnPhong_HeightFog.SHADERDEFINE_ENABLEVERTEXCOLOR);
+    }
+    /**
+     * 纹理平铺和偏移X分量。
+     */
+    get tilingOffsetX() {
+        return this._MainTex_STX;
+    }
+    set tilingOffsetX(x) {
+        this._MainTex_STX = x;
+    }
+    /**
+     * 纹理平铺和偏移Y分量。
+     */
+    get tilingOffsetY() {
+        return this._MainTex_STY;
+    }
+    set tilingOffsetY(y) {
+        this._MainTex_STY = y;
+    }
+    /**
+     * 纹理平铺和偏移Z分量。
+     */
+    get tilingOffsetZ() {
+        return this._MainTex_STZ;
+    }
+    set tilingOffsetZ(z) {
+        this._MainTex_STZ = z;
+    }
+    /**
+     * 纹理平铺和偏移W分量。
+     */
+    get tilingOffsetW() {
+        return this._MainTex_STW;
+    }
+    set tilingOffsetW(w) {
+        this._MainTex_STW = w;
+    }
+    /**
+     * 纹理平铺和偏移。
+     */
+    get tilingOffset() {
+        return this._shaderValues.getVector(LTBlinnPhong_HeightFog.TILING_OFFSET);
+    }
+    set tilingOffset(value) {
+        if (value) {
+            if (value.x != 1 || value.y != 1 || value.z != 0 || value.w != 0)
+                this._shaderValues.addDefine(LTBlinnPhong_HeightFog.SHADERDEFINE_TILINGOFFSET);
+            else
+                this._shaderValues.removeDefine(LTBlinnPhong_HeightFog.SHADERDEFINE_TILINGOFFSET);
+        }
+        else {
+            this._shaderValues.removeDefine(LTBlinnPhong_HeightFog.SHADERDEFINE_TILINGOFFSET);
+        }
+        this._shaderValues.setVector(LTBlinnPhong_HeightFog.TILING_OFFSET, value);
+    }
+    /**
+     * 反照率颜色R分量。
+     */
+    get albedoColorR() {
+        return this._ColorR;
+    }
+    set albedoColorR(value) {
+        this._ColorR = value;
+    }
+    /**
+     * 反照率颜色G分量。
+     */
+    get albedoColorG() {
+        return this._ColorG;
+    }
+    set albedoColorG(value) {
+        this._ColorG = value;
+    }
+    /**
+     * 反照率颜色B分量。
+     */
+    get albedoColorB() {
+        return this._ColorB;
+    }
+    set albedoColorB(value) {
+        this._ColorB = value;
+    }
+    /**
+     * 反照率颜色Z分量。
+     */
+    get albedoColorA() {
+        return this._ColorA;
+    }
+    set albedoColorA(value) {
+        this._ColorA = value;
+    }
+    /**
+     * 反照率颜色。
+     */
+    get albedoColor() {
+        return this._albedoColor;
+    }
+    set albedoColor(value) {
+        var finalAlbedo = this._shaderValues.getVector(LTBlinnPhong_HeightFog.ALBEDO_COLOR);
+        Laya.Vector4.scale(value, this._albedoIntensity, finalAlbedo);
+        this._albedoColor = value;
+        this._shaderValues.setVector(LTBlinnPhong_HeightFog.ALBEDO_COLOR, finalAlbedo); //修改值后必须调用此接口,否则NATIVE不生效
+    }
+    /**
+     * 反照率强度。
+     */
+    get albedoIntensity() {
+        return this._albedoIntensity;
+    }
+    set albedoIntensity(value) {
+        this._AlbedoIntensity = value;
+    }
+    /**
+     * 高光颜色R轴分量。
+     */
+    get specularColorR() {
+        return this._SpecColorR;
+    }
+    set specularColorR(value) {
+        this._SpecColorR = value;
+    }
+    /**
+     * 高光颜色G分量。
+     */
+    get specularColorG() {
+        return this._SpecColorG;
+    }
+    set specularColorG(value) {
+        this._SpecColorG = value;
+    }
+    /**
+     * 高光颜色B分量。
+     */
+    get specularColorB() {
+        return this._SpecColorB;
+    }
+    set specularColorB(value) {
+        this._SpecColorB = value;
+    }
+    /**
+     * 高光颜色A分量。
+     */
+    get specularColorA() {
+        return this._SpecColorA;
+    }
+    set specularColorA(value) {
+        this._SpecColorA = value;
+    }
+    /**
+     * 高光颜色。
+     */
+    get specularColor() {
+        return this._shaderValues.getVector(LTBlinnPhong_HeightFog.MATERIAL_SPECULAR);
+    }
+    set specularColor(value) {
+        this._shaderValues.setVector(LTBlinnPhong_HeightFog.MATERIAL_SPECULAR, value);
+    }
+    /**
+     * 高光强度,范围为0到1。
+     */
+    get shininess() {
+        return this._Shininess;
+    }
+    set shininess(value) {
+        this._Shininess = value;
+    }
+    /**
+     * 反照率贴图。
+     */
+    get albedoTexture() {
+        return this._shaderValues.getTexture(LTBlinnPhong_HeightFog.DIFFUSE_TEXTURE);
+    }
+    set albedoTexture(value) {
+        if (value)
+            this._shaderValues.addDefine(LTBlinnPhong_HeightFog.SHADERDEFINE_DIFFUSEMAP);
+        else
+            this._shaderValues.removeDefine(LTBlinnPhong_HeightFog.SHADERDEFINE_DIFFUSEMAP);
+        this._shaderValues.setTexture(LTBlinnPhong_HeightFog.DIFFUSE_TEXTURE, value);
+    }
+    /**
+     * 法线贴图。
+     */
+    get normalTexture() {
+        return this._shaderValues.getTexture(LTBlinnPhong_HeightFog.NORMAL_TEXTURE);
+    }
+    set normalTexture(value) {
+        if (value)
+            this._shaderValues.addDefine(LTBlinnPhong_HeightFog.SHADERDEFINE_NORMALMAP);
+        else
+            this._shaderValues.removeDefine(LTBlinnPhong_HeightFog.SHADERDEFINE_NORMALMAP);
+        this._shaderValues.setTexture(LTBlinnPhong_HeightFog.NORMAL_TEXTURE, value);
+    }
+    /**
+     * 高光贴图。
+     */
+    get specularTexture() {
+        return this._shaderValues.getTexture(LTBlinnPhong_HeightFog.SPECULAR_TEXTURE);
+    }
+    set specularTexture(value) {
+        if (value)
+            this._shaderValues.addDefine(LTBlinnPhong_HeightFog.SHADERDEFINE_SPECULARMAP);
+        else
+            this._shaderValues.removeDefine(LTBlinnPhong_HeightFog.SHADERDEFINE_SPECULARMAP);
+        this._shaderValues.setTexture(LTBlinnPhong_HeightFog.SPECULAR_TEXTURE, value);
+    }
+    /**
+     * 是否写入深度。
+     */
+    get depthWrite() {
+        return this._shaderValues.getBool(LTBlinnPhong_HeightFog.DEPTH_WRITE);
+    }
+    set depthWrite(value) {
+        this._shaderValues.setBool(LTBlinnPhong_HeightFog.DEPTH_WRITE, value);
+    }
+    /**
+     * 剔除方式。
+     */
+    get cull() {
+        return this._shaderValues.getInt(LTBlinnPhong_HeightFog.CULL);
+    }
+    set cull(value) {
+        this._shaderValues.setInt(LTBlinnPhong_HeightFog.CULL, value);
+    }
+    /**
+     * 混合方式。
+     */
+    get blend() {
+        return this._shaderValues.getInt(LTBlinnPhong_HeightFog.BLEND);
+    }
+    set blend(value) {
+        this._shaderValues.setInt(LTBlinnPhong_HeightFog.BLEND, value);
+    }
+    /**
+     * 混合源。
+     */
+    get blendSrc() {
+        return this._shaderValues.getInt(LTBlinnPhong_HeightFog.BLEND_SRC);
+    }
+    set blendSrc(value) {
+        this._shaderValues.setInt(LTBlinnPhong_HeightFog.BLEND_SRC, value);
+    }
+    /**
+     * 混合目标。
+     */
+    get blendDst() {
+        return this._shaderValues.getInt(LTBlinnPhong_HeightFog.BLEND_DST);
+    }
+    set blendDst(value) {
+        this._shaderValues.setInt(LTBlinnPhong_HeightFog.BLEND_DST, value);
+    }
+    /**
+     * 深度测试方式。
+     */
+    get depthTest() {
+        return this._shaderValues.getInt(LTBlinnPhong_HeightFog.DEPTH_TEST);
+    }
+    set depthTest(value) {
+        this._shaderValues.setInt(LTBlinnPhong_HeightFog.DEPTH_TEST, value);
+    }
+    static InitShader() {
+        if (this._isInited)
+            return;
+        this._isInited = true;
+        this.__initDefine__();
+        //BLINNPHONG
+        let attributeMap = {
+            'a_Position': Laya.VertexMesh.MESH_POSITION0,
+            'a_Color': Laya.VertexMesh.MESH_COLOR0,
+            'a_Normal': Laya.VertexMesh.MESH_NORMAL0,
+            'a_Texcoord0': Laya.VertexMesh.MESH_TEXTURECOORDINATE0,
+            'a_Texcoord1': Laya.VertexMesh.MESH_TEXTURECOORDINATE1,
+            'a_BoneWeights': Laya.VertexMesh.MESH_BLENDWEIGHT0,
+            'a_BoneIndices': Laya.VertexMesh.MESH_BLENDINDICES0,
+            'a_Tangent0': Laya.VertexMesh.MESH_TANGENT0,
+            'a_MvpMatrix': Laya.VertexMesh.MESH_MVPMATRIX_ROW0,
+            'a_WorldMat': Laya.VertexMesh.MESH_WORLDMATRIX_ROW0
+        };
+        let uniformMap = {
+            'u_HeightFogColor': Laya.Shader3D.PERIOD_MATERIAL,
+            'u_HeightFogStartY': Laya.Shader3D.PERIOD_MATERIAL,
+            'u_HeightFogDistance': Laya.Shader3D.PERIOD_MATERIAL,
+            'u_Bones': Laya.Shader3D.PERIOD_CUSTOM,
+            'u_DiffuseTexture': Laya.Shader3D.PERIOD_MATERIAL,
+            'u_SpecularTexture': Laya.Shader3D.PERIOD_MATERIAL,
+            'u_NormalTexture': Laya.Shader3D.PERIOD_MATERIAL,
+            'u_AlphaTestValue': Laya.Shader3D.PERIOD_MATERIAL,
+            'u_DiffuseColor': Laya.Shader3D.PERIOD_MATERIAL,
+            'u_MaterialSpecular': Laya.Shader3D.PERIOD_MATERIAL,
+            'u_Shininess': Laya.Shader3D.PERIOD_MATERIAL,
+            'u_TilingOffset': Laya.Shader3D.PERIOD_MATERIAL,
+            'u_WorldMat': Laya.Shader3D.PERIOD_SPRITE,
+            'u_MvpMatrix': Laya.Shader3D.PERIOD_SPRITE,
+            'u_LightmapScaleOffset': Laya.Shader3D.PERIOD_SPRITE,
+            'u_LightMap': Laya.Shader3D.PERIOD_SPRITE,
+            'u_LightMapDirection': Laya.Shader3D.PERIOD_SPRITE,
+            'u_CameraPos': Laya.Shader3D.PERIOD_CAMERA,
+            'u_Viewport': Laya.Shader3D.PERIOD_CAMERA,
+            'u_ProjectionParams': Laya.Shader3D.PERIOD_CAMERA,
+            'u_View': Laya.Shader3D.PERIOD_CAMERA,
+            'u_ViewProjection': Laya.Shader3D.PERIOD_CAMERA,
+            'u_ReflectTexture': Laya.Shader3D.PERIOD_SCENE,
+            'u_ReflectIntensity': Laya.Shader3D.PERIOD_SCENE,
+            'u_FogStart': Laya.Shader3D.PERIOD_SCENE,
+            'u_FogRange': Laya.Shader3D.PERIOD_SCENE,
+            'u_FogColor': Laya.Shader3D.PERIOD_SCENE,
+            'u_DirationLightCount': Laya.Shader3D.PERIOD_SCENE,
+            'u_LightBuffer': Laya.Shader3D.PERIOD_SCENE,
+            'u_LightClusterBuffer': Laya.Shader3D.PERIOD_SCENE,
+            'u_AmbientColor': Laya.Shader3D.PERIOD_SCENE,
+            'u_ShadowBias': Laya.Shader3D.PERIOD_SCENE,
+            'u_ShadowLightDirection': Laya.Shader3D.PERIOD_SCENE,
+            'u_ShadowMap': Laya.Shader3D.PERIOD_SCENE,
+            'u_ShadowParams': Laya.Shader3D.PERIOD_SCENE,
+            'u_ShadowSplitSpheres': Laya.Shader3D.PERIOD_SCENE,
+            'u_ShadowMatrices': Laya.Shader3D.PERIOD_SCENE,
+            'u_ShadowMapSize': Laya.Shader3D.PERIOD_SCENE,
+            'u_SpotShadowMap': Laya.Shader3D.PERIOD_SCENE,
+            'u_SpotViewProjectMatrix': Laya.Shader3D.PERIOD_SCENE,
+            'u_ShadowLightPosition': Laya.Shader3D.PERIOD_SCENE,
+            //GI
+            'u_AmbientSHAr': Laya.Shader3D.PERIOD_SCENE,
+            'u_AmbientSHAg': Laya.Shader3D.PERIOD_SCENE,
+            'u_AmbientSHAb': Laya.Shader3D.PERIOD_SCENE,
+            'u_AmbientSHBr': Laya.Shader3D.PERIOD_SCENE,
+            'u_AmbientSHBg': Laya.Shader3D.PERIOD_SCENE,
+            'u_AmbientSHBb': Laya.Shader3D.PERIOD_SCENE,
+            'u_AmbientSHC': Laya.Shader3D.PERIOD_SCENE,
+            //legacy lighting
+            'u_DirectionLight.color': Laya.Shader3D.PERIOD_SCENE,
+            'u_DirectionLight.direction': Laya.Shader3D.PERIOD_SCENE,
+            'u_PointLight.position': Laya.Shader3D.PERIOD_SCENE,
+            'u_PointLight.range': Laya.Shader3D.PERIOD_SCENE,
+            'u_PointLight.color': Laya.Shader3D.PERIOD_SCENE,
+            'u_SpotLight.position': Laya.Shader3D.PERIOD_SCENE,
+            'u_SpotLight.direction': Laya.Shader3D.PERIOD_SCENE,
+            'u_SpotLight.range': Laya.Shader3D.PERIOD_SCENE,
+            'u_SpotLight.spot': Laya.Shader3D.PERIOD_SCENE,
+            'u_SpotLight.color': Laya.Shader3D.PERIOD_SCENE
+        };
+        let stateMap = {
+            's_Cull': Laya.Shader3D.RENDER_STATE_CULL,
+            's_Blend': Laya.Shader3D.RENDER_STATE_BLEND,
+            's_BlendSrc': Laya.Shader3D.RENDER_STATE_BLEND_SRC,
+            's_BlendDst': Laya.Shader3D.RENDER_STATE_BLEND_DST,
+            's_DepthTest': Laya.Shader3D.RENDER_STATE_DEPTH_TEST,
+            's_DepthWrite': Laya.Shader3D.RENDER_STATE_DEPTH_WRITE
+        };
+        let customShader = Laya.Shader3D.add(LTBlinnPhong_HeightFog._shaderName, null, null, true);
+        let subShader = new Laya.SubShader(attributeMap, uniformMap);
+        customShader.addSubShader(subShader);
+        subShader.addShaderPass(_shader_LT_Mesh_BlinnPhong_DepthFog_vs__WEBPACK_IMPORTED_MODULE_0__["default"], _shader_LT_Mesh_BlinnPhong_DepthFog_fs__WEBPACK_IMPORTED_MODULE_1__["default"], stateMap, "Forward");
+        let shaderPass = subShader.addShaderPass(_shader_Mesh_BlinnPhongShadowCaster_vs__WEBPACK_IMPORTED_MODULE_2__["default"], _shader_Mesh_BlinnPhongShadowCaster_fs__WEBPACK_IMPORTED_MODULE_3__["default"], stateMap, "ShadowCaster");
+    }
+    static CreateFromBlinnPhong(mat) {
+        let newMat = new LTBlinnPhong_HeightFog();
+        newMat.albedoColor = mat.albedoColor;
+        newMat.albedoIntensity = mat.albedoIntensity;
+        newMat.albedoTexture = mat.albedoTexture;
+        newMat.normalTexture = mat.normalTexture;
+        newMat.specularColor = mat.specularColor;
+        newMat.specularTexture = mat.specularTexture;
+        return newMat;
+    }
+    /**
+     * 克隆。
+     * @return	 克隆副本。
+     * @override
+     */
+    clone() {
+        var dest = new LTBlinnPhong_HeightFog();
+        this.cloneTo(dest);
+        return dest;
+    }
+    /**
+     * @inheritDoc
+     * @override
+     */
+    cloneTo(destObject) {
+        super.cloneTo(destObject);
+        var destMaterial = destObject;
+        destMaterial._enableLighting = this._enableLighting;
+        destMaterial._albedoIntensity = this._albedoIntensity;
+        destMaterial._enableVertexColor = this._enableVertexColor;
+        this._albedoColor.cloneTo(destMaterial._albedoColor);
+    }
+}
+/**渲染状态_不透明。*/
+LTBlinnPhong_HeightFog.RENDERMODE_OPAQUE = 0;
+/**渲染状态_阿尔法测试。*/
+LTBlinnPhong_HeightFog.RENDERMODE_CUTOUT = 1;
+/**渲染状态_透明混合。*/
+LTBlinnPhong_HeightFog.RENDERMODE_TRANSPARENT = 2;
+LTBlinnPhong_HeightFog.DIFFUSE_TEXTURE = Laya.Shader3D.propertyNameToID("u_DiffuseTexture");
+LTBlinnPhong_HeightFog.NORMAL_TEXTURE = Laya.Shader3D.propertyNameToID("u_NormalTexture");
+LTBlinnPhong_HeightFog.SPECULAR_TEXTURE = Laya.Shader3D.propertyNameToID("u_SpecularTexture");
+LTBlinnPhong_HeightFog.ALBEDO_COLOR = Laya.Shader3D.propertyNameToID("u_DiffuseColor");
+LTBlinnPhong_HeightFog.MATERIAL_SPECULAR = Laya.Shader3D.propertyNameToID("u_MaterialSpecular");
+LTBlinnPhong_HeightFog.SHININESS = Laya.Shader3D.propertyNameToID("u_Shininess");
+LTBlinnPhong_HeightFog.TILING_OFFSET = Laya.Shader3D.propertyNameToID("u_TilingOffset");
+LTBlinnPhong_HeightFog.CULL = Laya.Shader3D.propertyNameToID("s_Cull");
+LTBlinnPhong_HeightFog.BLEND = Laya.Shader3D.propertyNameToID("s_Blend");
+LTBlinnPhong_HeightFog.BLEND_SRC = Laya.Shader3D.propertyNameToID("s_BlendSrc");
+LTBlinnPhong_HeightFog.BLEND_DST = Laya.Shader3D.propertyNameToID("s_BlendDst");
+LTBlinnPhong_HeightFog.DEPTH_TEST = Laya.Shader3D.propertyNameToID("s_DepthTest");
+LTBlinnPhong_HeightFog.DEPTH_WRITE = Laya.Shader3D.propertyNameToID("s_DepthWrite");
+LTBlinnPhong_HeightFog.HEIGHT_FOG_COLOR = Laya.Shader3D.propertyNameToID("u_HeightFogColor");
+LTBlinnPhong_HeightFog.HEIGHT_FOG_STARTY = Laya.Shader3D.propertyNameToID("u_HeightFogStartY");
+LTBlinnPhong_HeightFog.HEIGHT_FOG_DISTANCE = Laya.Shader3D.propertyNameToID("u_HeightFogDistance");
+LTBlinnPhong_HeightFog._shaderName = "LTBlinnPhong_HeightFog";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/Material/shader/LT-Mesh-BlinnPhong-DepthFog.fs":
+/*!*******************************************************************!*\
+  !*** ./src/LTGame/Material/shader/LT-Mesh-BlinnPhong-DepthFog.fs ***!
+  \*******************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony default export */ __webpack_exports__["default"] = ("#ifdef GL_FRAGMENT_PRECISION_HIGH\r\n\tprecision highp float;\r\n\tprecision highp int;\r\n#else\r\n\tprecision mediump float;\r\n\tprecision mediump int;\r\n#endif\r\n\r\n#include \"Lighting.glsl\";\r\n#include \"Shadow.glsl\"\r\n\r\nuniform vec4 u_DiffuseColor;\r\n\r\n#if defined(COLOR)&&defined(ENABLEVERTEXCOLOR)\r\n\tvarying vec4 v_Color;\r\n#endif\r\n\r\n#ifdef ALPHATEST\r\n\tuniform float u_AlphaTestValue;\r\n#endif\r\n\r\n#ifdef DIFFUSEMAP\r\n\tuniform sampler2D u_DiffuseTexture;\r\n#endif\r\n\r\n\r\n#if defined(DIFFUSEMAP)||((defined(DIRECTIONLIGHT)||defined(POINTLIGHT)||defined(SPOTLIGHT))&&(defined(SPECULARMAP)||defined(NORMALMAP)))\r\n\tvarying vec2 v_Texcoord0;\r\n#endif\r\n\r\n#ifdef LIGHTMAP\r\n\tvarying vec2 v_LightMapUV;\r\n\tuniform sampler2D u_LightMap;\r\n#endif\r\n\r\nvarying vec3 v_Normal;\r\n#if defined(DIRECTIONLIGHT)||defined(POINTLIGHT)||defined(SPOTLIGHT)\r\n\tvarying vec3 v_ViewDir; \r\n\r\n\tuniform vec3 u_MaterialSpecular;\r\n\tuniform float u_Shininess;\r\n\r\n\t#ifdef LEGACYSINGLELIGHTING\r\n\t\t#ifdef DIRECTIONLIGHT\r\n\t\t\tuniform DirectionLight u_DirectionLight;\r\n\t\t#endif\r\n\t\t#ifdef POINTLIGHT\r\n\t\t\tuniform PointLight u_PointLight;\r\n\t\t#endif\r\n\t\t#ifdef SPOTLIGHT\r\n\t\t\tuniform SpotLight u_SpotLight;\r\n\t\t#endif\r\n\t#else\r\n\t\tuniform mat4 u_View;\r\n\t\tuniform vec4 u_ProjectionParams;\r\n\t\tuniform vec4 u_Viewport;\r\n\t\tuniform int u_DirationLightCount;\r\n\t\tuniform sampler2D u_LightBuffer;\r\n\t\tuniform sampler2D u_LightClusterBuffer;\r\n\t#endif\r\n\r\n\t#ifdef SPECULARMAP \r\n\t\tuniform sampler2D u_SpecularTexture;\r\n\t#endif\r\n#endif\r\n\r\n#ifdef NORMALMAP \r\n\tuniform sampler2D u_NormalTexture;\r\n\tvarying vec3 v_Tangent;\r\n\tvarying vec3 v_Binormal;\r\n#endif\r\n\r\n#ifdef FOG\r\n\tuniform float u_FogStart;\r\n\tuniform float u_FogRange;\r\n\tuniform vec3 u_FogColor;\r\n#endif\r\n\r\n#if defined(POINTLIGHT)||defined(SPOTLIGHT)||(defined(CALCULATE_SHADOWS)&&defined(SHADOW_CASCADE))||defined(CALCULATE_SPOTSHADOWS)\r\n\tvarying vec3 v_PositionWorld;\r\n#endif\r\n\r\n\r\n#include \"GlobalIllumination.glsl\";//\"GlobalIllumination.glsl use uniform should at front of this\r\n\r\n#if defined(CALCULATE_SHADOWS)&&!defined(SHADOW_CASCADE)\r\n\tvarying vec4 v_ShadowCoord;\r\n#endif\r\n\r\n#ifdef CALCULATE_SPOTSHADOWS\r\n\tvarying vec4 v_SpotShadowCoord;\r\n#endif\r\n\r\nvarying vec3 v_WolrdPos;\r\nuniform vec3 u_HeightFogColor;\r\nuniform float u_HeightFogStartY;\r\nuniform float u_HeightFogDistance;\r\n\r\nvoid main()\r\n{\r\n\tvec3 normal;//light and SH maybe use normal\r\n\t#if defined(NORMALMAP)\r\n\t\tvec3 normalMapSample = texture2D(u_NormalTexture, v_Texcoord0).rgb;\r\n\t\tnormal = normalize(NormalSampleToWorldSpace(normalMapSample, v_Normal, v_Tangent,v_Binormal));\r\n\t#else\r\n\t\tnormal = normalize(v_Normal);\r\n\t#endif\r\n\r\n\t#if defined(DIRECTIONLIGHT)||defined(POINTLIGHT)||defined(SPOTLIGHT)\r\n\t\tvec3 viewDir= normalize(v_ViewDir);\r\n\t#endif\r\n\r\n\tLayaGIInput giInput;\r\n\t#ifdef LIGHTMAP\t\r\n\t\tgiInput.lightmapUV=v_LightMapUV;\r\n\t#endif\r\n\tvec3 globalDiffuse=layaGIBase(giInput,1.0,normal);\r\n\t\r\n\tvec4 mainColor=u_DiffuseColor;\r\n\t#ifdef DIFFUSEMAP\r\n\t\tvec4 difTexColor=texture2D(u_DiffuseTexture, v_Texcoord0);\r\n\t\tmainColor=mainColor*difTexColor;\r\n\t#endif \r\n\t#if defined(COLOR)&&defined(ENABLEVERTEXCOLOR)\r\n\t\tmainColor=mainColor*v_Color;\r\n\t#endif \r\n    \r\n\t#ifdef ALPHATEST\r\n\t\tif(mainColor.a<u_AlphaTestValue)\r\n\t\t\tdiscard;\r\n\t#endif\r\n  \r\n\t\r\n\tvec3 diffuse = vec3(0.0);\r\n\tvec3 specular= vec3(0.0);\r\n\t#if defined(DIRECTIONLIGHT)||defined(POINTLIGHT)||defined(SPOTLIGHT)\r\n\t\tvec3 dif,spe;\r\n\t\t#ifdef SPECULARMAP\r\n\t\t\tvec3 gloss=texture2D(u_SpecularTexture, v_Texcoord0).rgb;\r\n\t\t#else\r\n\t\t\t#ifdef DIFFUSEMAP\r\n\t\t\t\tvec3 gloss=vec3(difTexColor.a);\r\n\t\t\t#else\r\n\t\t\t\tvec3 gloss=vec3(1.0);\r\n\t\t\t#endif\r\n\t\t#endif\r\n\t#endif\r\n\r\n\t\r\n\t\r\n\t#ifdef LEGACYSINGLELIGHTING\r\n\t\t#ifdef DIRECTIONLIGHT\r\n\t\t\tLayaAirBlinnPhongDiectionLight(u_MaterialSpecular,u_Shininess,normal,gloss,viewDir,u_DirectionLight,dif,spe);\r\n\t\t\t#ifdef CALCULATE_SHADOWS\r\n\t\t\t\t#ifdef SHADOW_CASCADE\r\n\t\t\t\t\tvec4 shadowCoord = getShadowCoord(vec4(v_PositionWorld,1.0));\r\n\t\t\t\t#else\r\n\t\t\t\t\tvec4 shadowCoord = v_ShadowCoord;\r\n\t\t\t\t#endif\r\n\t\t\t\tfloat shadowAttenuation=sampleShadowmap(shadowCoord);\r\n\t\t\t\tdif *= shadowAttenuation;\r\n\t\t\t\tspe *= shadowAttenuation;\r\n\t\t\t#endif\r\n\t\t\tdiffuse+=dif;\r\n\t\t\tspecular+=spe;\r\n\t\t#endif\r\n\t\r\n\t\t#ifdef POINTLIGHT\r\n\t\t\tLayaAirBlinnPhongPointLight(v_PositionWorld,u_MaterialSpecular,u_Shininess,normal,gloss,viewDir,u_PointLight,dif,spe);\r\n\t\t\tdiffuse+=dif;\r\n\t\t\tspecular+=spe;\r\n\t\t#endif\r\n\r\n\t\t#ifdef SPOTLIGHT\r\n\t\t\tLayaAirBlinnPhongSpotLight(v_PositionWorld,u_MaterialSpecular,u_Shininess,normal,gloss,viewDir,u_SpotLight,dif,spe);\r\n\t\t\t#ifdef CALCULATE_SPOTSHADOWS\r\n\t\t\t\tvec4 spotShadowcoord = v_SpotShadowCoord;\r\n\t\t\t\tfloat spotShadowAttenuation = sampleSpotShadowmap(spotShadowcoord);\r\n\t\t\t\tdif *= shadowAttenuation;\r\n\t\t\t\tspe *= shadowAttenuation;\r\n\t\t\t#endif\r\n\t\t\tdiffuse+=dif;\r\n\t\t\tspecular+=spe;\r\n\t\t#endif\r\n\t#else\r\n\t\t#ifdef DIRECTIONLIGHT\r\n\t\t\tfor (int i = 0; i < MAX_LIGHT_COUNT; i++) \r\n\t\t\t{\r\n\t\t\t\tif(i >= u_DirationLightCount)\r\n\t\t\t\t\tbreak;\r\n\t\t\t\tDirectionLight directionLight = getDirectionLight(u_LightBuffer,i);\r\n\t\t\t\t#ifdef CALCULATE_SHADOWS\r\n\t\t\t\t\tif(i == 0)\r\n\t\t\t\t\t{\r\n\t\t\t\t\t\t#ifdef SHADOW_CASCADE\r\n\t\t\t\t\t\t\tvec4 shadowCoord = getShadowCoord(vec4(v_PositionWorld,1.0));\r\n\t\t\t\t\t\t#else\r\n\t\t\t\t\t\t\tvec4 shadowCoord = v_ShadowCoord;\r\n\t\t\t\t\t\t#endif\r\n\t\t\t\t\t\tdirectionLight.color *= sampleShadowmap(shadowCoord);\r\n\t\t\t\t\t}\r\n\t\t\t\t#endif\r\n\t\t\t\tLayaAirBlinnPhongDiectionLight(u_MaterialSpecular,u_Shininess,normal,gloss,viewDir,directionLight,dif,spe);\r\n\t\t\t\tdiffuse+=dif;\r\n\t\t\t\tspecular+=spe;\r\n\t\t\t}\r\n\t\t#endif\r\n\t\t#if defined(POINTLIGHT)||defined(SPOTLIGHT)\r\n\t\t\tivec4 clusterInfo =getClusterInfo(u_LightClusterBuffer,u_View,u_Viewport, v_PositionWorld,gl_FragCoord,u_ProjectionParams);\r\n\t\t\t#ifdef POINTLIGHT\r\n\t\t\t\tfor (int i = 0; i < MAX_LIGHT_COUNT; i++) \r\n\t\t\t\t{\r\n\t\t\t\t\tif(i >= clusterInfo.x)//PointLightCount\r\n\t\t\t\t\t\tbreak;\r\n\t\t\t\t\tPointLight pointLight = getPointLight(u_LightBuffer,u_LightClusterBuffer,clusterInfo,i);\r\n\t\t\t\t\tLayaAirBlinnPhongPointLight(v_PositionWorld,u_MaterialSpecular,u_Shininess,normal,gloss,viewDir,pointLight,dif,spe);\r\n\t\t\t\t\tdiffuse+=dif;\r\n\t\t\t\t\tspecular+=spe;\r\n\t\t\t\t}\r\n\t\t\t#endif\r\n\t\t\t#ifdef SPOTLIGHT\r\n\t\t\t\tfor (int i = 0; i < MAX_LIGHT_COUNT; i++) \r\n\t\t\t\t{\r\n\t\t\t\t\tif(i >= clusterInfo.y)//SpotLightCount\r\n\t\t\t\t\t\tbreak;\r\n\t\t\t\t\tSpotLight spotLight = getSpotLight(u_LightBuffer,u_LightClusterBuffer,clusterInfo,i);\r\n\t\t\t\t\t#ifdef CALCULATE_SPOTSHADOWS\r\n\t\t\t\t\t\tif(i == 0)\r\n\t\t\t\t\t\t{\r\n\t\t\t\t\t\t\tvec4 spotShadowcoord = v_SpotShadowCoord;\r\n\t\t\t\t\t\t\tspotLight.color *= sampleSpotShadowmap(spotShadowcoord);\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t#endif\r\n\t\t\t\t\tLayaAirBlinnPhongSpotLight(v_PositionWorld,u_MaterialSpecular,u_Shininess,normal,gloss,viewDir,spotLight,dif,spe);\r\n\t\t\t\t\tdiffuse+=dif;\r\n\t\t\t\t\tspecular+=spe;\r\n\t\t\t\t}\r\n\t\t\t#endif\r\n\t\t#endif\r\n\t#endif\r\n\r\n\tgl_FragColor =vec4(mainColor.rgb*(globalDiffuse + diffuse),mainColor.a);\r\n\r\n\t#if defined(DIRECTIONLIGHT)||defined(POINTLIGHT)||defined(SPOTLIGHT)\r\n\t\tgl_FragColor.rgb+=specular;\r\n\t#endif\r\n\t  \r\n\t#ifdef FOG\r\n\t\tfloat lerpFact=clamp((1.0/gl_FragCoord.w-u_FogStart)/u_FogRange,0.0,1.0);\r\n\t\tgl_FragColor.rgb=mix(gl_FragColor.rgb,u_FogColor,lerpFact);\r\n\t#endif\r\n\r\n    float heightLerp = clamp((u_HeightFogStartY - v_WolrdPos.y) / u_HeightFogDistance, 0.0, 1.0);\r\n    gl_FragColor.rgb = mix(gl_FragColor.rgb, u_HeightFogColor, heightLerp);\r\n}\r\n\r\n");
+
+/***/ }),
+
+/***/ "./src/LTGame/Material/shader/LT-Mesh-BlinnPhong-DepthFog.vs":
+/*!*******************************************************************!*\
+  !*** ./src/LTGame/Material/shader/LT-Mesh-BlinnPhong-DepthFog.vs ***!
+  \*******************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony default export */ __webpack_exports__["default"] = ("#include \"Lighting.glsl\";\r\n#include \"Shadow.glsl\";\r\n\r\nattribute vec4 a_Position;\r\n\r\n#ifdef GPU_INSTANCE\r\n\tattribute mat4 a_MvpMatrix;\r\n#else\r\n\tuniform mat4 u_MvpMatrix;\r\n#endif\r\n\r\n#if defined(DIFFUSEMAP)||((defined(DIRECTIONLIGHT)||defined(POINTLIGHT)||defined(SPOTLIGHT))&&(defined(SPECULARMAP)||defined(NORMALMAP)))||(defined(LIGHTMAP)&&defined(UV))\r\n\tattribute vec2 a_Texcoord0;\r\n\tvarying vec2 v_Texcoord0;\r\n#endif\r\n\r\n#if defined(LIGHTMAP)&&defined(UV1)\r\n\tattribute vec2 a_Texcoord1;\r\n#endif\r\n\r\n#ifdef LIGHTMAP\r\n\tuniform vec4 u_LightmapScaleOffset;\r\n\tvarying vec2 v_LightMapUV;\r\n#endif\r\n\r\n#ifdef COLOR\r\n\tattribute vec4 a_Color;\r\n\tvarying vec4 v_Color;\r\n#endif\r\n\r\n#ifdef BONE\r\n\tconst int c_MaxBoneCount = 24;\r\n\tattribute vec4 a_BoneIndices;\r\n\tattribute vec4 a_BoneWeights;\r\n\tuniform mat4 u_Bones[c_MaxBoneCount];\r\n#endif\r\n\r\nattribute vec3 a_Normal;\r\nvarying vec3 v_Normal; \r\n\r\n#if defined(DIRECTIONLIGHT)||defined(POINTLIGHT)||defined(SPOTLIGHT)\r\n\tuniform vec3 u_CameraPos;\r\n\tvarying vec3 v_ViewDir; \r\n#endif\r\n\r\n#if defined(NORMALMAP)\r\n\tattribute vec4 a_Tangent0;\r\n\tvarying vec3 v_Tangent;\r\n\tvarying vec3 v_Binormal;\r\n#endif\r\n\r\n#ifdef GPU_INSTANCE\r\n\tattribute mat4 a_WorldMat;\r\n#else\r\n\tuniform mat4 u_WorldMat;\r\n#endif\r\n\r\n#if defined(POINTLIGHT)||defined(SPOTLIGHT)||(defined(CALCULATE_SHADOWS)&&defined(SHADOW_CASCADE))||defined(CALCULATE_SPOTSHADOWS)\r\n\tvarying vec3 v_PositionWorld;\r\n#endif\r\n\r\n#if defined(CALCULATE_SHADOWS)&&!defined(SHADOW_CASCADE)\r\n\tvarying vec4 v_ShadowCoord;\r\n#endif\r\n\r\n#ifdef CALCULATE_SPOTSHADOWS\r\n\tvarying vec4 v_SpotShadowCoord;\r\n#endif\r\n\r\n#ifdef TILINGOFFSET\r\n\tuniform vec4 u_TilingOffset;\r\n#endif\r\n\r\nvarying vec3 v_WolrdPos;\r\n\r\nvoid main()\r\n{\r\n\tvec4 position;\r\n\t#ifdef BONE\r\n\t\tmat4 skinTransform = u_Bones[int(a_BoneIndices.x)] * a_BoneWeights.x;\r\n\t\tskinTransform += u_Bones[int(a_BoneIndices.y)] * a_BoneWeights.y;\r\n\t\tskinTransform += u_Bones[int(a_BoneIndices.z)] * a_BoneWeights.z;\r\n\t\tskinTransform += u_Bones[int(a_BoneIndices.w)] * a_BoneWeights.w;\r\n\t\tposition=skinTransform*a_Position;\r\n\t#else\r\n\t\tposition=a_Position;\r\n\t#endif\r\n\r\n\t#ifdef GPU_INSTANCE\r\n\t\tgl_Position = a_MvpMatrix * position;\r\n\t#else\r\n\t\tgl_Position = u_MvpMatrix * position;\r\n\t#endif\r\n\r\n    \r\n\t\r\n\tmat4 worldMat;\r\n\t#ifdef GPU_INSTANCE\r\n\t\tworldMat = a_WorldMat;\r\n\t#else\r\n\t\tworldMat = u_WorldMat;\r\n\t#endif\r\n\r\n\tmat3 worldInvMat;\r\n\t#ifdef BONE\r\n\t\tworldInvMat=INVERSE_MAT(mat3(worldMat*skinTransform));\r\n\t#else\r\n\t\tworldInvMat=INVERSE_MAT(mat3(worldMat));\r\n\t#endif  \r\n\tv_Normal=normalize(a_Normal*worldInvMat);\r\n\t#if defined(NORMALMAP)\r\n\t\tv_Tangent=normalize(a_Tangent0.xyz*worldInvMat);\r\n\t\tv_Binormal=cross(v_Normal,v_Tangent)*a_Tangent0.w;\r\n\t#endif\r\n\r\n    v_WolrdPos = (worldMat*position).xyz;\r\n\t#if defined(DIRECTIONLIGHT)||defined(POINTLIGHT)||defined(SPOTLIGHT)||(defined(CALCULATE_SHADOWS)&&defined(SHADOW_CASCADE))||defined(CALCULATE_SPOTSHADOWS)\r\n\t\tvec3 positionWS = v_WolrdPos;\r\n\t\t#if defined(DIRECTIONLIGHT)||defined(POINTLIGHT)||defined(SPOTLIGHT)\r\n\t\t\tv_ViewDir = u_CameraPos-positionWS;\r\n\t\t#endif\r\n\t\t#if defined(POINTLIGHT)||defined(SPOTLIGHT)||(defined(CALCULATE_SHADOWS)&&defined(SHADOW_CASCADE))||defined(CALCULATE_SPOTSHADOWS)\r\n\t\t\tv_PositionWorld = positionWS;\r\n\t\t#endif\r\n\t#endif\r\n\r\n\t#if defined(DIFFUSEMAP)||((defined(DIRECTIONLIGHT)||defined(POINTLIGHT)||defined(SPOTLIGHT))&&(defined(SPECULARMAP)||defined(NORMALMAP)))\r\n\t\t#ifdef TILINGOFFSET\r\n\t\t\tv_Texcoord0=TransformUV(a_Texcoord0,u_TilingOffset);\r\n\t\t#else\r\n\t\t\tv_Texcoord0=a_Texcoord0;\r\n\t\t#endif\r\n\t#endif\r\n\r\n\t#ifdef LIGHTMAP\r\n\t\t#ifdef UV1\r\n\t\t\tv_LightMapUV=vec2(a_Texcoord1.x,1.0-a_Texcoord1.y)*u_LightmapScaleOffset.xy+u_LightmapScaleOffset.zw;\r\n\t\t#else\r\n\t\t\tv_LightMapUV=vec2(a_Texcoord0.x,1.0-a_Texcoord0.y)*u_LightmapScaleOffset.xy+u_LightmapScaleOffset.zw;\r\n\t\t#endif \r\n\t\tv_LightMapUV.y=1.0-v_LightMapUV.y;\r\n\t#endif\r\n\r\n\t#if defined(COLOR)&&defined(ENABLEVERTEXCOLOR)\r\n\t\tv_Color=a_Color;\r\n\t#endif\r\n\r\n\t#if defined(CALCULATE_SHADOWS)&&!defined(SHADOW_CASCADE)\r\n\t\tv_ShadowCoord =getShadowCoord(vec4(positionWS,1.0));\r\n\t#endif\r\n\r\n\t#ifdef CALCULATE_SPOTSHADOWS\r\n\t\tv_SpotShadowCoord = u_SpotViewProjectMatrix*vec4(positionWS,1.0);\r\n\t#endif\r\n\r\n\tgl_Position = remapGLPositionZ(gl_Position);\r\n}");
+
+/***/ }),
+
+/***/ "./src/LTGame/Material/shader/Mesh-BlinnPhongShadowCaster.fs":
+/*!*******************************************************************!*\
+  !*** ./src/LTGame/Material/shader/Mesh-BlinnPhongShadowCaster.fs ***!
+  \*******************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony default export */ __webpack_exports__["default"] = ("#ifdef GL_FRAGMENT_PRECISION_HIGH\r\n\tprecision highp float;\r\n\tprecision highp int;\r\n#else\r\n\tprecision mediump float;\r\n\tprecision mediump int;\r\n#endif\r\n\r\n#include \"ShadowCasterFS.glsl\"\r\n\r\nvoid main()\r\n{\r\n\tgl_FragColor = shadowCasterFragment();\r\n}");
+
+/***/ }),
+
+/***/ "./src/LTGame/Material/shader/Mesh-BlinnPhongShadowCaster.vs":
+/*!*******************************************************************!*\
+  !*** ./src/LTGame/Material/shader/Mesh-BlinnPhongShadowCaster.vs ***!
+  \*******************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony default export */ __webpack_exports__["default"] = ("#include \"ShadowCasterVS.glsl\"\r\n\r\nvoid main()\r\n{\r\n\tvec4 positionCS = shadowCasterVertex();\r\n\tgl_Position = remapGLPositionZ(positionCS);\r\n}");
 
 /***/ }),
 
@@ -1440,6 +11847,7 @@ __webpack_require__.r(__webpack_exports__);
 class LTPlatformData {
     constructor() {
         this.appId = "";
+        this.appKey = "";
         this.bannerId = "";
         this.rewardVideoId = "";
         this.interstitialId = "";
@@ -1514,8 +11922,8 @@ class DefaultPlatform {
     }
     Init(platformData) {
         this.loginState = {
-            isLogin: false,
-            code: null
+            isLogin: true,
+            code: "716bfd1a322be5795636d8e7df50f9780372c3713a941e2bc5ba8823887c526c"
         };
         Laya.timer.once(500, this, this._FakeLoginEnd);
     }
@@ -1591,6 +11999,17 @@ class DefaultPlatform {
             // 这里使用resolve
             resolve(false);
         });
+    }
+    createShortcut() {
+        console.log('创建桌面图标');
+    }
+    GetStorage(key) {
+        console.log('读本地存储');
+        return Laya.LocalStorage.getItem(key);
+    }
+    SetStorage(key, data) {
+        console.log('写本地存储');
+        Laya.LocalStorage.setItem(key, data);
     }
 }
 
@@ -2072,6 +12491,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _DefaultPlatform__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./DefaultPlatform */ "./src/LTGame/Platform/DefaultPlatform.ts");
 /* harmony import */ var _OppoPlatform__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./OppoPlatform */ "./src/LTGame/Platform/OppoPlatform.ts");
 /* harmony import */ var _Impl_Native_IOS_NativeIOSPlatform__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./Impl/Native_IOS/NativeIOSPlatform */ "./src/LTGame/Platform/Impl/Native_IOS/NativeIOSPlatform.ts");
+/* harmony import */ var _VivoPlatform__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./VivoPlatform */ "./src/LTGame/Platform/VivoPlatform.ts");
+
 
 
 
@@ -2102,6 +12523,9 @@ class LTPlatformFactory {
         }
         else if (Laya.Browser.onQGMiniGame) {
             result = new _OppoPlatform__WEBPACK_IMPORTED_MODULE_6__["default"]();
+        }
+        else if (Laya.Browser.onVVMiniGame) {
+            result = new _VivoPlatform__WEBPACK_IMPORTED_MODULE_8__["default"]();
         }
         else if (window['conch']) {
             let conchConfig = window['conchConfig'];
@@ -2203,7 +12627,7 @@ class OppoPlatform extends _WXPlatform__WEBPACK_IMPORTED_MODULE_11__["default"] 
                     console.log("oppo广告", "初始化广告服务成功", platformData);
                     // 不提前进行预加载
                     // this._CreateBannerAd();
-                    // this._CreateVideoAd();
+                    this._CreateVideoAd();
                     // this._CreateInterstitalAd();
                     // this.intersitialAd = new NativeADUnit(platformData.interstitialId);
                     // this.iconNative = new NativeADUnit(platformData.nativeId);
@@ -2217,13 +12641,21 @@ class OppoPlatform extends _WXPlatform__WEBPACK_IMPORTED_MODULE_11__["default"] 
         window["iplatform"] = this;
     }
     getSystemInfo() {
-        this._base.getSystemInfo({
-            success: (res) => {
-                this.systemInfo = res;
-                console.log(this.systemInfo);
-            },
-            fail: () => { },
-            complete: () => { }
+        return __awaiter(this, void 0, void 0, function* () {
+            this.base = this._base;
+            this._base.getSystemInfo({
+                success: (res) => {
+                    this.systemInfo = res;
+                    console.log('systeminfo', this.systemInfo);
+                    if (!this.safeArea) {
+                        this.safeArea = { top: res['notchHeight'], bottom: res['screenHeight'] - res['notchHeight'], left: 0, right: res['screenWidth'], height: res['screenHeight'], width: res['screenWidth'] };
+                    }
+                    this._cacheScreenScale = this.systemInfo.screenWidth / Laya.stage.width;
+                    console.log(this.safeArea);
+                },
+                fail: () => { },
+                complete: () => { }
+            });
         });
     }
     /**
@@ -2261,7 +12693,7 @@ class OppoPlatform extends _WXPlatform__WEBPACK_IMPORTED_MODULE_11__["default"] 
     _OnLoginSuccess(res) {
         console.log(_LTPlatform__WEBPACK_IMPORTED_MODULE_10__["default"].platformStr, "登录成功", res);
         this.loginState.isLogin = true;
-        this.loginState.code = res.code;
+        this.loginState.code = res.token;
     }
     ShareAppMessage(obj, onSuccess, onFailed) {
     }
@@ -2402,7 +12834,7 @@ class OppoPlatform extends _WXPlatform__WEBPACK_IMPORTED_MODULE_11__["default"] 
         return this._isVideoLoaded;
     }
     IsInterstitalAvaliable() {
-        return _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_12__["default"].instance.isADEnable && this._isInterstitialCanShow && _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_2__["default"].instance.interstitialCount < 888;
+        return false; // LTSDK.instance.isADEnable && this._isInterstitialCanShow && CommonSaveData.instance.interstitialCount < 888;
     }
     IsNativeAvaliable() {
         return this._nativeAdLoaded;
@@ -2577,9 +13009,10 @@ class OppoPlatform extends _WXPlatform__WEBPACK_IMPORTED_MODULE_11__["default"] 
         this._rewardVideo.onLoad((res) => {
             console.log("广告加载成功", res);
             _UIExt_LTUI__WEBPACK_IMPORTED_MODULE_6__["default"].HideLoading();
+        });
+        this._rewardVideo.load().then(() => {
             this._rewardVideo.show();
         });
-        this._rewardVideo.load();
     }
     ShowRewardVideoAd(onSuccess, onSkipped) {
         if (this._cacheVideoAD) {
@@ -2600,6 +13033,7 @@ class OppoPlatform extends _WXPlatform__WEBPACK_IMPORTED_MODULE_11__["default"] 
     }
     _ShowNativeInterstital(index) {
         return __awaiter(this, void 0, void 0, function* () {
+            return;
             let nativeAd = this._base.createNativeAd({
                 adUnitId: this.platformData.nativeinterstitialIds[index]
             });
@@ -2638,6 +13072,7 @@ class OppoPlatform extends _WXPlatform__WEBPACK_IMPORTED_MODULE_11__["default"] 
     }
     _ShowNormalInterstitalAd() {
         return __awaiter(this, void 0, void 0, function* () {
+            return;
             if (this._intersitialAd) {
                 this._intersitialAd.destroy();
             }
@@ -2688,6 +13123,7 @@ class OppoPlatform extends _WXPlatform__WEBPACK_IMPORTED_MODULE_11__["default"] 
     }
     ShowInterstitalAd() {
         return __awaiter(this, void 0, void 0, function* () {
+            return;
             if (!this.IsInterstitalAvaliable()) {
                 console.error(`插页广告不能展示 冷却中：${this._isInterstitialCanShow} 展示次数${_Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_2__["default"].instance.interstitialCount}`);
                 return;
@@ -3495,6 +13931,246 @@ class TTPlatform extends _WXPlatform__WEBPACK_IMPORTED_MODULE_0__["default"] {
 
 /***/ }),
 
+/***/ "./src/LTGame/Platform/VivoPlatform.ts":
+/*!*********************************************!*\
+  !*** ./src/LTGame/Platform/VivoPlatform.ts ***!
+  \*********************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return VivoPlatform; });
+/* harmony import */ var _Async_Awaiters__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../Async/Awaiters */ "./src/LTGame/Async/Awaiters.ts");
+/* harmony import */ var _LTUtils_StringEx__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../LTUtils/StringEx */ "./src/LTGame/LTUtils/StringEx.ts");
+/* harmony import */ var _UIExt_LTUI__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../UIExt/LTUI */ "./src/LTGame/UIExt/LTUI.ts");
+/* harmony import */ var _DefaultDevice__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./DefaultDevice */ "./src/LTGame/Platform/DefaultDevice.ts");
+/* harmony import */ var _EPlatformType__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./EPlatformType */ "./src/LTGame/Platform/EPlatformType.ts");
+/* harmony import */ var _Impl_Web_WebRecordManager__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./Impl/Web/WebRecordManager */ "./src/LTGame/Platform/Impl/Web/WebRecordManager.ts");
+/* harmony import */ var _LTPlatform__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+
+
+
+
+
+
+
+class VivoPlatform {
+    constructor() {
+        this.platform = _EPlatformType__WEBPACK_IMPORTED_MODULE_4__["EPlatformType"].Vivo;
+        this.safeArea = null;
+        this.recordManager = new _Impl_Web_WebRecordManager__WEBPACK_IMPORTED_MODULE_5__["WebRecordManager"]();
+        this.device = new _DefaultDevice__WEBPACK_IMPORTED_MODULE_3__["default"]();
+        this.systemInfo = null;
+        /**
+         * 是否支持直接跳转到其他小程序
+         * 默认平台进行强制fake true,方便进行调试
+         */
+        this.isSupportJumpOther = true;
+    }
+    Init(platformData) {
+        this.loginState = {
+            isLogin: false,
+            code: null
+        };
+        this.base = window["qg"];
+        if (this.base == null) {
+            console.error("平台初始化错误", _LTPlatform__WEBPACK_IMPORTED_MODULE_6__["default"].platformStr);
+            return;
+        }
+        this.platformData = platformData;
+        // this._InitLauchOption(); 
+        this.getSystemInfo();
+        this.createVideo();
+    }
+    getSystemInfo() {
+        this.base.getSystemInfo({
+            success: (res) => {
+                this.systemInfo = res;
+                console.log('systeminfo', this.systemInfo);
+                if (!this.safeArea) {
+                    this.safeArea = { top: res['statusBarHeight'], bottom: res['screenHeight'], left: 0, right: res['screenWidth'], height: res['screenHeight'], width: res['screenWidth'] };
+                }
+                this._cacheScreenScale = this.systemInfo.screenWidth / Laya.stage.width;
+                console.log(this.safeArea);
+                if (res['platformVersionCode'] >= 1053) {
+                    this.base.login({
+                        success: (res) => {
+                            console.log('vovo登陆成功', res);
+                            this.loginState.isLogin = true;
+                            this.loginState.code = res.token;
+                            this.onLoginEnd && this.onLoginEnd.run();
+                        },
+                        fail: () => {
+                            console.log('vovo登陆失败');
+                        }
+                    });
+                }
+            },
+            fail: () => { },
+            complete: () => { }
+        });
+    }
+    IsBannerAvaliable() {
+        return;
+    }
+    IsVideoAvaliable() {
+        return;
+    }
+    IsInterstitalAvaliable() {
+        return;
+    }
+    ShowInterstitalAd() {
+        console.log('todo');
+    }
+    ShowBannerAd() {
+        if (this._banner) {
+            this._banner.show();
+            console.log('展示已有banner');
+            return;
+        }
+        this.HideBannerAd();
+        this._banner = this.base.createBannerAd({
+            posId: this.platformData.bannerId
+        });
+        let isBannerLoading = true;
+        let loadSuccess = false;
+        this._banner.show().then((res) => {
+            console.log("banner加载成功", res);
+            if (res['code'] == 0) {
+                loadSuccess = true;
+            }
+            isBannerLoading = false;
+        }).catch((res) => {
+            console.error("banner加载失败", res);
+            isBannerLoading = false;
+        });
+    }
+    HideBannerAd() {
+        if (this._banner) {
+            this._banner.hide();
+        }
+    }
+    ShowRewardVideoAd(onSuccess, onSkipped) {
+        this._rewardSuccessed = onSuccess;
+        this._rewardSkipped = onSkipped;
+        if (_LTUtils_StringEx__WEBPACK_IMPORTED_MODULE_1__["default"].IsNullOrEmpty(this.platformData.rewardVideoId)) {
+            console.log("无有效的视频广告ID,取消加载");
+            onSkipped.run();
+            return;
+        }
+        let createRewardedVideoAd = this.base["createRewardedVideoAd"];
+        if (createRewardedVideoAd == null) {
+            console.error("无createRewardedVideoAd方法,跳过初始化");
+            onSkipped.run();
+            return;
+        }
+        _UIExt_LTUI__WEBPACK_IMPORTED_MODULE_2__["default"].ShowLoading("广告拉取中...");
+        this.createVideo();
+        this._rewardVideo.show().then(() => {
+            _UIExt_LTUI__WEBPACK_IMPORTED_MODULE_2__["default"].HideLoading();
+        }).catch(err => {
+            console.log("广告组件出现问题", err);
+            // 可以手动加载一次
+            this._rewardVideo.load().then(() => {
+                console.log("手动加载成功");
+                // 加载成功后需要再显示广告
+                this._rewardVideo.show().then(() => {
+                    _UIExt_LTUI__WEBPACK_IMPORTED_MODULE_2__["default"].HideLoading();
+                }).catch((err) => {
+                    console.error(err);
+                    _UIExt_LTUI__WEBPACK_IMPORTED_MODULE_2__["default"].HideLoading();
+                });
+                ;
+            });
+        });
+        ;
+    }
+    createVideo() {
+        this._rewardVideo = this.base.createRewardedVideoAd({
+            posId: this.platformData.rewardVideoId
+        });
+        this._rewardVideo.onLoad(() => {
+            console.log("视频广告加载成功");
+        });
+        this._rewardVideo.onError((res) => {
+            console.error("视频广告加载失败", res);
+        });
+        this._rewardVideo.onClose((res) => {
+            console.log("视频回调", res);
+            let isEnd = res["isEnded"];
+            _Async_Awaiters__WEBPACK_IMPORTED_MODULE_0__["default"].NextFrame().then(() => {
+                if (isEnd) {
+                    if (this._rewardSuccessed)
+                        this._rewardSuccessed.run();
+                }
+                else {
+                    if (this._rewardSkipped)
+                        this._rewardSkipped.run();
+                }
+            });
+        });
+    }
+    ShowRewardVideoAdAsync() {
+        return new Promise(function (resolve) {
+            _LTPlatform__WEBPACK_IMPORTED_MODULE_6__["default"].instance.ShowRewardVideoAd(Laya.Handler.create(this, () => {
+                resolve(true);
+            }), Laya.Handler.create(this, () => {
+                resolve(false);
+            }));
+        });
+    }
+    GetFromAppId() {
+        return null;
+    }
+    ShareAppMessage(obj, onSuccess = null, onFailed = null) {
+        console.log("分享消息", obj);
+        if (onSuccess) {
+            onSuccess.run();
+        }
+    }
+    LoadSubpackage(name, onSuccess, onFailed) {
+        if (onSuccess) {
+            onSuccess.run();
+        }
+    }
+    RecordEvent(eventId, param) {
+        console.log("记录事件", eventId, param);
+    }
+    ShareVideoInfo() {
+        console.log(_LTPlatform__WEBPACK_IMPORTED_MODULE_6__["default"].platformStr, "暂未实现录屏功能");
+    }
+    _CheckUpdate() {
+    }
+    ShowToast(str) {
+        _UIExt_LTUI__WEBPACK_IMPORTED_MODULE_2__["default"].Toast(str);
+    }
+    OpenGameBox() {
+        console.error("当前平台", _LTPlatform__WEBPACK_IMPORTED_MODULE_6__["default"].platformStr, "暂不支持互推游戏盒子");
+    }
+    NavigateToApp(appid, path, extra) {
+        return new Promise((resolve, reject) => {
+            console.error("当前平台", _LTPlatform__WEBPACK_IMPORTED_MODULE_6__["default"].platformStr, `暂不支持小程序跳转appid:${appid}`);
+            // 这里使用resolve
+            resolve(false);
+        });
+    }
+    createShortcut() {
+        console.log('创建桌面图标');
+    }
+    GetStorage(key) {
+        console.log('读本地存储');
+        return Laya.LocalStorage.getItem(key);
+    }
+    SetStorage(key, data) {
+        console.log('写本地存储');
+        Laya.LocalStorage.setItem(key, data);
+    }
+}
+
+
+/***/ }),
+
 /***/ "./src/LTGame/Platform/WXPlatform.ts":
 /*!*******************************************!*\
   !*** ./src/LTGame/Platform/WXPlatform.ts ***!
@@ -3514,6 +14190,12 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _UIExt_LTUI__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../UIExt/LTUI */ "./src/LTGame/UIExt/LTUI.ts");
 /* harmony import */ var _Async_Awaiters__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../Async/Awaiters */ "./src/LTGame/Async/Awaiters.ts");
 /* harmony import */ var _DefaultDevice__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./DefaultDevice */ "./src/LTGame/Platform/DefaultDevice.ts");
+/* harmony import */ var _UIExt_DefaultUI_UI_SelfBannerMediator__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../UIExt/DefaultUI/UI_SelfBannerMediator */ "./src/LTGame/UIExt/DefaultUI/UI_SelfBannerMediator.ts");
+/* harmony import */ var _UIExt_DefaultUI_UI_GameCenterMediator__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../UIExt/DefaultUI/UI_GameCenterMediator */ "./src/LTGame/UIExt/DefaultUI/UI_GameCenterMediator.ts");
+/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
+
+
+
 
 
 
@@ -3529,6 +14211,7 @@ class WXPlatform {
         this.safeArea = null;
         this.recordManager = new _DefaultRecordManager__WEBPACK_IMPORTED_MODULE_5__["default"]();
         this.device = new _DefaultDevice__WEBPACK_IMPORTED_MODULE_8__["default"]();
+        this.loginCode = null;
         /**
          * 是否支持直接跳转到其他小程序
          */
@@ -3537,6 +14220,7 @@ class WXPlatform {
         this._isVideoLoaded = false;
         this._isInterstitialLoaded = false;
         this._cacheVideoAD = false;
+        this.NavigateToAppSuccess = null;
     }
     Init(platformData) {
         this._base = window["wx"];
@@ -3562,22 +14246,23 @@ class WXPlatform {
             // 请求完新版本信息的回调
             console.log("onCheckForUpdate", res.hasUpdate);
             if (res.hasUpdate) {
-                this._base.showToast({
+                _LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.base.showToast({
                     title: "即将有更新请留意"
                 });
             }
         });
         updateManager.onUpdateReady(() => {
-            this._base.showModal({
+            _LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.base.showModal({
                 title: "更新提示",
                 content: "新版本已经准备好，是否立即使用？",
                 success: function (res) {
                     if (res.confirm) {
                         // 调用 applyUpdate 应用新版本并重启
+                        let updateManager = _LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.base.getUpdateManager();
                         updateManager.applyUpdate();
                     }
                     else {
-                        this._base.showToast({
+                        _LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.base.showToast({
                             icon: "none",
                             title: "小程序下一次「冷启动」时会使用新版本"
                         });
@@ -3586,7 +14271,7 @@ class WXPlatform {
             });
         });
         updateManager.onUpdateFailed(() => {
-            this._base.showToast({
+            _LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.base.showToast({
                 title: "更新失败，下次启动继续..."
             });
         });
@@ -3598,14 +14283,16 @@ class WXPlatform {
         };
         let loginData = {};
         loginData.success = (res) => {
+            this.loginCode = res.code;
             this._OnLoginSuccess(res);
+            console.error(this.loginState);
         };
         loginData.fail = (res) => {
             console.error(_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].platformStr, "登录失败", res);
             this.loginState.isLogin = false;
             this.loginState.code = "";
         };
-        loginData.complete = (res) => {
+        loginData.complete = () => {
             if (this.onLoginEnd != null) {
                 this.onLoginEnd.run();
             }
@@ -3686,6 +14373,10 @@ class WXPlatform {
         let intAdObj = {};
         intAdObj["adUnitId"] = this.platformData.interstitialId;
         this._intersitialAd = this._base.createInterstitialAd(intAdObj);
+        if (this._intersitialAd == null) {
+            console.error("createInterstitialAd返回值为null,取消初始化");
+            return;
+        }
         this._intersitialAd.onLoad(() => {
             console.log("插页广告加载成功");
             this._isInterstitialLoaded = true;
@@ -3786,13 +14477,13 @@ class WXPlatform {
     }
     ShowBannerAd() {
         if (!this.IsBannerAvaliable()) {
+            _UIExt_DefaultUI_UI_SelfBannerMediator__WEBPACK_IMPORTED_MODULE_9__["UI_SelfBannerMediator"].instance.Show();
             return;
         }
         this._bannerAd.show();
     }
     HideBannerAd() {
-        if (!this.IsBannerAvaliable())
-            return;
+        _UIExt_DefaultUI_UI_SelfBannerMediator__WEBPACK_IMPORTED_MODULE_9__["UI_SelfBannerMediator"].instance.Hide();
         this._bannerAd.hide();
     }
     _DoCacheShowVideo(onSuccess, onSkipped) {
@@ -3867,6 +14558,21 @@ class WXPlatform {
         });
         ;
     }
+    onVideoClose(res) {
+        Laya.stage.event(_Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_4__["CommonEventId"].RESUM_AUDIO);
+        console.log("视频回调", res);
+        let isEnd = res["isEnded"];
+        _Async_Awaiters__WEBPACK_IMPORTED_MODULE_7__["default"].NextFrame().then(() => {
+            if (isEnd) {
+                if (this._rewardSuccessed)
+                    this._rewardSuccessed.run();
+            }
+            else {
+                if (this._rewardSkipped)
+                    this._rewardSkipped.run();
+            }
+        });
+    }
     ShowRewardVideoAd(onSuccess, onSkipped) {
         if (this._cacheVideoAD) {
             this._DoCacheShowVideo(onSuccess, onSkipped);
@@ -3907,6 +14613,7 @@ class WXPlatform {
         console.log(_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].platformStr, "OnShow", res);
         _LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.lauchOption = res;
         _LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance._CheckUpdate();
+        this.NavigateToAppSuccess = null;
         _Async_Awaiters__WEBPACK_IMPORTED_MODULE_7__["default"].NextFrame().then(() => {
             if (_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.onResume) {
                 _LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.onResume.runWith(res);
@@ -3925,6 +14632,9 @@ class WXPlatform {
         console.log(_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].platformStr, "OnHide", res);
         if (_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.onPause) {
             _LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.onPause.runWith(res);
+        }
+        if (this.NavigateToAppSuccess) {
+            this.NavigateToAppSuccess();
         }
     }
     ShareAppMessage(shareInfo, onSuccess, onFailed) {
@@ -4027,24 +14737,69 @@ class WXPlatform {
     OpenGameBox(appIds) {
         console.error("当前平台", _LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].platformStr, "暂不支持互推游戏盒子");
     }
-    NavigateToApp(appid, path, extra) {
+    NavigateToApp(appid, path, extra, showGC, isbanner, adid) {
         return new Promise((resolve, reject) => {
+            if (showGC) {
+                // GlobalUnit.gameManager.GameOver();
+            }
+            // this.NavigateToAppSuccess = null;
             wx.navigateToMiniProgram({
                 appId: appid,
                 path: path,
                 extraData: extra,
                 envVersion: '',
                 success: (res) => {
+                    if (isbanner) {
+                        _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_11__["default"].instance.ReportClickAd(adid, 19, true);
+                    }
+                    else {
+                        _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_11__["default"].instance.ReportClickAd(adid, 5, true);
+                    }
                     console.log('小游戏跳转成功', res);
+                    // this.NavigateToAppSuccess = () => {
+                    // };
                     resolve(true);
                 },
                 fail: () => {
                     console.log('小游戏跳转失败：');
+                    if (isbanner) {
+                        _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_11__["default"].instance.ReportClickAd(adid, 19, false);
+                    }
+                    else {
+                        _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_11__["default"].instance.ReportClickAd(adid, 5, false);
+                    }
                     reject(false);
+                    if (showGC) {
+                        _UIExt_DefaultUI_UI_GameCenterMediator__WEBPACK_IMPORTED_MODULE_10__["UI_GameCenterMediator"].instance.Show();
+                    }
                 },
                 complete: () => { }
             });
         });
+    }
+    createShortcut() {
+        console.log('暂未实现');
+    }
+    GetStorage(key) {
+        if (this.base && this.base.getStorageSync && key) {
+            try {
+                return this.base.getStorageSync(key);
+            }
+            catch (error) {
+                console.log('getStorageSync error: ', JSON.stringify(error));
+                return null;
+            }
+        }
+    }
+    SetStorage(key, data) {
+        if (this.base && this.base.getStorageSync && key) {
+            try {
+                return this.base.setStorageSync(key, data);
+            }
+            catch (error) {
+                console.log('setStorageSync error: ', JSON.stringify(error));
+            }
+        }
     }
 }
 
@@ -4297,7 +15052,7 @@ class LTMain {
             // if (GameConfig.debug || Laya.Utils.getQueryString("debug") == "true") Laya.enableDebugPanel();
             // if (GameConfig.physicsDebug && Laya["PhysicsDebugDraw"]) Laya["PhysicsDebugDraw"].enable();
             if (this._mainLogic.enableStat) {
-                Laya.Stat.show();
+                Laya.Stat.show(0, 100);
             }
             Laya.alertGlobalError(false);
             this._mainLogic.InitGame();
@@ -4524,12 +15279,16 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _Fsm_StateMachine__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../Fsm/StateMachine */ "./src/LTGame/Fsm/StateMachine.ts");
 /* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
 /* harmony import */ var _Platform_Data_LTPlatformData__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../Platform/Data/LTPlatformData */ "./src/LTGame/Platform/Data/LTPlatformData.ts");
-/* harmony import */ var _UIExt_FGui_FGuiEx__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../UIExt/FGui/FGuiEx */ "./src/LTGame/UIExt/FGui/FGuiEx.ts");
-/* harmony import */ var _LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../LTUtils/MonoHelper */ "./src/LTGame/LTUtils/MonoHelper.ts");
-/* harmony import */ var _LTVersion__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../LTVersion */ "./src/LTGame/LTVersion.ts");
-/* harmony import */ var _Commom_EScreenOrientation__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../Commom/EScreenOrientation */ "./src/LTGame/Commom/EScreenOrientation.ts");
-/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
-/* harmony import */ var _SDK_Impl_SDK_Default__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../../SDK/Impl/SDK_Default */ "./src/SDK/Impl/SDK_Default.ts");
+/* harmony import */ var _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../Platform/EPlatformType */ "./src/LTGame/Platform/EPlatformType.ts");
+/* harmony import */ var _UIExt_FGui_FGuiEx__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../UIExt/FGui/FGuiEx */ "./src/LTGame/UIExt/FGui/FGuiEx.ts");
+/* harmony import */ var _LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../LTUtils/MonoHelper */ "./src/LTGame/LTUtils/MonoHelper.ts");
+/* harmony import */ var _LTVersion__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../LTVersion */ "./src/LTGame/LTVersion.ts");
+/* harmony import */ var _Commom_EScreenOrientation__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../Commom/EScreenOrientation */ "./src/LTGame/Commom/EScreenOrientation.ts");
+/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
+/* harmony import */ var _SDK_Impl_SDK_Default__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../../SDK/Impl/SDK_Default */ "./src/SDK/Impl/SDK_Default.ts");
+/* harmony import */ var _Async_Awaiters__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../Async/Awaiters */ "./src/LTGame/Async/Awaiters.ts");
+
+
 
 
 
@@ -4542,18 +15301,16 @@ __webpack_require__.r(__webpack_exports__);
 class LTStart {
     constructor() {
         this.enableStat = false;
-        this.screenOrientation = _Commom_EScreenOrientation__WEBPACK_IMPORTED_MODULE_6__["EScreenOrientation"].Portrait;
-        console.log = () => { };
-        console.error = () => { };
+        this.screenOrientation = _Commom_EScreenOrientation__WEBPACK_IMPORTED_MODULE_7__["EScreenOrientation"].Portrait;
     }
     get _currentState() {
         return this._fsm.currState;
     }
     get designWidth() {
         switch (this.screenOrientation) {
-            case _Commom_EScreenOrientation__WEBPACK_IMPORTED_MODULE_6__["EScreenOrientation"].Portrait:
+            case _Commom_EScreenOrientation__WEBPACK_IMPORTED_MODULE_7__["EScreenOrientation"].Portrait:
                 return 750;
-            case _Commom_EScreenOrientation__WEBPACK_IMPORTED_MODULE_6__["EScreenOrientation"].Landscape:
+            case _Commom_EScreenOrientation__WEBPACK_IMPORTED_MODULE_7__["EScreenOrientation"].Landscape:
                 return 1334;
             default:
                 console.error("未处理的屏幕初始化方向", this.screenOrientation);
@@ -4562,9 +15319,9 @@ class LTStart {
     }
     get designHeight() {
         switch (this.screenOrientation) {
-            case _Commom_EScreenOrientation__WEBPACK_IMPORTED_MODULE_6__["EScreenOrientation"].Portrait:
+            case _Commom_EScreenOrientation__WEBPACK_IMPORTED_MODULE_7__["EScreenOrientation"].Portrait:
                 return 1334;
-            case _Commom_EScreenOrientation__WEBPACK_IMPORTED_MODULE_6__["EScreenOrientation"].Landscape:
+            case _Commom_EScreenOrientation__WEBPACK_IMPORTED_MODULE_7__["EScreenOrientation"].Landscape:
                 return 750;
             default:
                 console.error("未处理的屏幕初始化方向", this.screenOrientation);
@@ -4573,25 +15330,32 @@ class LTStart {
     }
     InitGame() {
         _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].CreateInstance();
-        console.log("游戏开始初始化,当前框架版本号", _LTVersion__WEBPACK_IMPORTED_MODULE_5__["default"].version);
+        console.log("游戏开始初始化,当前框架版本号", _LTVersion__WEBPACK_IMPORTED_MODULE_6__["default"].version);
         this._Init();
     }
     _Init() {
-        let platformData = new _Platform_Data_LTPlatformData__WEBPACK_IMPORTED_MODULE_2__["default"]();
-        this._HandleInitPlatform(_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.platform, platformData);
-        this._HandleSDK();
-        if (!_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_7__["default"].isInited) {
-            _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_7__["default"].CreateInstace(_SDK_Impl_SDK_Default__WEBPACK_IMPORTED_MODULE_8__["default"], "default", "default", "default");
-        }
-        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.Init(platformData);
-        /* 2.6.0 版本之后 该设置已经变为默认false,无需手动禁用,如果后期调整,再进行打开
-        // 非web平台禁用debug模式
-        if (LTPlatform.instance.platform != EPlatformType.Web) {
-            Laya.Shader3D.debugMode = false;
-        }
-        */
-        _UIExt_FGui_FGuiEx__WEBPACK_IMPORTED_MODULE_3__["default"].Init(_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.safeArea);
-        Laya.timer.frameOnce(1, this, this._NextFramUpdate);
+        return __awaiter(this, void 0, void 0, function* () {
+            let platformData = new _Platform_Data_LTPlatformData__WEBPACK_IMPORTED_MODULE_2__["default"]();
+            this._HandleInitPlatform(_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.platform, platformData);
+            _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.Init(platformData);
+            this._HandleSDK();
+            if (!_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_8__["default"].isInited) {
+                _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_8__["default"].CreateInstace(_SDK_Impl_SDK_Default__WEBPACK_IMPORTED_MODULE_9__["default"], "default", "default", "default");
+            }
+            /* 2.6.0 版本之后 该设置已经变为默认false,无需手动禁用,如果后期调整,再进行打开
+            // 非web平台禁用debug模式
+            if (LTPlatform.instance.platform != EPlatformType.Web) {
+                Laya.Shader3D.debugMode = false;
+            }
+            */
+            if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.platform != _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Web) {
+                while (!_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.safeArea) {
+                    yield _Async_Awaiters__WEBPACK_IMPORTED_MODULE_10__["default"].NextFrame();
+                }
+            }
+            _UIExt_FGui_FGuiEx__WEBPACK_IMPORTED_MODULE_4__["default"].Init(_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.safeArea);
+            Laya.timer.frameOnce(1, this, this._NextFramUpdate);
+        });
     }
     _NextFramUpdate() {
         this._fsm = new _Fsm_StateMachine__WEBPACK_IMPORTED_MODULE_0__["default"]();
@@ -4604,12 +15368,12 @@ class LTStart {
         this._RegistUpdate();
     }
     _RegistUpdate() {
-        _LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_4__["default"].instance.AddAction(_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_4__["EActionType"].Update, this, this._LogicUpdate);
-        _LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_4__["default"].instance.AddAction(_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_4__["EActionType"].LateUpdate, this, this._LateUpdate);
+        _LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_5__["default"].instance.AddAction(_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_5__["EActionType"].Update, this, this._LogicUpdate);
+        _LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_5__["default"].instance.AddAction(_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_5__["EActionType"].LateUpdate, this, this._LateUpdate);
     }
     _UnRegistUpdate() {
-        _LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_4__["default"].instance.RemoveAction(_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_4__["EActionType"].Update, this, this._LogicUpdate);
-        _LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_4__["default"].instance.RemoveAction(_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_4__["EActionType"].LateUpdate, this, this._LateUpdate);
+        _LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_5__["default"].instance.RemoveAction(_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_5__["EActionType"].Update, this, this._LogicUpdate);
+        _LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_5__["default"].instance.RemoveAction(_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_5__["EActionType"].LateUpdate, this, this._LateUpdate);
     }
     _HandleSDK() {
     }
@@ -4651,10 +15415,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ON_BANNER_SHOWN", function() { return ON_BANNER_SHOWN; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return View_BottomGames; });
 /* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
-/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+/* harmony import */ var _Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../Commom/CommonEventId */ "./src/LTGame/Commom/CommonEventId.ts");
 /* harmony import */ var _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../Platform/EPlatformType */ "./src/LTGame/Platform/EPlatformType.ts");
-/* harmony import */ var _Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../Commom/CommonEventId */ "./src/LTGame/Commom/CommonEventId.ts");
-/* harmony import */ var _UI_LTGame_UI_sliderADs__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../UI/LTGame/UI_sliderADs */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_sliderADs.ts");
+/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+/* harmony import */ var _UI_LTGame_UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../UI/LTGame/UI_CommonEndSliderADs */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonEndSliderADs.ts");
 
 
 
@@ -4671,14 +15435,14 @@ class View_BottomGames {
         if (tagUI == null)
             return null;
         // 额外判定一次是否支持交叉推广,如果不支持,则隐藏交叉推广
-        if (!_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.isSupportJumpOther) {
+        if (!_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.isSupportJumpOther) {
             tagUI.dispose();
             return null;
         }
-        if (tagUI instanceof _UI_LTGame_UI_sliderADs__WEBPACK_IMPORTED_MODULE_4__["default"]) {
+        if (tagUI instanceof _UI_LTGame_UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_4__["default"]) {
             return new View_BottomGames(tagUI);
         }
-        let uiInstance = _UI_LTGame_UI_sliderADs__WEBPACK_IMPORTED_MODULE_4__["default"].createInstance();
+        let uiInstance = _UI_LTGame_UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_4__["default"].createInstance();
         tagUI.parent.addChildAt(uiInstance, tagUI.parent.getChildIndex(tagUI));
         uiInstance.setXY(tagUI.x, tagUI.y);
         tagUI.dispose();
@@ -4688,9 +15452,13 @@ class View_BottomGames {
         return this._ui;
     }
     _Init() {
+        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].WX || _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Web) {
+            this._posId = 5;
+        }
         this._cacheAds = _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__["default"].instance.adManager.GetADListByLocationId(this._posId);
         if (this._cacheAds == null) {
-            Laya.stage.on(_Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_3__["CommonEventId"].SELF_AD_INITED, this, this._OnAdInited);
+            Laya.stage.on(_Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_1__["CommonEventId"].SELF_AD_INITED, this, this._OnAdInited);
+            this.ui.visible = false;
         }
         else {
             this.ui.m_list.setVirtualAndLoop();
@@ -4699,10 +15467,21 @@ class View_BottomGames {
             this.ui.m_list.numItems = this._cacheAds.length;
             this.ui.m_list.on(fairygui.Events.CLICK_ITEM, this, this._OnClickGameItem);
             Laya.timer.loop(5000, this, () => {
-                this.ui.m_list.scrollPane.scrollRight(1, true);
+                this.ui.m_list.scrollPane.scrollRight(169 / 150, true);
             });
+            let ads = [];
+            for (let i = 0; i < this._cacheAds.length; i++) {
+                const adData = this._cacheAds[i];
+                let ad = {};
+                ad.ad_id = adData.ad_id;
+                ad.location_id = this._posId;
+                ad.num = 1;
+                ads.push(ad);
+            }
+            console.log('bottom', this._cacheAds, ads);
+            _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ReportShowAd(ads);
         }
-        Laya.stage.on(ON_BANNER_SHOWN, this, this.resetPos);
+        // Laya.stage.on(ON_BANNER_SHOWN, this, this.resetPos);
     }
     resetPos(bannerHight) {
         this.ui.y = Laya.stage.height - bannerHight - this.ui.height;
@@ -4714,6 +15493,7 @@ class View_BottomGames {
         this.ui.m_list.itemRenderer = Laya.Handler.create(this, this._OnAdItemRender, null, false);
         this.ui.m_list.numItems = this._cacheAds.length;
         this.ui.m_list.on(fairygui.Events.CLICK_ITEM, this, this._OnClickGameItem);
+        this.ui.visible = true;
     }
     _OnAdItemRender(index, adUI) {
         let adData = this._cacheAds[index];
@@ -4724,7 +15504,7 @@ class View_BottomGames {
     _OnClickGameItem(item) {
         let data = this._cacheAds[item.data];
         let uid = data.ad_appid;
-        switch (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.platform) {
+        switch (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform) {
             case _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Oppo:
             case _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Vivo:
                 uid = data.ad_package;
@@ -4732,7 +15512,123 @@ class View_BottomGames {
             default:
                 break;
         }
-        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.NavigateToApp(uid);
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.NavigateToApp(uid, data.ad_path, null, true, false, data.ad_id);
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/Cmp/View_End3X3Games.ts":
+/*!************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/Cmp/View_End3X3Games.ts ***!
+  \************************************************************/
+/*! exports provided: ON_BANNER_SHOWN, default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ON_BANNER_SHOWN", function() { return ON_BANNER_SHOWN; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return View_End3X3Games; });
+/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
+/* harmony import */ var _Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../Commom/CommonEventId */ "./src/LTGame/Commom/CommonEventId.ts");
+/* harmony import */ var _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../Platform/EPlatformType */ "./src/LTGame/Platform/EPlatformType.ts");
+/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+/* harmony import */ var _UI_LTGame_UI_End3X3Ad__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../UI/LTGame/UI_End3X3Ad */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_End3X3Ad.ts");
+
+
+
+
+
+const ON_BANNER_SHOWN = "ON_BANNER_RESIZE";
+class View_End3X3Games {
+    constructor(ui) {
+        this._posId = 0;
+        this._ui = ui;
+        this._Init();
+    }
+    static CreateView(tagUI) {
+        if (tagUI == null)
+            return null;
+        // 额外判定一次是否支持交叉推广,如果不支持,则隐藏交叉推广
+        if (!_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.isSupportJumpOther) {
+            tagUI.dispose();
+            return null;
+        }
+        if (tagUI instanceof _UI_LTGame_UI_End3X3Ad__WEBPACK_IMPORTED_MODULE_4__["default"]) {
+            return new View_End3X3Games(tagUI);
+        }
+        let uiInstance = _UI_LTGame_UI_End3X3Ad__WEBPACK_IMPORTED_MODULE_4__["default"].createInstance();
+        tagUI.parent.addChildAt(uiInstance, tagUI.parent.getChildIndex(tagUI));
+        uiInstance.setXY(tagUI.x, tagUI.y);
+        tagUI.dispose();
+        return new View_End3X3Games(uiInstance);
+    }
+    get ui() {
+        return this._ui;
+    }
+    _Init() {
+        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].WX || _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Web) {
+            this._posId = 5;
+        }
+        this._cacheAds = _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__["default"].instance.adManager.GetADListByLocationId(this._posId);
+        if (this._cacheAds == null) {
+            Laya.stage.on(_Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_1__["CommonEventId"].SELF_AD_INITED, this, this._OnAdInited);
+            this.ui.visible = false;
+        }
+        else {
+            this.ui.m_list.setVirtual();
+            this.ui.m_list.scrollPane.bouncebackEffect = false;
+            this.ui.m_list.itemRenderer = Laya.Handler.create(this, this._OnAdItemRender, null, false);
+            this.ui.m_list.numItems = this._cacheAds.length;
+            this.ui.m_list.on(fairygui.Events.CLICK_ITEM, this, this._OnClickGameItem);
+            Laya.timer.loop(200, this, () => {
+                this.ui.m_list.scrollPane.scrollDown(0.02, true);
+            });
+            let ads = [];
+            for (let i = 0; i < this._cacheAds.length; i++) {
+                const adData = this._cacheAds[i];
+                let ad = {};
+                ad.ad_id = adData.ad_id;
+                ad.location_id = this._posId;
+                ad.num = 1;
+                ads.push(ad);
+            }
+            console.log('bottom', this._cacheAds, ads);
+            _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ReportShowAd(ads);
+        }
+        // Laya.stage.on(ON_BANNER_SHOWN, this, this.resetPos);
+    }
+    resetPos(bannerHight) {
+        this.ui.y = Laya.stage.height - bannerHight - this.ui.height;
+    }
+    _OnAdInited(posId) {
+        if (posId != this._posId)
+            return;
+        this._cacheAds = _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__["default"].instance.adManager.GetADListByLocationId(this._posId);
+        this.ui.m_list.itemRenderer = Laya.Handler.create(this, this._OnAdItemRender, null, false);
+        this.ui.m_list.numItems = this._cacheAds.length;
+        this.ui.m_list.on(fairygui.Events.CLICK_ITEM, this, this._OnClickGameItem);
+        this.ui.visible = true;
+    }
+    _OnAdItemRender(index, adUI) {
+        let adData = this._cacheAds[index];
+        adUI.data = index;
+        adUI.m_icon.m_icon.url = adData.ad_img;
+        adUI.m_title.text = adData.ad_name;
+    }
+    _OnClickGameItem(item) {
+        let data = this._cacheAds[item.data];
+        let uid = data.ad_appid;
+        switch (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform) {
+            case _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Oppo:
+            case _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Vivo:
+                uid = data.ad_package;
+                break;
+            default:
+                break;
+        }
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.NavigateToApp(uid, data.ad_path, null, true, false, data.ad_id);
     }
 }
 
@@ -4789,6 +15685,9 @@ class View_EndSlideGames {
         return this._ui;
     }
     _Init() {
+        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].WX) {
+            this._posId = 5;
+        }
         this._cacheAds = _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__["default"].instance.adManager.GetADListByLocationId(this._posId);
         if (this._cacheAds == null) {
             Laya.stage.on(_Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_1__["CommonEventId"].SELF_AD_INITED, this, this._OnAdInited);
@@ -4797,6 +15696,15 @@ class View_EndSlideGames {
             for (let i = 0; i < 3; i++) {
                 this.initLists(i);
             }
+            let ads = [];
+            this._cacheAds.forEach(adData => {
+                let ad = {};
+                ad.ad_id = adData.ad_id;
+                ad.location_id = this._posId;
+                ad.num = 1;
+                ads.push(ad);
+            });
+            _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ReportShowAd(ads);
         }
     }
     initLists(index) {
@@ -4823,6 +15731,11 @@ class View_EndSlideGames {
         adUI.data = ind;
         adUI.m_icon.m_icon.url = adData.ad_img;
         adUI.m_text_name.text = '';
+        // let ad: any = {};
+        // ad.ad_id = adData.ad_id;
+        // ad.location_id = 5;
+        // ad.num = 1;
+        // LTSDK.instance.RecordShowAd([ad]);
     }
     _OnClickGameItem(item) {
         let data = this._cacheAds[item.data];
@@ -4835,7 +15748,7 @@ class View_EndSlideGames {
             default:
                 break;
         }
-        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.NavigateToApp(uid);
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.NavigateToApp(uid, data.ad_path, null, true, false, data.ad_id);
     }
 }
 
@@ -4905,6 +15818,9 @@ class View_HotGame {
         return this._ui;
     }
     _Init() {
+        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_4__["EPlatformType"].WX || _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_4__["EPlatformType"].Web) {
+            this._posId = 5;
+        }
         this._cacheAds = _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__["default"].instance.adManager.GetADListByLocationId(this._posId);
         if (this._cacheAds == null) {
             Laya.stage.on(_Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_6__["CommonEventId"].SELF_AD_INITED, this, this._OnAdInited);
@@ -4944,6 +15860,11 @@ class View_HotGame {
         }
         this.ui.m_ic.m_icon.url = this._showAd.ad_img;
         this._remainUpdateTime = this._updateTime;
+        let ad = {};
+        ad.ad_id = this._showAd.ad_id;
+        ad.location_id = this._posId;
+        ad.num = 1;
+        _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__["default"].instance.ReportShowAd([ad]);
     }
     _OnClickAD() {
         let uid = this._showAd.ad_appid;
@@ -4955,7 +15876,7 @@ class View_HotGame {
             default:
                 break;
         }
-        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.NavigateToApp(uid);
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.NavigateToApp(uid, this._showAd.ad_path, null, true, false, this._showAd.ad_id);
         this._UpdateUI();
     }
 }
@@ -4980,6 +15901,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
 /* harmony import */ var _UI_LTGame_UI_NativeIcon__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../UI/LTGame/UI_NativeIcon */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeIcon.ts");
 /* harmony import */ var _LTUtils_LTUtils__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../../../LTUtils/LTUtils */ "./src/LTGame/LTUtils/LTUtils.ts");
+/* harmony import */ var _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../../../LTUtils/MathEx */ "./src/LTGame/LTUtils/MathEx.ts");
+/* harmony import */ var _LTUI__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../../LTUI */ "./src/LTGame/UIExt/LTUI.ts");
+
+
 
 
 
@@ -4996,15 +15921,14 @@ class View_NativeIcon {
         else {
             this._cacheIds = ids;
         }
-        console.log("初始化广告id", ids);
+        console.log("初始化广告id", this._cacheIds);
         this._Init();
     }
     static CreateView(tagUI) {
         if (tagUI == null)
             return null;
-        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.platform != _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Oppo) {
-            // 只有oppo支持
-            console.log("native_iconLong已隐藏,只有oppo平台支持");
+        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.platform != _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Oppo && _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.platform != _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Vivo) {
+            console.log("native_icon 已隐藏,只有oppo vivo平台支持");
             tagUI.dispose();
             return null;
         }
@@ -5040,12 +15964,18 @@ class View_NativeIcon {
     }
     ClickAd() {
         console.log("点击Icon", this._cacheAdData);
-        // 相应点击事件
-        View_NativeIcon._cacheNativeAd.reportAdClick({
-            adId: this._cacheAdData.adId
-        });
-        // 刷新
-        this._Init();
+        if (this._cacheAdData) {
+            // 相应点击事件
+            View_NativeIcon._cacheNativeAd.reportAdClick({
+                adId: this._cacheAdData.adId
+            });
+            // 刷新
+            this._Init();
+        }
+        else {
+            this.ui.visible = false;
+            _LTUI__WEBPACK_IMPORTED_MODULE_8__["default"].Toast('暂时没有广告');
+        }
     }
     _Init() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -5053,26 +15983,29 @@ class View_NativeIcon {
                 View_NativeIcon._cacheNativeAd.destroy();
                 View_NativeIcon._cacheNativeAd = null;
             }
-            for (let i = 0; i < this._cacheIds.length; ++i) {
-                let ret = yield this._LoadIconData(i);
-                if (ret) {
-                    let icon = this._cacheAdData.icon;
-                    if (!icon) {
-                        icon = this._cacheAdData.imgUrlList[0];
-                    }
-                    this.ui.m_icon_img.url = icon;
-                    this.ui.m_icon_tip.url = this._cacheAdData.logoUrl;
-                    // this.ui.m_title.text = this._cacheAdData.title;
-                    // this.ui.m_desc.text = this._cacheAdData.desc;
-                    View_NativeIcon._cacheNativeAd.reportAdShow({
-                        adId: this._cacheAdData.adId
-                    });
-                    console.log("原生icon广告已展示", this._cacheAdData);
-                    return;
-                }
-            }
-            this.ui.visible = false;
             this.visible = false;
+            this.ui.visible = false;
+            let i = _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_7__["default"].RandomInt(0, this._cacheIds.length);
+            // for (let i = 0; i < this._cacheIds.length; ++i) {
+            let ret = yield this._LoadIconData(i);
+            if (ret && this._cacheAdData) {
+                this.visible = true;
+                this.ui.visible = true;
+                let icon = this._cacheAdData.icon;
+                if (!icon && this._cacheAdData.imgUrlList.length) {
+                    icon = this._cacheAdData.imgUrlList[0];
+                }
+                this.ui.m_icon_img.url = icon;
+                this.ui.m_icon_tip.url = this._cacheAdData.logoUrl;
+                // this.ui.m_title.text = this._cacheAdData.title;
+                // this.ui.m_desc.text = this._cacheAdData.desc;
+                View_NativeIcon._cacheNativeAd.reportAdShow({
+                    adId: this._cacheAdData.adId
+                });
+                console.log("原生icon广告已展示", this._cacheAdData);
+                return;
+            }
+            // }
         });
     }
     _OnClickAd() {
@@ -5088,30 +16021,49 @@ class View_NativeIcon {
     }
     _LoadIconData(index) {
         return __awaiter(this, void 0, void 0, function* () {
-            let nativeAd = _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.base.createNativeAd({
-                adUnitId: this._cacheIds[index]
-            });
-            View_NativeIcon._cacheNativeAd = nativeAd;
-            let loadRet = yield nativeAd.load();
-            if (loadRet["code"] == 0) {
-                // 加载成功
-                let adList = loadRet['adList'];
-                if (adList == null || adList.length == 0) {
+            let nativeAd = null;
+            if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Oppo) {
+                nativeAd = _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.base.createNativeAd({
+                    adUnitId: this._cacheIds[index]
+                });
+                View_NativeIcon._cacheNativeAd = nativeAd;
+                let loadRet = yield nativeAd.load();
+                if (loadRet["code"] == 0) {
+                    // 加载成功
+                    let adList = loadRet['adList'];
+                    if (adList == null || adList.length == 0) {
+                        console.error("native icon 加载失败", loadRet);
+                        return false;
+                    }
+                    let adData = adList[0];
+                    console.log('广告数据加载完成', loadRet);
+                    if (adData == null) {
+                        console.error("native icon 加载失败", loadRet);
+                        return false;
+                    }
+                    this._cacheAdData = adData;
+                    return true;
+                }
+                else {
                     console.error("native icon 加载失败", loadRet);
                     return false;
                 }
-                let adData = adList[0];
-                console.log('广告数据加载完成', loadRet);
-                if (adData == null) {
-                    console.error("native icon 加载失败", loadRet);
-                    return false;
-                }
-                this._cacheAdData = adData;
-                return true;
             }
             else {
-                console.error("native icon 加载失败", loadRet);
-                return false;
+                nativeAd = _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.base.createNativeAd({
+                    posId: this._cacheIds[index],
+                });
+                View_NativeIcon._cacheNativeAd = nativeAd;
+                nativeAd.onLoad((res) => {
+                    console.log('原生广告加载完成-onload触发', JSON.stringify(res));
+                    if (res && res.adList) {
+                        this._cacheAdData = res.adList.pop();
+                    }
+                });
+                nativeAd.onError(err => {
+                    console.log("原生广告加载异常", err);
+                });
+                yield nativeAd.load();
             }
         });
     }
@@ -5137,6 +16089,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
 /* harmony import */ var _UI_LTGame_UI_NativeIconLong__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../UI/LTGame/UI_NativeIconLong */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeIconLong.ts");
 /* harmony import */ var _LTUtils_LTUtils__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../../../LTUtils/LTUtils */ "./src/LTGame/LTUtils/LTUtils.ts");
+/* harmony import */ var _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../../../LTUtils/MathEx */ "./src/LTGame/LTUtils/MathEx.ts");
+/* harmony import */ var _LTUI__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../../LTUI */ "./src/LTGame/UIExt/LTUI.ts");
+
+
 
 
 
@@ -5153,7 +16109,7 @@ class View_NativeIconLong {
         else {
             this._cacheIds = ids;
         }
-        console.log("初始化广告id", ids);
+        console.log("初始化广告id", this._cacheIds);
         this._Init();
         this.ui.m_ad.onClick(this, this._OnClickAd);
         this.ui.m_btn_close.onClick(this, this.clickClose);
@@ -5161,9 +16117,8 @@ class View_NativeIconLong {
     static CreateView(tagUI) {
         if (tagUI == null)
             return null;
-        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.platform != _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Oppo) {
-            // 只有oppo支持
-            console.log("native_iconLong已隐藏,只有oppo平台支持");
+        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.platform != _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Oppo && _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.platform != _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Vivo) {
+            console.log("native_iconLong已隐藏,只有oppo vivo平台支持");
             tagUI.dispose();
             return null;
         }
@@ -5199,12 +16154,18 @@ class View_NativeIconLong {
     }
     ClickAd() {
         console.log("点击Icon", this._cacheAdData);
-        // 相应点击事件
-        View_NativeIconLong._cacheNativeAd.reportAdClick({
-            adId: this._cacheAdData.adId
-        });
-        // 刷新
-        this._Init();
+        if (this._cacheAdData) {
+            // 相应点击事件
+            View_NativeIconLong._cacheNativeAd.reportAdClick({
+                adId: this._cacheAdData.adId
+            });
+            // 刷新
+            this._Init();
+        }
+        else {
+            this.ui.visible = false;
+            _LTUI__WEBPACK_IMPORTED_MODULE_8__["default"].Toast('暂时没有广告');
+        }
     }
     clickClose() {
         let rate = Object(_LTUtils_LTUtils__WEBPACK_IMPORTED_MODULE_6__["randomRangeInt"])(0, 100);
@@ -5220,26 +16181,29 @@ class View_NativeIconLong {
                 View_NativeIconLong._cacheNativeAd.destroy();
                 View_NativeIconLong._cacheNativeAd = null;
             }
-            for (let i = 0; i < this._cacheIds.length; ++i) {
-                let ret = yield this._LoadIconData(i);
-                if (ret) {
-                    let icon = this._cacheAdData.icon;
-                    if (!icon) {
-                        icon = this._cacheAdData.imgUrlList[0];
-                    }
-                    this.ui.m_ad.m_icon.url = icon;
-                    this.ui.m_ad.m_tag.url = this._cacheAdData.logoUrl;
-                    this.ui.m_ad.m_title.text = this._cacheAdData.title;
-                    this.ui.m_ad.m_desc.text = this._cacheAdData.desc;
-                    View_NativeIconLong._cacheNativeAd.reportAdShow({
-                        adId: this._cacheAdData.adId
-                    });
-                    console.log("原生icon广告已展示", this._cacheAdData);
-                    return;
-                }
-            }
             this.visible = false;
             this.ui.visible = false;
+            let i = _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_7__["default"].RandomInt(0, this._cacheIds.length);
+            // for (let i = 0; i < this._cacheIds.length; ++i) {
+            let ret = yield this._LoadIconData(i);
+            if (ret && this._cacheAdData) {
+                this.visible = true;
+                this.ui.visible = true;
+                let icon = this._cacheAdData.icon;
+                if (!icon && this._cacheAdData.imgUrlList.length) {
+                    icon = this._cacheAdData.imgUrlList[0];
+                }
+                this.ui.m_ad.m_icon.url = icon;
+                this.ui.m_ad.m_tag.url = this._cacheAdData.logoUrl;
+                this.ui.m_ad.m_title.text = this._cacheAdData.title;
+                this.ui.m_ad.m_desc.text = this._cacheAdData.desc;
+                View_NativeIconLong._cacheNativeAd.reportAdShow({
+                    adId: this._cacheAdData.adId
+                });
+                console.log("原生icon广告已展示", this._cacheAdData);
+                return;
+            }
+            // }
         });
     }
     _OnClickAd() {
@@ -5247,30 +16211,49 @@ class View_NativeIconLong {
     }
     _LoadIconData(index) {
         return __awaiter(this, void 0, void 0, function* () {
-            let nativeAd = _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.base.createNativeAd({
-                adUnitId: this._cacheIds[index]
-            });
-            View_NativeIconLong._cacheNativeAd = nativeAd;
-            let loadRet = yield nativeAd.load();
-            if (loadRet["code"] == 0) {
-                // 加载成功
-                let adList = loadRet['adList'];
-                if (adList == null || adList.length == 0) {
+            let nativeAd = null;
+            if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Oppo) {
+                nativeAd = _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.base.createNativeAd({
+                    adUnitId: this._cacheIds[index]
+                });
+                View_NativeIconLong._cacheNativeAd = nativeAd;
+                let loadRet = yield nativeAd.load();
+                if (loadRet["code"] == 0) {
+                    // 加载成功
+                    let adList = loadRet['adList'];
+                    if (adList == null || adList.length == 0) {
+                        console.error("native icon 加载失败", loadRet);
+                        return false;
+                    }
+                    let adData = adList[0];
+                    console.log('广告数据加载完成', loadRet);
+                    if (adData == null) {
+                        console.error("native icon 加载失败", loadRet);
+                        return false;
+                    }
+                    this._cacheAdData = adData;
+                    return true;
+                }
+                else {
                     console.error("native icon 加载失败", loadRet);
                     return false;
                 }
-                let adData = adList[0];
-                console.log('广告数据加载完成', loadRet);
-                if (adData == null) {
-                    console.error("native icon 加载失败", loadRet);
-                    return false;
-                }
-                this._cacheAdData = adData;
-                return true;
             }
             else {
-                console.error("native icon 加载失败", loadRet);
-                return false;
+                nativeAd = _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.base.createNativeAd({
+                    posId: this._cacheIds[index],
+                });
+                View_NativeIconLong._cacheNativeAd = nativeAd;
+                nativeAd.onLoad((res) => {
+                    console.log(' 原生广告加载完成 触发', JSON.stringify(res));
+                    if (res && res.adList) {
+                        this._cacheAdData = res.adList[0];
+                    }
+                });
+                nativeAd.onError(err => {
+                    console.log("原生广告加载异常", err);
+                });
+                yield nativeAd.load();
             }
         });
     }
@@ -5291,11 +16274,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "View_NativeInPage", function() { return View_NativeInPage; });
 /* harmony import */ var _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../../SDK/common/ECheckState */ "./src/SDK/common/ECheckState.ts");
 /* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
-/* harmony import */ var _LTUtils_StringEx__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../LTUtils/StringEx */ "./src/LTGame/LTUtils/StringEx.ts");
-/* harmony import */ var _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../Platform/EPlatformType */ "./src/LTGame/Platform/EPlatformType.ts");
-/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
-/* harmony import */ var _UI_LTGame_UI_NativeInPage__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../UI/LTGame/UI_NativeInPage */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeInPage.ts");
-/* harmony import */ var _LTUtils_LTUtils__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../../../LTUtils/LTUtils */ "./src/LTGame/LTUtils/LTUtils.ts");
+/* harmony import */ var _LTUtils_LTUtils__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../LTUtils/LTUtils */ "./src/LTGame/LTUtils/LTUtils.ts");
+/* harmony import */ var _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../LTUtils/MathEx */ "./src/LTGame/LTUtils/MathEx.ts");
+/* harmony import */ var _LTUtils_StringEx__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../../LTUtils/StringEx */ "./src/LTGame/LTUtils/StringEx.ts");
+/* harmony import */ var _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../../Platform/EPlatformType */ "./src/LTGame/Platform/EPlatformType.ts");
+/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+/* harmony import */ var _UI_LTGame_UI_NativeInPage__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../UI/LTGame/UI_NativeInPage */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeInPage.ts");
+
 
 
 
@@ -5307,7 +16292,7 @@ class View_NativeInPage {
     constructor(ui, ids) {
         this._ui = ui;
         if (ids == null || ids.length == 0) {
-            this._cacheIds = _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.platformData.nativeinpageIds;
+            this._cacheIds = _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_6__["default"].instance.platformData.nativeinpageIds;
         }
         else {
             this._cacheIds = ids;
@@ -5320,9 +16305,8 @@ class View_NativeInPage {
     static CreateView(tagUI) {
         if (tagUI == null)
             return null;
-        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.platform != _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Oppo) {
-            // 只有oppo支持
-            console.log("内嵌 native已隐藏,只有oppo平台支持");
+        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_6__["default"].instance.platform != _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_5__["EPlatformType"].Oppo && _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_6__["default"].instance.platform != _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_5__["EPlatformType"].Vivo) {
+            console.log("NativeInPage已隐藏,只有oppo vivo平台支持");
             tagUI.dispose();
             return null;
         }
@@ -5332,13 +16316,13 @@ class View_NativeInPage {
             tagUI.dispose();
             return null;
         }
-        let uiInstance = _UI_LTGame_UI_NativeInPage__WEBPACK_IMPORTED_MODULE_5__["default"].createInstance();
+        let uiInstance = _UI_LTGame_UI_NativeInPage__WEBPACK_IMPORTED_MODULE_7__["default"].createInstance();
         tagUI.parent.addChildAt(uiInstance, tagUI.parent.getChildIndex(tagUI));
         uiInstance.setXY(tagUI.x, tagUI.y);
         uiInstance.setSize(tagUI.width, tagUI.height);
         let forceAdIdsStr = tagUI.data;
         let forceAdIds = [];
-        if (!_LTUtils_StringEx__WEBPACK_IMPORTED_MODULE_2__["default"].IsNullOrEmpty(forceAdIdsStr)) {
+        if (!_LTUtils_StringEx__WEBPACK_IMPORTED_MODULE_4__["default"].IsNullOrEmpty(forceAdIdsStr)) {
             let splitStrs = forceAdIdsStr.split(',');
             for (let i = 0; i < splitStrs.length; ++i) {
                 forceAdIds.push(splitStrs[i]);
@@ -5367,32 +16351,37 @@ class View_NativeInPage {
     }
     _Init() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (View_NativeInPage._cacheNativeAd != null) {
-                View_NativeInPage._cacheNativeAd.destroy();
-                View_NativeInPage._cacheNativeAd = null;
-            }
-            for (let i = 0; i < this._cacheIds.length; ++i) {
-                let ret = yield this._LoadIconData(i);
-                if (ret) {
-                    this.ui.m_ad.m_icon.url = this._cacheAdData.icon ? this._cacheAdData.icon : this._cacheAdData.imgUrlList[0];
-                    this.ui.m_ad.m_tag.url = this._cacheAdData.logoUrl;
-                    this.ui.m_ad.m_title.text = this._cacheAdData.title;
-                    this.ui.m_ad.m_img.url = this._cacheAdData.imgUrlList[0];
-                    this.ui.m_ad.m_desc.text = this._cacheAdData.desc;
-                    View_NativeInPage._cacheNativeAd.reportAdShow({
-                        adId: this._cacheAdData.adId
-                    });
-                    console.log("内嵌 native广告已展示", this._cacheAdData);
-                    return;
-                }
-                console.log("内嵌 native加载失败", this._cacheIds[i]);
-            }
             this.visible = false;
             this.ui.visible = false;
+            // for (let i = 0; i < this._cacheIds.length; ++i) {
+            let i = _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].RandomInt(0, this._cacheIds.length);
+            let ret = yield this._LoadIconData(i);
+            if (ret && this._cacheAdData) {
+                this.showAdInfo();
+            }
+            else {
+                console.log("内嵌 native加载失败", this._cacheIds[i]);
+                // } 
+            }
         });
     }
+    showAdInfo() {
+        this.visible = true;
+        this.ui.visible = true;
+        if (this._cacheAdData.imgUrlList.length) {
+            this.ui.m_ad.m_icon.url = this._cacheAdData.icon ? this._cacheAdData.icon : this._cacheAdData.imgUrlList[0];
+            this.ui.m_ad.m_img.url = this._cacheAdData.imgUrlList[0];
+        }
+        this.ui.m_ad.m_tag.url = this._cacheAdData.logoUrl;
+        this.ui.m_ad.m_title.text = this._cacheAdData.title;
+        this.ui.m_ad.m_desc.text = this._cacheAdData.desc;
+        View_NativeInPage._cacheNativeAd.reportAdShow({
+            adId: this._cacheAdData.adId
+        });
+        console.log("内嵌 native广告已展示", this._cacheAdData);
+    }
     clickClose() {
-        let rate = Object(_LTUtils_LTUtils__WEBPACK_IMPORTED_MODULE_6__["randomRangeInt"])(0, 100);
+        let rate = Object(_LTUtils_LTUtils__WEBPACK_IMPORTED_MODULE_2__["randomRangeInt"])(0, 100);
         if (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__["default"].instance.payRate > rate) {
             this._OnClickAd();
         }
@@ -5404,30 +16393,55 @@ class View_NativeInPage {
     }
     _LoadIconData(index) {
         return __awaiter(this, void 0, void 0, function* () {
-            let nativeAd = _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.base.createNativeAd({
-                adUnitId: this._cacheIds[index]
-            });
-            View_NativeInPage._cacheNativeAd = nativeAd;
-            let loadRet = yield nativeAd.load();
-            if (loadRet["code"] == 0) {
-                // 加载成功
-                let adList = loadRet['adList'];
-                if (adList == null || adList.length == 0) {
-                    console.error("内嵌 原生 加载失败", loadRet);
+            if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_6__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_5__["EPlatformType"].Oppo) {
+                if (View_NativeInPage._cacheNativeAd != null) {
+                    View_NativeInPage._cacheNativeAd.destroy();
+                    View_NativeInPage._cacheNativeAd = null;
+                }
+                let nativeAd = null;
+                nativeAd = _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_6__["default"].instance.base.createNativeAd({
+                    adUnitId: this._cacheIds[index]
+                });
+                View_NativeInPage._cacheNativeAd = nativeAd;
+                let loadRet = yield nativeAd.load();
+                if (loadRet["code"] == 0) {
+                    // 加载成功
+                    let adList = loadRet['adList'];
+                    if (adList == null || adList.length == 0) {
+                        console.error("native icon 加载失败", loadRet);
+                        return false;
+                    }
+                    let adData = adList[0];
+                    console.log('广告数据加载完成', loadRet);
+                    if (adData == null) {
+                        console.error("native icon 加载失败", loadRet);
+                        return false;
+                    }
+                    this._cacheAdData = adData;
+                    return true;
+                }
+                else {
+                    console.error("native icon 加载失败", loadRet);
                     return false;
                 }
-                let adData = adList[0];
-                console.log('广告数据加载完成', loadRet);
-                if (adData == null) {
-                    console.error("内嵌 原生 加载失败", loadRet);
-                    return false;
-                }
-                this._cacheAdData = adData;
-                return true;
             }
             else {
-                console.error("内嵌 原生 加载失败", loadRet);
-                return false;
+                if (!View_NativeInPage._cacheNativeAd) {
+                    View_NativeInPage._cacheNativeAd = _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_6__["default"].instance.base.createNativeAd({
+                        adUnitId: this._cacheIds[index],
+                    });
+                }
+                View_NativeInPage._cacheNativeAd.onLoad((res) => {
+                    console.log('原生广告加载完成 触发', JSON.stringify(res));
+                    if (res && res.adList) {
+                        this._cacheAdData = res.adList.pop();
+                        this.showAdInfo();
+                    }
+                });
+                View_NativeInPage._cacheNativeAd.onError(err => {
+                    console.log("原生广告加载异常", err);
+                });
+                yield View_NativeInPage._cacheNativeAd.load();
             }
         });
     }
@@ -5466,7 +16480,7 @@ class View_OtherGames {
         if (tagUI == null)
             return null;
         // 额外判定一次是否支持交叉推广,如果不支持,则隐藏交叉推广
-        if (!_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_2__["default"].instance.isSupportJumpOther) {
+        if (!_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_2__["default"].instance.isSupportJumpOther && _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_2__["default"].instance.platform != _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Web) {
             tagUI.dispose();
             return null;
         }
@@ -5483,6 +16497,9 @@ class View_OtherGames {
         return this._ui;
     }
     _Init() {
+        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_2__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].WX || _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_2__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Web) {
+            this._posId = 5;
+        }
         this._cacheAds = _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__["default"].instance.adManager.GetADListByLocationId(this._posId);
         if (this._cacheAds == null) {
             Laya.stage.on(_Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_4__["CommonEventId"].SELF_AD_INITED, this, this._OnAdInited);
@@ -5491,6 +16508,18 @@ class View_OtherGames {
             this.ui.m_list_games.itemRenderer = Laya.Handler.create(this, this._OnAdItemRender, null, false);
             this.ui.m_list_games.numItems = this._cacheAds.length;
             this.ui.m_list_games.on(fairygui.Events.CLICK_ITEM, this, this._OnClickGameItem);
+            let ads = [];
+            this._cacheAds.forEach(adData => {
+                let ad = {};
+                ad.ad_id = adData.ad_id;
+                ad.location_id = this._posId;
+                ad.num = 1;
+                ads.push(ad);
+            });
+            _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__["default"].instance.ReportShowAd(ads);
+            Laya.timer.loop(100, this, () => {
+                this.ui.m_list_games.scrollPane.scrollDown(0.1, true);
+            });
         }
     }
     _OnAdInited(posId) {
@@ -5506,6 +16535,11 @@ class View_OtherGames {
         adUI.data = index;
         adUI.m_icon.m_icon.url = adData.ad_img;
         adUI.m_text_name.text = adData.ad_name;
+        // let ad: any = {};
+        // ad.ad_id = adData.ad_id;
+        // ad.location_id = 5;
+        // ad.num = 1;
+        // LTSDK.instance.RecordShowAd([ad]);
     }
     _OnClickGameItem(item) {
         let data = this._cacheAds[item.data];
@@ -5518,7 +16552,7 @@ class View_OtherGames {
             default:
                 break;
         }
-        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_2__["default"].instance.NavigateToApp(uid);
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_2__["default"].instance.NavigateToApp(uid, data.ad_path, null, true, false, data.ad_id);
     }
 }
 
@@ -5547,6 +16581,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+/** __sidegames 100*100 */
 class View_SideGames {
     constructor(ui) {
         this._posId = 0;
@@ -5580,12 +16615,23 @@ class View_SideGames {
         return this._ui;
     }
     _Init() {
+        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].TT) {
+            this.ui.m_ads.dispose();
+            this.ui.m_btn_show.onClick(this, () => {
+                this.ui.m_red.visible = false;
+                _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.OpenGameBox([]);
+            });
+            return;
+        }
+        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].WX || _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Web) {
+            this._posId = 5;
+        }
         this._cacheAds = _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__["default"].instance.adManager.GetADListByLocationId(this._posId);
         if (this._cacheAds == null) {
             Laya.stage.on(_Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_3__["CommonEventId"].SELF_AD_INITED, this, this._OnAdInited);
         }
         else {
-            this.ui.m_ads.m_list.setVirtualAndLoop();
+            this.ui.m_ads.m_list.setVirtual();
             this.ui.m_ads.m_list.scrollPane.bouncebackEffect = false;
             this.ui.m_ads.m_list.itemRenderer = Laya.Handler.create(this, this._OnAdItemRender, null, false);
             this.ui.m_ads.m_list.numItems = this._cacheAds.length;
@@ -5595,6 +16641,7 @@ class View_SideGames {
             });
             this.ui.displayObject.zOrder = 99999;
             this.ui.m_btn_show.onClick(this, () => {
+                this.ui.m_red.visible = false;
                 this.ui.m_show.selectedIndex = 1;
             });
             this.ui.m_ads.m_btn_return.onClick(this, () => {
@@ -5603,6 +16650,15 @@ class View_SideGames {
             this.ui.m_bg.onClick(this, () => {
                 this.ui.m_show.selectedIndex = 0;
             });
+            let ads = [];
+            this._cacheAds.forEach(adData => {
+                let ad = {};
+                ad.ad_id = adData.ad_id;
+                ad.location_id = this._posId;
+                ad.num = 1;
+                ads.push(ad);
+            });
+            _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ReportShowAd(ads);
         }
     }
     _OnAdInited(posId) {
@@ -5630,8 +16686,159 @@ class View_SideGames {
             default:
                 break;
         }
-        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.NavigateToApp(uid);
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.NavigateToApp(uid, data.ad_path, null, true, false, data.ad_id);
     }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/Cmp/View_WxSideGames.ts":
+/*!************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/Cmp/View_WxSideGames.ts ***!
+  \************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return View_WxSideGames; });
+/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
+/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+/* harmony import */ var _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../Platform/EPlatformType */ "./src/LTGame/Platform/EPlatformType.ts");
+/* harmony import */ var _Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../Commom/CommonEventId */ "./src/LTGame/Commom/CommonEventId.ts");
+/* harmony import */ var _UI_LTGame_UI_WxSideGames__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../UI/LTGame/UI_WxSideGames */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_WxSideGames.ts");
+
+
+
+
+
+/**__wxSG 750*280  */
+class View_WxSideGames {
+    constructor(ui) {
+        this.showingIndexs = [0, 1, 2, 3];
+        this._posId = 0;
+        this._ui = ui;
+        this._Init();
+    }
+    static CreateView(tagUI) {
+        if (tagUI == null)
+            return null;
+        // 额外判定一次是否支持交叉推广,如果不支持,则隐藏交叉推广
+        if (!_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.isSupportJumpOther && _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.platform != _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Web) {
+            console.log('不支持跳转');
+            tagUI.dispose();
+            return null;
+        }
+        // if (LTPlatform.instance.platform != EPlatformType.WX && LTPlatform.instance.platform != EPlatformType.Web) {
+        //     tagUI.dispose();
+        //     return null;
+        // }
+        if (tagUI instanceof _UI_LTGame_UI_WxSideGames__WEBPACK_IMPORTED_MODULE_4__["default"]) {
+            return new View_WxSideGames(tagUI);
+        }
+        let uiInstance = _UI_LTGame_UI_WxSideGames__WEBPACK_IMPORTED_MODULE_4__["default"].createInstance();
+        tagUI.parent.addChildAt(uiInstance, tagUI.parent.getChildIndex(tagUI));
+        uiInstance.setXY(tagUI.x, tagUI.y);
+        tagUI.dispose();
+        return new View_WxSideGames(uiInstance);
+    }
+    get ui() {
+        return this._ui;
+    }
+    _Init() {
+        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].WX || _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Web) {
+            this._posId = 5;
+        }
+        this._cacheAds = _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__["default"].instance.adManager.GetADListByLocationId(this._posId);
+        if (this._cacheAds == null) {
+            Laya.stage.on(_Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_3__["CommonEventId"].SELF_AD_INITED, this, this._OnAdInited);
+            this.ui.visible = false;
+        }
+        else {
+            Laya.timer.loop(5000, this, () => {
+                this.refresh();
+            });
+            this.refresh();
+            for (let i = 0; i < this.showingIndexs.length; i++) {
+                this.renderItem(i, this.ui[`m_ad${i}`]);
+                this.ui[`m_ad${i}`].onClick(this, () => this.clickItem(i));
+            }
+            let ads = [];
+            this._cacheAds.forEach(adData => {
+                let ad = {};
+                ad.ad_id = adData.ad_id;
+                ad.location_id = this._posId;
+                ad.num = 1;
+                ads.push(ad);
+            });
+            _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ReportShowAd(ads);
+        }
+    }
+    refresh() {
+        if (this.ui && !this.ui.isDisposed) {
+            this.ui.visible = true;
+            console.log('wxsg 刷新');
+            const first = this.showingIndexs[this.showingIndexs.length - 1];
+            this.showingIndexs = [];
+            for (let i = 0; i < 4; i++) {
+                let ind = (first + i) % this._cacheAds.length;
+                this.showingIndexs.push(ind);
+                this.renderItem(i, this.ui[`m_ad${i}`]);
+            }
+        }
+        else {
+            Laya.timer.clearAll(this);
+        }
+    }
+    _OnAdInited(posId) {
+        if (posId != this._posId)
+            return;
+        this._cacheAds = _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__["default"].instance.adManager.GetADListByLocationId(this._posId);
+        // this.ui.m_list.itemRenderer = Laya.Handler.create(this, this.renderItem, null, false);
+        // this.ui.m_list.numItems = this._cacheAds.length;
+        // this.ui.m_list.on(fairygui.Events.CLICK_ITEM, this, this.clickItem);
+        this.ui.visible = true;
+    }
+    clickItem(index) {
+        let data = this._cacheAds[this.showingIndexs[index]];
+        ;
+        console.log(data.ad_name);
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.NavigateToApp(data.ad_appid, data.ad_path, null, true, false, data.ad_id);
+    }
+    renderItem(index, item) {
+        let ind = this.showingIndexs[index];
+        let data = this._cacheAds[ind];
+        item.m_title.text = data.ad_name;
+        item.m_icon.m_icon.url = data.ad_img;
+        item.m_red.visible = data.ad_dot == 1;
+        item.m_shake.play();
+        // item.onClick(item, () => this.clickItem(index));
+        // let ad: any = {};
+        // ad.ad_id = data.ad_id;
+        // ad.location_id = 5;
+        // ad.num = 1;
+        // LTSDK.instance.RecordShowAd([ad]);
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/Data/CommonRewardData.ts":
+/*!*************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/Data/CommonRewardData.ts ***!
+  \*************************************************************/
+/*! exports provided: CommonRewardData, RewardItem */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CommonRewardData", function() { return CommonRewardData; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "RewardItem", function() { return RewardItem; });
+class CommonRewardData {
+}
+class RewardItem {
 }
 
 
@@ -6011,65 +17218,117 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _UI_NativeInPage__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./UI_NativeInPage */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeInPage.ts");
 /* harmony import */ var _UI_AdInpageComp__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./UI_AdInpageComp */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_AdInpageComp.ts");
 /* harmony import */ var _UI_iconLongComp__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./UI_iconLongComp */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_iconLongComp.ts");
-/* harmony import */ var _UI_view_endshare__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./UI_view_endshare */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_endshare.ts");
-/* harmony import */ var _UI_CommonEndReward__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./UI_CommonEndReward */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonEndReward.ts");
-/* harmony import */ var _UI_view_game_icon__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./UI_view_game_icon */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_game_icon.ts");
-/* harmony import */ var _UI_view_end_games__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./UI_view_end_games */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_end_games.ts");
-/* harmony import */ var _UI_view_title__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./UI_view_title */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_title.ts");
-/* harmony import */ var _UI_CommonOffline__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./UI_CommonOffline */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonOffline.ts");
-/* harmony import */ var _UI_CommonTrySkin__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./UI_CommonTrySkin */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonTrySkin.ts");
-/* harmony import */ var _UI_view_item_try_skin__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ./UI_view_item_try_skin */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_try_skin.ts");
-/* harmony import */ var _UI_CommonSet__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ./UI_CommonSet */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonSet.ts");
-/* harmony import */ var _UI_btn_toggle_01__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ./UI_btn_toggle_01 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_toggle_01.ts");
-/* harmony import */ var _UI_view_set__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ./UI_view_set */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_set.ts");
-/* harmony import */ var _UI_CommonRoll__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ./UI_CommonRoll */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonRoll.ts");
-/* harmony import */ var _UI_view_item_roll__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! ./UI_view_item_roll */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_roll.ts");
-/* harmony import */ var _UI_view_roll_bg__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(/*! ./UI_view_roll_bg */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_roll_bg.ts");
-/* harmony import */ var _UI_CommonEndShare__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(/*! ./UI_CommonEndShare */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonEndShare.ts");
-/* harmony import */ var _UI_SideGames__WEBPACK_IMPORTED_MODULE_20__ = __webpack_require__(/*! ./UI_SideGames */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_SideGames.ts");
-/* harmony import */ var _UI_CommonOneMore__WEBPACK_IMPORTED_MODULE_21__ = __webpack_require__(/*! ./UI_CommonOneMore */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonOneMore.ts");
-/* harmony import */ var _UI_view_one_more__WEBPACK_IMPORTED_MODULE_22__ = __webpack_require__(/*! ./UI_view_one_more */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_one_more.ts");
-/* harmony import */ var _UI_btn_toggle_02__WEBPACK_IMPORTED_MODULE_23__ = __webpack_require__(/*! ./UI_btn_toggle_02 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_toggle_02.ts");
-/* harmony import */ var _UI_FlyPanel__WEBPACK_IMPORTED_MODULE_24__ = __webpack_require__(/*! ./UI_FlyPanel */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_FlyPanel.ts");
-/* harmony import */ var _UI_view_fly_coin__WEBPACK_IMPORTED_MODULE_25__ = __webpack_require__(/*! ./UI_view_fly_coin */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_fly_coin.ts");
-/* harmony import */ var _UI_NativeIcon__WEBPACK_IMPORTED_MODULE_26__ = __webpack_require__(/*! ./UI_NativeIcon */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeIcon.ts");
-/* harmony import */ var _UI_CommonLockScreen__WEBPACK_IMPORTED_MODULE_27__ = __webpack_require__(/*! ./UI_CommonLockScreen */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonLockScreen.ts");
-/* harmony import */ var _UI_CommonSign__WEBPACK_IMPORTED_MODULE_28__ = __webpack_require__(/*! ./UI_CommonSign */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonSign.ts");
-/* harmony import */ var _UI_btn_double_get__WEBPACK_IMPORTED_MODULE_29__ = __webpack_require__(/*! ./UI_btn_double_get */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_double_get.ts");
-/* harmony import */ var _UI_view_item_sign__WEBPACK_IMPORTED_MODULE_30__ = __webpack_require__(/*! ./UI_view_item_sign */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_sign.ts");
-/* harmony import */ var _UI_view_common_sign__WEBPACK_IMPORTED_MODULE_31__ = __webpack_require__(/*! ./UI_view_common_sign */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_common_sign.ts");
-/* harmony import */ var _UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_32__ = __webpack_require__(/*! ./UI_CommonEndSliderADs */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonEndSliderADs.ts");
-/* harmony import */ var _UI_Native320__WEBPACK_IMPORTED_MODULE_33__ = __webpack_require__(/*! ./UI_Native320 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_Native320.ts");
-/* harmony import */ var _UI_NativeInterstitial__WEBPACK_IMPORTED_MODULE_34__ = __webpack_require__(/*! ./UI_NativeInterstitial */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeInterstitial.ts");
-/* harmony import */ var _UI_NativeBigAd__WEBPACK_IMPORTED_MODULE_35__ = __webpack_require__(/*! ./UI_NativeBigAd */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeBigAd.ts");
-/* harmony import */ var _UI_btn_normal__WEBPACK_IMPORTED_MODULE_36__ = __webpack_require__(/*! ./UI_btn_normal */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_normal.ts");
-/* harmony import */ var _UI_btn_native__WEBPACK_IMPORTED_MODULE_37__ = __webpack_require__(/*! ./UI_btn_native */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_native.ts");
-/* harmony import */ var _UI_CommonLoad__WEBPACK_IMPORTED_MODULE_38__ = __webpack_require__(/*! ./UI_CommonLoad */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonLoad.ts");
-/* harmony import */ var _UI_view_load__WEBPACK_IMPORTED_MODULE_39__ = __webpack_require__(/*! ./UI_view_load */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_load.ts");
-/* harmony import */ var _UI_btn_ad__WEBPACK_IMPORTED_MODULE_40__ = __webpack_require__(/*! ./UI_btn_ad */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_ad.ts");
-/* harmony import */ var _UI_NativeInterstitial_01__WEBPACK_IMPORTED_MODULE_41__ = __webpack_require__(/*! ./UI_NativeInterstitial_01 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeInterstitial_01.ts");
-/* harmony import */ var _UI_NativeInterAd__WEBPACK_IMPORTED_MODULE_42__ = __webpack_require__(/*! ./UI_NativeInterAd */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeInterAd.ts");
-/* harmony import */ var _UI_NativeIconLong__WEBPACK_IMPORTED_MODULE_43__ = __webpack_require__(/*! ./UI_NativeIconLong */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeIconLong.ts");
-/* harmony import */ var _UI_OppoEndExGame__WEBPACK_IMPORTED_MODULE_44__ = __webpack_require__(/*! ./UI_OppoEndExGame */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_OppoEndExGame.ts");
-/* harmony import */ var _UI_FakeBanner_V__WEBPACK_IMPORTED_MODULE_45__ = __webpack_require__(/*! ./UI_FakeBanner_V */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_FakeBanner_V.ts");
-/* harmony import */ var _UI_CommonToast__WEBPACK_IMPORTED_MODULE_46__ = __webpack_require__(/*! ./UI_CommonToast */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonToast.ts");
-/* harmony import */ var _UI_view_toast__WEBPACK_IMPORTED_MODULE_47__ = __webpack_require__(/*! ./UI_view_toast */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_toast.ts");
-/* harmony import */ var _UI_FakeRewardVideo__WEBPACK_IMPORTED_MODULE_48__ = __webpack_require__(/*! ./UI_FakeRewardVideo */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_FakeRewardVideo.ts");
-/* harmony import */ var _UI_FakeInterstital__WEBPACK_IMPORTED_MODULE_49__ = __webpack_require__(/*! ./UI_FakeInterstital */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_FakeInterstital.ts");
-/* harmony import */ var _UI_EndSlideGames__WEBPACK_IMPORTED_MODULE_50__ = __webpack_require__(/*! ./UI_EndSlideGames */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_EndSlideGames.ts");
-/* harmony import */ var _UI_slideAds__WEBPACK_IMPORTED_MODULE_51__ = __webpack_require__(/*! ./UI_slideAds */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_slideAds.ts");
-/* harmony import */ var _UI_view_item_game__WEBPACK_IMPORTED_MODULE_52__ = __webpack_require__(/*! ./UI_view_item_game */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_game.ts");
-/* harmony import */ var _UI_view_item_game140__WEBPACK_IMPORTED_MODULE_53__ = __webpack_require__(/*! ./UI_view_item_game140 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_game140.ts");
-/* harmony import */ var _UI_view_item_sign_big__WEBPACK_IMPORTED_MODULE_54__ = __webpack_require__(/*! ./UI_view_item_sign_big */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_sign_big.ts");
-/* harmony import */ var _UI_ImageBanner__WEBPACK_IMPORTED_MODULE_55__ = __webpack_require__(/*! ./UI_ImageBanner */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_ImageBanner.ts");
-/* harmony import */ var _UI_CommonSign_02__WEBPACK_IMPORTED_MODULE_56__ = __webpack_require__(/*! ./UI_CommonSign_02 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonSign_02.ts");
-/* harmony import */ var _UI_view_item_sign_02__WEBPACK_IMPORTED_MODULE_57__ = __webpack_require__(/*! ./UI_view_item_sign_02 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_sign_02.ts");
-/* harmony import */ var _UI_CommonEndLose__WEBPACK_IMPORTED_MODULE_58__ = __webpack_require__(/*! ./UI_CommonEndLose */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonEndLose.ts");
-/* harmony import */ var _UI_CommonUnlockProgress__WEBPACK_IMPORTED_MODULE_59__ = __webpack_require__(/*! ./UI_CommonUnlockProgress */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonUnlockProgress.ts");
-/* harmony import */ var _UI_sliderADs__WEBPACK_IMPORTED_MODULE_60__ = __webpack_require__(/*! ./UI_sliderADs */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_sliderADs.ts");
-/* harmony import */ var _UI_rewardPannel__WEBPACK_IMPORTED_MODULE_61__ = __webpack_require__(/*! ./UI_rewardPannel */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_rewardPannel.ts");
-/* harmony import */ var _UI_view_sharegames_big__WEBPACK_IMPORTED_MODULE_62__ = __webpack_require__(/*! ./UI_view_sharegames_big */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_sharegames_big.ts");
+/* harmony import */ var _UI_OpenAds__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./UI_OpenAds */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_OpenAds.ts");
+/* harmony import */ var _UI_view_endshare__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./UI_view_endshare */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_endshare.ts");
+/* harmony import */ var _UI_CommonEndReward__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./UI_CommonEndReward */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonEndReward.ts");
+/* harmony import */ var _UI_view_game_icon__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./UI_view_game_icon */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_game_icon.ts");
+/* harmony import */ var _UI_view_end_games__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./UI_view_end_games */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_end_games.ts");
+/* harmony import */ var _UI_view_title__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./UI_view_title */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_title.ts");
+/* harmony import */ var _UI_CommonOffline__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./UI_CommonOffline */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonOffline.ts");
+/* harmony import */ var _UI_CommonTrySkin__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ./UI_CommonTrySkin */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonTrySkin.ts");
+/* harmony import */ var _UI_view_item_try_skin__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ./UI_view_item_try_skin */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_try_skin.ts");
+/* harmony import */ var _UI_CommonSet__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ./UI_CommonSet */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonSet.ts");
+/* harmony import */ var _UI_btn_toggle_01__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ./UI_btn_toggle_01 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_toggle_01.ts");
+/* harmony import */ var _UI_view_set__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ./UI_view_set */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_set.ts");
+/* harmony import */ var _UI_CommonRoll__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(/*! ./UI_CommonRoll */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonRoll.ts");
+/* harmony import */ var _UI_view_item_roll__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(/*! ./UI_view_item_roll */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_roll.ts");
+/* harmony import */ var _UI_view_roll_bg__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(/*! ./UI_view_roll_bg */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_roll_bg.ts");
+/* harmony import */ var _UI_CommonEndShare__WEBPACK_IMPORTED_MODULE_20__ = __webpack_require__(/*! ./UI_CommonEndShare */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonEndShare.ts");
+/* harmony import */ var _UI_CommonGameEgg__WEBPACK_IMPORTED_MODULE_21__ = __webpack_require__(/*! ./UI_CommonGameEgg */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonGameEgg.ts");
+/* harmony import */ var _UI_info__WEBPACK_IMPORTED_MODULE_22__ = __webpack_require__(/*! ./UI_info */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_info.ts");
+/* harmony import */ var _UI_btn_getegg__WEBPACK_IMPORTED_MODULE_23__ = __webpack_require__(/*! ./UI_btn_getegg */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_getegg.ts");
+/* harmony import */ var _UI_eggItem__WEBPACK_IMPORTED_MODULE_24__ = __webpack_require__(/*! ./UI_eggItem */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_eggItem.ts");
+/* harmony import */ var _UI_eggIcon__WEBPACK_IMPORTED_MODULE_25__ = __webpack_require__(/*! ./UI_eggIcon */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_eggIcon.ts");
+/* harmony import */ var _UI_SideGames__WEBPACK_IMPORTED_MODULE_26__ = __webpack_require__(/*! ./UI_SideGames */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_SideGames.ts");
+/* harmony import */ var _UI_CommonOneMore__WEBPACK_IMPORTED_MODULE_27__ = __webpack_require__(/*! ./UI_CommonOneMore */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonOneMore.ts");
+/* harmony import */ var _UI_view_one_more__WEBPACK_IMPORTED_MODULE_28__ = __webpack_require__(/*! ./UI_view_one_more */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_one_more.ts");
+/* harmony import */ var _UI_btn_toggle_02__WEBPACK_IMPORTED_MODULE_29__ = __webpack_require__(/*! ./UI_btn_toggle_02 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_toggle_02.ts");
+/* harmony import */ var _UI_FlyPanel__WEBPACK_IMPORTED_MODULE_30__ = __webpack_require__(/*! ./UI_FlyPanel */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_FlyPanel.ts");
+/* harmony import */ var _UI_view_fly_coin__WEBPACK_IMPORTED_MODULE_31__ = __webpack_require__(/*! ./UI_view_fly_coin */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_fly_coin.ts");
+/* harmony import */ var _UI_NativeIcon__WEBPACK_IMPORTED_MODULE_32__ = __webpack_require__(/*! ./UI_NativeIcon */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeIcon.ts");
+/* harmony import */ var _UI_CommonLockScreen__WEBPACK_IMPORTED_MODULE_33__ = __webpack_require__(/*! ./UI_CommonLockScreen */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonLockScreen.ts");
+/* harmony import */ var _UI_End3X3Ad__WEBPACK_IMPORTED_MODULE_34__ = __webpack_require__(/*! ./UI_End3X3Ad */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_End3X3Ad.ts");
+/* harmony import */ var _UI_CommonSign__WEBPACK_IMPORTED_MODULE_35__ = __webpack_require__(/*! ./UI_CommonSign */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonSign.ts");
+/* harmony import */ var _UI_btn_double_get__WEBPACK_IMPORTED_MODULE_36__ = __webpack_require__(/*! ./UI_btn_double_get */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_double_get.ts");
+/* harmony import */ var _UI_view_item_sign__WEBPACK_IMPORTED_MODULE_37__ = __webpack_require__(/*! ./UI_view_item_sign */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_sign.ts");
+/* harmony import */ var _UI_view_common_sign__WEBPACK_IMPORTED_MODULE_38__ = __webpack_require__(/*! ./UI_view_common_sign */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_common_sign.ts");
+/* harmony import */ var _UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_39__ = __webpack_require__(/*! ./UI_CommonEndSliderADs */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonEndSliderADs.ts");
+/* harmony import */ var _UI_Native320__WEBPACK_IMPORTED_MODULE_40__ = __webpack_require__(/*! ./UI_Native320 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_Native320.ts");
+/* harmony import */ var _UI_CommonSign2__WEBPACK_IMPORTED_MODULE_41__ = __webpack_require__(/*! ./UI_CommonSign2 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonSign2.ts");
+/* harmony import */ var _UI_btn_normal0__WEBPACK_IMPORTED_MODULE_42__ = __webpack_require__(/*! ./UI_btn_normal0 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_normal0.ts");
+/* harmony import */ var _UI_SignItem__WEBPACK_IMPORTED_MODULE_43__ = __webpack_require__(/*! ./UI_SignItem */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_SignItem.ts");
+/* harmony import */ var _UI_ExSkin__WEBPACK_IMPORTED_MODULE_44__ = __webpack_require__(/*! ./UI_ExSkin */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_ExSkin.ts");
+/* harmony import */ var _UI_btn_twoIcon__WEBPACK_IMPORTED_MODULE_45__ = __webpack_require__(/*! ./UI_btn_twoIcon */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_twoIcon.ts");
+/* harmony import */ var _UI_tog_progress__WEBPACK_IMPORTED_MODULE_46__ = __webpack_require__(/*! ./UI_tog_progress */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_tog_progress.ts");
+/* harmony import */ var _UI_BonusBox__WEBPACK_IMPORTED_MODULE_47__ = __webpack_require__(/*! ./UI_BonusBox */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_BonusBox.ts");
+/* harmony import */ var _UI_btn_watch__WEBPACK_IMPORTED_MODULE_48__ = __webpack_require__(/*! ./UI_btn_watch */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_watch.ts");
+/* harmony import */ var _UI_TrySkin__WEBPACK_IMPORTED_MODULE_49__ = __webpack_require__(/*! ./UI_TrySkin */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_TrySkin.ts");
+/* harmony import */ var _UI_toggle_nogame__WEBPACK_IMPORTED_MODULE_50__ = __webpack_require__(/*! ./UI_toggle_nogame */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_toggle_nogame.ts");
+/* harmony import */ var _UI_NativeInterstitial__WEBPACK_IMPORTED_MODULE_51__ = __webpack_require__(/*! ./UI_NativeInterstitial */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeInterstitial.ts");
+/* harmony import */ var _UI_NativeBigAd__WEBPACK_IMPORTED_MODULE_52__ = __webpack_require__(/*! ./UI_NativeBigAd */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeBigAd.ts");
+/* harmony import */ var _UI_btn_normal__WEBPACK_IMPORTED_MODULE_53__ = __webpack_require__(/*! ./UI_btn_normal */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_normal.ts");
+/* harmony import */ var _UI_btn_native__WEBPACK_IMPORTED_MODULE_54__ = __webpack_require__(/*! ./UI_btn_native */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_native.ts");
+/* harmony import */ var _UI_CommonLoad__WEBPACK_IMPORTED_MODULE_55__ = __webpack_require__(/*! ./UI_CommonLoad */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonLoad.ts");
+/* harmony import */ var _UI_view_load__WEBPACK_IMPORTED_MODULE_56__ = __webpack_require__(/*! ./UI_view_load */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_load.ts");
+/* harmony import */ var _UI_btn_ad__WEBPACK_IMPORTED_MODULE_57__ = __webpack_require__(/*! ./UI_btn_ad */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_ad.ts");
+/* harmony import */ var _UI_NativeInterstitial_01__WEBPACK_IMPORTED_MODULE_58__ = __webpack_require__(/*! ./UI_NativeInterstitial_01 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeInterstitial_01.ts");
+/* harmony import */ var _UI_NativeInterAd__WEBPACK_IMPORTED_MODULE_59__ = __webpack_require__(/*! ./UI_NativeInterAd */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeInterAd.ts");
+/* harmony import */ var _UI_NativeIconLong__WEBPACK_IMPORTED_MODULE_60__ = __webpack_require__(/*! ./UI_NativeIconLong */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_NativeIconLong.ts");
+/* harmony import */ var _UI_OppoEndExGame__WEBPACK_IMPORTED_MODULE_61__ = __webpack_require__(/*! ./UI_OppoEndExGame */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_OppoEndExGame.ts");
+/* harmony import */ var _UI_FakeBanner_V__WEBPACK_IMPORTED_MODULE_62__ = __webpack_require__(/*! ./UI_FakeBanner_V */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_FakeBanner_V.ts");
+/* harmony import */ var _UI_CommonToast__WEBPACK_IMPORTED_MODULE_63__ = __webpack_require__(/*! ./UI_CommonToast */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonToast.ts");
+/* harmony import */ var _UI_view_toast__WEBPACK_IMPORTED_MODULE_64__ = __webpack_require__(/*! ./UI_view_toast */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_toast.ts");
+/* harmony import */ var _UI_FakeRewardVideo__WEBPACK_IMPORTED_MODULE_65__ = __webpack_require__(/*! ./UI_FakeRewardVideo */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_FakeRewardVideo.ts");
+/* harmony import */ var _UI_FakeInterstital__WEBPACK_IMPORTED_MODULE_66__ = __webpack_require__(/*! ./UI_FakeInterstital */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_FakeInterstital.ts");
+/* harmony import */ var _UI_EndSlideGames__WEBPACK_IMPORTED_MODULE_67__ = __webpack_require__(/*! ./UI_EndSlideGames */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_EndSlideGames.ts");
+/* harmony import */ var _UI_slideAds__WEBPACK_IMPORTED_MODULE_68__ = __webpack_require__(/*! ./UI_slideAds */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_slideAds.ts");
+/* harmony import */ var _UI_view_item_game__WEBPACK_IMPORTED_MODULE_69__ = __webpack_require__(/*! ./UI_view_item_game */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_game.ts");
+/* harmony import */ var _UI_view_item_game140__WEBPACK_IMPORTED_MODULE_70__ = __webpack_require__(/*! ./UI_view_item_game140 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_game140.ts");
+/* harmony import */ var _UI_BonusItem__WEBPACK_IMPORTED_MODULE_71__ = __webpack_require__(/*! ./UI_BonusItem */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_BonusItem.ts");
+/* harmony import */ var _UI_tog_key__WEBPACK_IMPORTED_MODULE_72__ = __webpack_require__(/*! ./UI_tog_key */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_tog_key.ts");
+/* harmony import */ var _UI_view_item_sign_big__WEBPACK_IMPORTED_MODULE_73__ = __webpack_require__(/*! ./UI_view_item_sign_big */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_sign_big.ts");
+/* harmony import */ var _UI_ImageBanner__WEBPACK_IMPORTED_MODULE_74__ = __webpack_require__(/*! ./UI_ImageBanner */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_ImageBanner.ts");
+/* harmony import */ var _UI_SelfBanner__WEBPACK_IMPORTED_MODULE_75__ = __webpack_require__(/*! ./UI_SelfBanner */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_SelfBanner.ts");
+/* harmony import */ var _UI_GameCenter__WEBPACK_IMPORTED_MODULE_76__ = __webpack_require__(/*! ./UI_GameCenter */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_GameCenter.ts");
+/* harmony import */ var _UI_item_game__WEBPACK_IMPORTED_MODULE_77__ = __webpack_require__(/*! ./UI_item_game */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_item_game.ts");
+/* harmony import */ var _UI_item_gameBig__WEBPACK_IMPORTED_MODULE_78__ = __webpack_require__(/*! ./UI_item_gameBig */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_item_gameBig.ts");
+/* harmony import */ var _UI_GameIconF__WEBPACK_IMPORTED_MODULE_79__ = __webpack_require__(/*! ./UI_GameIconF */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_GameIconF.ts");
+/* harmony import */ var _UI_WxSideGames__WEBPACK_IMPORTED_MODULE_80__ = __webpack_require__(/*! ./UI_WxSideGames */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_WxSideGames.ts");
+/* harmony import */ var _UI_item_gameSmall__WEBPACK_IMPORTED_MODULE_81__ = __webpack_require__(/*! ./UI_item_gameSmall */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_item_gameSmall.ts");
+/* harmony import */ var _UI_CommonSign_02__WEBPACK_IMPORTED_MODULE_82__ = __webpack_require__(/*! ./UI_CommonSign_02 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonSign_02.ts");
+/* harmony import */ var _UI_view_item_sign_02__WEBPACK_IMPORTED_MODULE_83__ = __webpack_require__(/*! ./UI_view_item_sign_02 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_sign_02.ts");
+/* harmony import */ var _UI_CommonEndLose__WEBPACK_IMPORTED_MODULE_84__ = __webpack_require__(/*! ./UI_CommonEndLose */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonEndLose.ts");
+/* harmony import */ var _UI_CommonUnlockProgress__WEBPACK_IMPORTED_MODULE_85__ = __webpack_require__(/*! ./UI_CommonUnlockProgress */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonUnlockProgress.ts");
+/* harmony import */ var _UI_sliderADs__WEBPACK_IMPORTED_MODULE_86__ = __webpack_require__(/*! ./UI_sliderADs */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_sliderADs.ts");
+/* harmony import */ var _UI_rewardPannel__WEBPACK_IMPORTED_MODULE_87__ = __webpack_require__(/*! ./UI_rewardPannel */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_rewardPannel.ts");
+/* harmony import */ var _UI_view_sharegames_big__WEBPACK_IMPORTED_MODULE_88__ = __webpack_require__(/*! ./UI_view_sharegames_big */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_sharegames_big.ts");
 /** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6140,64 +17399,90 @@ class LTGameBinder {
         fgui.UIObjectFactory.setExtension(_UI_NativeInPage__WEBPACK_IMPORTED_MODULE_2__["default"].URL, _UI_NativeInPage__WEBPACK_IMPORTED_MODULE_2__["default"]);
         fgui.UIObjectFactory.setExtension(_UI_AdInpageComp__WEBPACK_IMPORTED_MODULE_3__["default"].URL, _UI_AdInpageComp__WEBPACK_IMPORTED_MODULE_3__["default"]);
         fgui.UIObjectFactory.setExtension(_UI_iconLongComp__WEBPACK_IMPORTED_MODULE_4__["default"].URL, _UI_iconLongComp__WEBPACK_IMPORTED_MODULE_4__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_endshare__WEBPACK_IMPORTED_MODULE_5__["default"].URL, _UI_view_endshare__WEBPACK_IMPORTED_MODULE_5__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonEndReward__WEBPACK_IMPORTED_MODULE_6__["default"].URL, _UI_CommonEndReward__WEBPACK_IMPORTED_MODULE_6__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_game_icon__WEBPACK_IMPORTED_MODULE_7__["default"].URL, _UI_view_game_icon__WEBPACK_IMPORTED_MODULE_7__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_end_games__WEBPACK_IMPORTED_MODULE_8__["default"].URL, _UI_view_end_games__WEBPACK_IMPORTED_MODULE_8__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_title__WEBPACK_IMPORTED_MODULE_9__["default"].URL, _UI_view_title__WEBPACK_IMPORTED_MODULE_9__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonOffline__WEBPACK_IMPORTED_MODULE_10__["default"].URL, _UI_CommonOffline__WEBPACK_IMPORTED_MODULE_10__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonTrySkin__WEBPACK_IMPORTED_MODULE_11__["default"].URL, _UI_CommonTrySkin__WEBPACK_IMPORTED_MODULE_11__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_item_try_skin__WEBPACK_IMPORTED_MODULE_12__["default"].URL, _UI_view_item_try_skin__WEBPACK_IMPORTED_MODULE_12__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonSet__WEBPACK_IMPORTED_MODULE_13__["default"].URL, _UI_CommonSet__WEBPACK_IMPORTED_MODULE_13__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_btn_toggle_01__WEBPACK_IMPORTED_MODULE_14__["default"].URL, _UI_btn_toggle_01__WEBPACK_IMPORTED_MODULE_14__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_set__WEBPACK_IMPORTED_MODULE_15__["default"].URL, _UI_view_set__WEBPACK_IMPORTED_MODULE_15__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonRoll__WEBPACK_IMPORTED_MODULE_16__["default"].URL, _UI_CommonRoll__WEBPACK_IMPORTED_MODULE_16__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_item_roll__WEBPACK_IMPORTED_MODULE_17__["default"].URL, _UI_view_item_roll__WEBPACK_IMPORTED_MODULE_17__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_roll_bg__WEBPACK_IMPORTED_MODULE_18__["default"].URL, _UI_view_roll_bg__WEBPACK_IMPORTED_MODULE_18__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonEndShare__WEBPACK_IMPORTED_MODULE_19__["default"].URL, _UI_CommonEndShare__WEBPACK_IMPORTED_MODULE_19__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_SideGames__WEBPACK_IMPORTED_MODULE_20__["default"].URL, _UI_SideGames__WEBPACK_IMPORTED_MODULE_20__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonOneMore__WEBPACK_IMPORTED_MODULE_21__["default"].URL, _UI_CommonOneMore__WEBPACK_IMPORTED_MODULE_21__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_one_more__WEBPACK_IMPORTED_MODULE_22__["default"].URL, _UI_view_one_more__WEBPACK_IMPORTED_MODULE_22__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_btn_toggle_02__WEBPACK_IMPORTED_MODULE_23__["default"].URL, _UI_btn_toggle_02__WEBPACK_IMPORTED_MODULE_23__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_FlyPanel__WEBPACK_IMPORTED_MODULE_24__["default"].URL, _UI_FlyPanel__WEBPACK_IMPORTED_MODULE_24__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_fly_coin__WEBPACK_IMPORTED_MODULE_25__["default"].URL, _UI_view_fly_coin__WEBPACK_IMPORTED_MODULE_25__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_NativeIcon__WEBPACK_IMPORTED_MODULE_26__["default"].URL, _UI_NativeIcon__WEBPACK_IMPORTED_MODULE_26__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonLockScreen__WEBPACK_IMPORTED_MODULE_27__["default"].URL, _UI_CommonLockScreen__WEBPACK_IMPORTED_MODULE_27__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonSign__WEBPACK_IMPORTED_MODULE_28__["default"].URL, _UI_CommonSign__WEBPACK_IMPORTED_MODULE_28__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_btn_double_get__WEBPACK_IMPORTED_MODULE_29__["default"].URL, _UI_btn_double_get__WEBPACK_IMPORTED_MODULE_29__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_item_sign__WEBPACK_IMPORTED_MODULE_30__["default"].URL, _UI_view_item_sign__WEBPACK_IMPORTED_MODULE_30__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_common_sign__WEBPACK_IMPORTED_MODULE_31__["default"].URL, _UI_view_common_sign__WEBPACK_IMPORTED_MODULE_31__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_32__["default"].URL, _UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_32__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_Native320__WEBPACK_IMPORTED_MODULE_33__["default"].URL, _UI_Native320__WEBPACK_IMPORTED_MODULE_33__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_NativeInterstitial__WEBPACK_IMPORTED_MODULE_34__["default"].URL, _UI_NativeInterstitial__WEBPACK_IMPORTED_MODULE_34__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_NativeBigAd__WEBPACK_IMPORTED_MODULE_35__["default"].URL, _UI_NativeBigAd__WEBPACK_IMPORTED_MODULE_35__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_btn_normal__WEBPACK_IMPORTED_MODULE_36__["default"].URL, _UI_btn_normal__WEBPACK_IMPORTED_MODULE_36__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_btn_native__WEBPACK_IMPORTED_MODULE_37__["default"].URL, _UI_btn_native__WEBPACK_IMPORTED_MODULE_37__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonLoad__WEBPACK_IMPORTED_MODULE_38__["default"].URL, _UI_CommonLoad__WEBPACK_IMPORTED_MODULE_38__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_load__WEBPACK_IMPORTED_MODULE_39__["default"].URL, _UI_view_load__WEBPACK_IMPORTED_MODULE_39__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_btn_ad__WEBPACK_IMPORTED_MODULE_40__["default"].URL, _UI_btn_ad__WEBPACK_IMPORTED_MODULE_40__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_NativeInterstitial_01__WEBPACK_IMPORTED_MODULE_41__["default"].URL, _UI_NativeInterstitial_01__WEBPACK_IMPORTED_MODULE_41__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_NativeInterAd__WEBPACK_IMPORTED_MODULE_42__["default"].URL, _UI_NativeInterAd__WEBPACK_IMPORTED_MODULE_42__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_NativeIconLong__WEBPACK_IMPORTED_MODULE_43__["default"].URL, _UI_NativeIconLong__WEBPACK_IMPORTED_MODULE_43__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_OppoEndExGame__WEBPACK_IMPORTED_MODULE_44__["default"].URL, _UI_OppoEndExGame__WEBPACK_IMPORTED_MODULE_44__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_FakeBanner_V__WEBPACK_IMPORTED_MODULE_45__["default"].URL, _UI_FakeBanner_V__WEBPACK_IMPORTED_MODULE_45__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonToast__WEBPACK_IMPORTED_MODULE_46__["default"].URL, _UI_CommonToast__WEBPACK_IMPORTED_MODULE_46__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_toast__WEBPACK_IMPORTED_MODULE_47__["default"].URL, _UI_view_toast__WEBPACK_IMPORTED_MODULE_47__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_FakeRewardVideo__WEBPACK_IMPORTED_MODULE_48__["default"].URL, _UI_FakeRewardVideo__WEBPACK_IMPORTED_MODULE_48__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_FakeInterstital__WEBPACK_IMPORTED_MODULE_49__["default"].URL, _UI_FakeInterstital__WEBPACK_IMPORTED_MODULE_49__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_EndSlideGames__WEBPACK_IMPORTED_MODULE_50__["default"].URL, _UI_EndSlideGames__WEBPACK_IMPORTED_MODULE_50__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_slideAds__WEBPACK_IMPORTED_MODULE_51__["default"].URL, _UI_slideAds__WEBPACK_IMPORTED_MODULE_51__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_item_game__WEBPACK_IMPORTED_MODULE_52__["default"].URL, _UI_view_item_game__WEBPACK_IMPORTED_MODULE_52__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_item_game140__WEBPACK_IMPORTED_MODULE_53__["default"].URL, _UI_view_item_game140__WEBPACK_IMPORTED_MODULE_53__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_item_sign_big__WEBPACK_IMPORTED_MODULE_54__["default"].URL, _UI_view_item_sign_big__WEBPACK_IMPORTED_MODULE_54__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_ImageBanner__WEBPACK_IMPORTED_MODULE_55__["default"].URL, _UI_ImageBanner__WEBPACK_IMPORTED_MODULE_55__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonSign_02__WEBPACK_IMPORTED_MODULE_56__["default"].URL, _UI_CommonSign_02__WEBPACK_IMPORTED_MODULE_56__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_item_sign_02__WEBPACK_IMPORTED_MODULE_57__["default"].URL, _UI_view_item_sign_02__WEBPACK_IMPORTED_MODULE_57__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonEndLose__WEBPACK_IMPORTED_MODULE_58__["default"].URL, _UI_CommonEndLose__WEBPACK_IMPORTED_MODULE_58__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_CommonUnlockProgress__WEBPACK_IMPORTED_MODULE_59__["default"].URL, _UI_CommonUnlockProgress__WEBPACK_IMPORTED_MODULE_59__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_sliderADs__WEBPACK_IMPORTED_MODULE_60__["default"].URL, _UI_sliderADs__WEBPACK_IMPORTED_MODULE_60__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_rewardPannel__WEBPACK_IMPORTED_MODULE_61__["default"].URL, _UI_rewardPannel__WEBPACK_IMPORTED_MODULE_61__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_sharegames_big__WEBPACK_IMPORTED_MODULE_62__["default"].URL, _UI_view_sharegames_big__WEBPACK_IMPORTED_MODULE_62__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_OpenAds__WEBPACK_IMPORTED_MODULE_5__["default"].URL, _UI_OpenAds__WEBPACK_IMPORTED_MODULE_5__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_endshare__WEBPACK_IMPORTED_MODULE_6__["default"].URL, _UI_view_endshare__WEBPACK_IMPORTED_MODULE_6__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonEndReward__WEBPACK_IMPORTED_MODULE_7__["default"].URL, _UI_CommonEndReward__WEBPACK_IMPORTED_MODULE_7__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_game_icon__WEBPACK_IMPORTED_MODULE_8__["default"].URL, _UI_view_game_icon__WEBPACK_IMPORTED_MODULE_8__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_end_games__WEBPACK_IMPORTED_MODULE_9__["default"].URL, _UI_view_end_games__WEBPACK_IMPORTED_MODULE_9__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_title__WEBPACK_IMPORTED_MODULE_10__["default"].URL, _UI_view_title__WEBPACK_IMPORTED_MODULE_10__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonOffline__WEBPACK_IMPORTED_MODULE_11__["default"].URL, _UI_CommonOffline__WEBPACK_IMPORTED_MODULE_11__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonTrySkin__WEBPACK_IMPORTED_MODULE_12__["default"].URL, _UI_CommonTrySkin__WEBPACK_IMPORTED_MODULE_12__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_item_try_skin__WEBPACK_IMPORTED_MODULE_13__["default"].URL, _UI_view_item_try_skin__WEBPACK_IMPORTED_MODULE_13__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonSet__WEBPACK_IMPORTED_MODULE_14__["default"].URL, _UI_CommonSet__WEBPACK_IMPORTED_MODULE_14__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_btn_toggle_01__WEBPACK_IMPORTED_MODULE_15__["default"].URL, _UI_btn_toggle_01__WEBPACK_IMPORTED_MODULE_15__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_set__WEBPACK_IMPORTED_MODULE_16__["default"].URL, _UI_view_set__WEBPACK_IMPORTED_MODULE_16__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonRoll__WEBPACK_IMPORTED_MODULE_17__["default"].URL, _UI_CommonRoll__WEBPACK_IMPORTED_MODULE_17__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_item_roll__WEBPACK_IMPORTED_MODULE_18__["default"].URL, _UI_view_item_roll__WEBPACK_IMPORTED_MODULE_18__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_roll_bg__WEBPACK_IMPORTED_MODULE_19__["default"].URL, _UI_view_roll_bg__WEBPACK_IMPORTED_MODULE_19__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonEndShare__WEBPACK_IMPORTED_MODULE_20__["default"].URL, _UI_CommonEndShare__WEBPACK_IMPORTED_MODULE_20__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonGameEgg__WEBPACK_IMPORTED_MODULE_21__["default"].URL, _UI_CommonGameEgg__WEBPACK_IMPORTED_MODULE_21__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_info__WEBPACK_IMPORTED_MODULE_22__["default"].URL, _UI_info__WEBPACK_IMPORTED_MODULE_22__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_btn_getegg__WEBPACK_IMPORTED_MODULE_23__["default"].URL, _UI_btn_getegg__WEBPACK_IMPORTED_MODULE_23__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_eggItem__WEBPACK_IMPORTED_MODULE_24__["default"].URL, _UI_eggItem__WEBPACK_IMPORTED_MODULE_24__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_eggIcon__WEBPACK_IMPORTED_MODULE_25__["default"].URL, _UI_eggIcon__WEBPACK_IMPORTED_MODULE_25__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_SideGames__WEBPACK_IMPORTED_MODULE_26__["default"].URL, _UI_SideGames__WEBPACK_IMPORTED_MODULE_26__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonOneMore__WEBPACK_IMPORTED_MODULE_27__["default"].URL, _UI_CommonOneMore__WEBPACK_IMPORTED_MODULE_27__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_one_more__WEBPACK_IMPORTED_MODULE_28__["default"].URL, _UI_view_one_more__WEBPACK_IMPORTED_MODULE_28__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_btn_toggle_02__WEBPACK_IMPORTED_MODULE_29__["default"].URL, _UI_btn_toggle_02__WEBPACK_IMPORTED_MODULE_29__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_FlyPanel__WEBPACK_IMPORTED_MODULE_30__["default"].URL, _UI_FlyPanel__WEBPACK_IMPORTED_MODULE_30__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_fly_coin__WEBPACK_IMPORTED_MODULE_31__["default"].URL, _UI_view_fly_coin__WEBPACK_IMPORTED_MODULE_31__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_NativeIcon__WEBPACK_IMPORTED_MODULE_32__["default"].URL, _UI_NativeIcon__WEBPACK_IMPORTED_MODULE_32__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonLockScreen__WEBPACK_IMPORTED_MODULE_33__["default"].URL, _UI_CommonLockScreen__WEBPACK_IMPORTED_MODULE_33__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_End3X3Ad__WEBPACK_IMPORTED_MODULE_34__["default"].URL, _UI_End3X3Ad__WEBPACK_IMPORTED_MODULE_34__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonSign__WEBPACK_IMPORTED_MODULE_35__["default"].URL, _UI_CommonSign__WEBPACK_IMPORTED_MODULE_35__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_btn_double_get__WEBPACK_IMPORTED_MODULE_36__["default"].URL, _UI_btn_double_get__WEBPACK_IMPORTED_MODULE_36__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_item_sign__WEBPACK_IMPORTED_MODULE_37__["default"].URL, _UI_view_item_sign__WEBPACK_IMPORTED_MODULE_37__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_common_sign__WEBPACK_IMPORTED_MODULE_38__["default"].URL, _UI_view_common_sign__WEBPACK_IMPORTED_MODULE_38__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_39__["default"].URL, _UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_39__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_Native320__WEBPACK_IMPORTED_MODULE_40__["default"].URL, _UI_Native320__WEBPACK_IMPORTED_MODULE_40__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonSign2__WEBPACK_IMPORTED_MODULE_41__["default"].URL, _UI_CommonSign2__WEBPACK_IMPORTED_MODULE_41__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_btn_normal0__WEBPACK_IMPORTED_MODULE_42__["default"].URL, _UI_btn_normal0__WEBPACK_IMPORTED_MODULE_42__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_SignItem__WEBPACK_IMPORTED_MODULE_43__["default"].URL, _UI_SignItem__WEBPACK_IMPORTED_MODULE_43__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_ExSkin__WEBPACK_IMPORTED_MODULE_44__["default"].URL, _UI_ExSkin__WEBPACK_IMPORTED_MODULE_44__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_btn_twoIcon__WEBPACK_IMPORTED_MODULE_45__["default"].URL, _UI_btn_twoIcon__WEBPACK_IMPORTED_MODULE_45__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_tog_progress__WEBPACK_IMPORTED_MODULE_46__["default"].URL, _UI_tog_progress__WEBPACK_IMPORTED_MODULE_46__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_BonusBox__WEBPACK_IMPORTED_MODULE_47__["default"].URL, _UI_BonusBox__WEBPACK_IMPORTED_MODULE_47__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_btn_watch__WEBPACK_IMPORTED_MODULE_48__["default"].URL, _UI_btn_watch__WEBPACK_IMPORTED_MODULE_48__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_TrySkin__WEBPACK_IMPORTED_MODULE_49__["default"].URL, _UI_TrySkin__WEBPACK_IMPORTED_MODULE_49__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_toggle_nogame__WEBPACK_IMPORTED_MODULE_50__["default"].URL, _UI_toggle_nogame__WEBPACK_IMPORTED_MODULE_50__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_NativeInterstitial__WEBPACK_IMPORTED_MODULE_51__["default"].URL, _UI_NativeInterstitial__WEBPACK_IMPORTED_MODULE_51__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_NativeBigAd__WEBPACK_IMPORTED_MODULE_52__["default"].URL, _UI_NativeBigAd__WEBPACK_IMPORTED_MODULE_52__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_btn_normal__WEBPACK_IMPORTED_MODULE_53__["default"].URL, _UI_btn_normal__WEBPACK_IMPORTED_MODULE_53__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_btn_native__WEBPACK_IMPORTED_MODULE_54__["default"].URL, _UI_btn_native__WEBPACK_IMPORTED_MODULE_54__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonLoad__WEBPACK_IMPORTED_MODULE_55__["default"].URL, _UI_CommonLoad__WEBPACK_IMPORTED_MODULE_55__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_load__WEBPACK_IMPORTED_MODULE_56__["default"].URL, _UI_view_load__WEBPACK_IMPORTED_MODULE_56__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_btn_ad__WEBPACK_IMPORTED_MODULE_57__["default"].URL, _UI_btn_ad__WEBPACK_IMPORTED_MODULE_57__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_NativeInterstitial_01__WEBPACK_IMPORTED_MODULE_58__["default"].URL, _UI_NativeInterstitial_01__WEBPACK_IMPORTED_MODULE_58__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_NativeInterAd__WEBPACK_IMPORTED_MODULE_59__["default"].URL, _UI_NativeInterAd__WEBPACK_IMPORTED_MODULE_59__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_NativeIconLong__WEBPACK_IMPORTED_MODULE_60__["default"].URL, _UI_NativeIconLong__WEBPACK_IMPORTED_MODULE_60__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_OppoEndExGame__WEBPACK_IMPORTED_MODULE_61__["default"].URL, _UI_OppoEndExGame__WEBPACK_IMPORTED_MODULE_61__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_FakeBanner_V__WEBPACK_IMPORTED_MODULE_62__["default"].URL, _UI_FakeBanner_V__WEBPACK_IMPORTED_MODULE_62__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonToast__WEBPACK_IMPORTED_MODULE_63__["default"].URL, _UI_CommonToast__WEBPACK_IMPORTED_MODULE_63__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_toast__WEBPACK_IMPORTED_MODULE_64__["default"].URL, _UI_view_toast__WEBPACK_IMPORTED_MODULE_64__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_FakeRewardVideo__WEBPACK_IMPORTED_MODULE_65__["default"].URL, _UI_FakeRewardVideo__WEBPACK_IMPORTED_MODULE_65__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_FakeInterstital__WEBPACK_IMPORTED_MODULE_66__["default"].URL, _UI_FakeInterstital__WEBPACK_IMPORTED_MODULE_66__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_EndSlideGames__WEBPACK_IMPORTED_MODULE_67__["default"].URL, _UI_EndSlideGames__WEBPACK_IMPORTED_MODULE_67__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_slideAds__WEBPACK_IMPORTED_MODULE_68__["default"].URL, _UI_slideAds__WEBPACK_IMPORTED_MODULE_68__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_item_game__WEBPACK_IMPORTED_MODULE_69__["default"].URL, _UI_view_item_game__WEBPACK_IMPORTED_MODULE_69__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_item_game140__WEBPACK_IMPORTED_MODULE_70__["default"].URL, _UI_view_item_game140__WEBPACK_IMPORTED_MODULE_70__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_BonusItem__WEBPACK_IMPORTED_MODULE_71__["default"].URL, _UI_BonusItem__WEBPACK_IMPORTED_MODULE_71__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_tog_key__WEBPACK_IMPORTED_MODULE_72__["default"].URL, _UI_tog_key__WEBPACK_IMPORTED_MODULE_72__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_item_sign_big__WEBPACK_IMPORTED_MODULE_73__["default"].URL, _UI_view_item_sign_big__WEBPACK_IMPORTED_MODULE_73__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_ImageBanner__WEBPACK_IMPORTED_MODULE_74__["default"].URL, _UI_ImageBanner__WEBPACK_IMPORTED_MODULE_74__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_SelfBanner__WEBPACK_IMPORTED_MODULE_75__["default"].URL, _UI_SelfBanner__WEBPACK_IMPORTED_MODULE_75__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_GameCenter__WEBPACK_IMPORTED_MODULE_76__["default"].URL, _UI_GameCenter__WEBPACK_IMPORTED_MODULE_76__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_item_game__WEBPACK_IMPORTED_MODULE_77__["default"].URL, _UI_item_game__WEBPACK_IMPORTED_MODULE_77__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_item_gameBig__WEBPACK_IMPORTED_MODULE_78__["default"].URL, _UI_item_gameBig__WEBPACK_IMPORTED_MODULE_78__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_GameIconF__WEBPACK_IMPORTED_MODULE_79__["default"].URL, _UI_GameIconF__WEBPACK_IMPORTED_MODULE_79__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_WxSideGames__WEBPACK_IMPORTED_MODULE_80__["default"].URL, _UI_WxSideGames__WEBPACK_IMPORTED_MODULE_80__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_item_gameSmall__WEBPACK_IMPORTED_MODULE_81__["default"].URL, _UI_item_gameSmall__WEBPACK_IMPORTED_MODULE_81__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonSign_02__WEBPACK_IMPORTED_MODULE_82__["default"].URL, _UI_CommonSign_02__WEBPACK_IMPORTED_MODULE_82__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_item_sign_02__WEBPACK_IMPORTED_MODULE_83__["default"].URL, _UI_view_item_sign_02__WEBPACK_IMPORTED_MODULE_83__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonEndLose__WEBPACK_IMPORTED_MODULE_84__["default"].URL, _UI_CommonEndLose__WEBPACK_IMPORTED_MODULE_84__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_CommonUnlockProgress__WEBPACK_IMPORTED_MODULE_85__["default"].URL, _UI_CommonUnlockProgress__WEBPACK_IMPORTED_MODULE_85__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_sliderADs__WEBPACK_IMPORTED_MODULE_86__["default"].URL, _UI_sliderADs__WEBPACK_IMPORTED_MODULE_86__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_rewardPannel__WEBPACK_IMPORTED_MODULE_87__["default"].URL, _UI_rewardPannel__WEBPACK_IMPORTED_MODULE_87__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_sharegames_big__WEBPACK_IMPORTED_MODULE_88__["default"].URL, _UI_view_sharegames_big__WEBPACK_IMPORTED_MODULE_88__["default"]);
     }
 }
 
@@ -6223,14 +17508,82 @@ class UI_AdInpageComp extends fgui.GComponent {
         return (fgui.UIPackage.createObject("LTGame", "AdInpageComp"));
     }
     onConstruct() {
-        this.m_img = (this.getChildAt(0));
-        this.m_icon = (this.getChildAt(1));
-        this.m_tag = (this.getChildAt(2));
-        this.m_title = (this.getChildAt(3));
-        this.m_desc = (this.getChildAt(4));
+        this.m_img = (this.getChildAt(1));
+        this.m_icon = (this.getChildAt(2));
+        this.m_tag = (this.getChildAt(3));
+        this.m_title = (this.getChildAt(4));
+        this.m_desc = (this.getChildAt(5));
     }
 }
 UI_AdInpageComp.URL = "ui://75kiu87k92486w";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_BonusBox.ts":
+/*!*************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_BonusBox.ts ***!
+  \*************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_BonusBox; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_BonusBox extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "BonusBox"));
+    }
+    onConstruct() {
+        this.m_canclose = this.getControllerAt(0);
+        this.m_bg = (this.getChildAt(0));
+        this.m_btn_close = (this.getChildAt(5));
+        this.m_tog = (this.getChildAt(6));
+        this.m_boxList = (this.getChildAt(7));
+        this.m_keyList = (this.getChildAt(8));
+        this.m_btn_ad = (this.getChildAt(9));
+        this.m_txt_count = (this.getChildAt(10));
+        this.m_t1 = this.getTransitionAt(0);
+        this.m_delay = this.getTransitionAt(1);
+    }
+}
+UI_BonusBox.URL = "ui://75kiu87kkj718g";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_BonusItem.ts":
+/*!**************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_BonusItem.ts ***!
+  \**************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_BonusItem; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_BonusItem extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "BonusItem"));
+    }
+    onConstruct() {
+        this.m_ad = this.getControllerAt(0);
+        this.m_isclicked = this.getControllerAt(1);
+        this.m_icon = (this.getChildAt(2));
+        this.m_title = (this.getChildAt(3));
+        this.m_adicon = (this.getChildAt(4));
+        this.m_lock = (this.getChildAt(5));
+    }
+}
+UI_BonusItem.URL = "ui://75kiu87kpknzbd";
 
 
 /***/ }),
@@ -6255,10 +17608,11 @@ class UI_CommonEndLose extends fgui.GComponent {
     }
     onConstruct() {
         this.m_c1 = this.getControllerAt(0);
-        this.m_view_othergames = (this.getChildAt(2));
-        this.m_text_str = (this.getChildAt(3));
-        this.m_btn_no = (this.getChildAt(4));
-        this.m_btn_watchad = (this.getChildAt(5));
+        this.m_text_str = (this.getChildAt(2));
+        this.m_btn_no = (this.getChildAt(3));
+        this.m_btn_watchad = (this.getChildAt(4));
+        this.m___othergames = (this.getChildAt(5));
+        this.m___wxSG = (this.getChildAt(6));
         this.m_anim_enter = this.getTransitionAt(0);
     }
 }
@@ -6292,6 +17646,8 @@ class UI_CommonEndReward extends fgui.GComponent {
         this.m_icon_reward = (this.getChildAt(5));
         this.m_text_add = (this.getChildAt(6));
         this.m___bottomgames = (this.getChildAt(7));
+        this.m___nativeinpage = (this.getChildAt(8));
+        this.m___endSG = (this.getChildAt(9));
         this.m_anim_enter = this.getTransitionAt(0);
     }
 }
@@ -6350,6 +17706,42 @@ class UI_CommonEndSliderADs extends fgui.GComponent {
     }
 }
 UI_CommonEndSliderADs.URL = "ui://75kiu87kj9at6j";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonGameEgg.ts":
+/*!******************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonGameEgg.ts ***!
+  \******************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_CommonGameEgg; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_CommonGameEgg extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "CommonGameEgg"));
+    }
+    onConstruct() {
+        this.m_noEgg = this.getControllerAt(0);
+        this.m_bg = (this.getChildAt(0));
+        this.m_eggLsit = (this.getChildAt(8));
+        this.m_info = (this.getChildAt(9));
+        this.m_btn_close = (this.getChildAt(10));
+        this.m_txt_eggName = (this.getChildAt(11));
+        this.m_txt_getState = (this.getChildAt(12));
+        this.m_btn_getSec = (this.getChildAt(13));
+        this.m_btn_getPass = (this.getChildAt(14));
+        this.m_txt_disable = (this.getChildAt(16));
+    }
+}
+UI_CommonGameEgg.URL = "ui://75kiu87kdywvai";
 
 
 /***/ }),
@@ -6495,6 +17887,7 @@ class UI_CommonRoll extends fgui.GComponent {
         this.m_btn_close = (this.getChildAt(4));
         this.m_btn_roll = (this.getChildAt(5));
         this.m_rewardPannel = (this.getChildAt(6));
+        this.m___nativeinpage = (this.getChildAt(7));
     }
 }
 UI_CommonRoll.URL = "ui://75kiu87kbg002d";
@@ -6549,9 +17942,41 @@ class UI_CommonSign extends fgui.GComponent {
     }
     onConstruct() {
         this.m_view = (this.getChildAt(1));
+        this.m___nativeinpage = (this.getChildAt(2));
     }
 }
 UI_CommonSign.URL = "ui://75kiu87kit2ij";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonSign2.ts":
+/*!****************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonSign2.ts ***!
+  \****************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_CommonSign2; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_CommonSign2 extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "CommonSign2"));
+    }
+    onConstruct() {
+        this.m_isSigned = this.getControllerAt(0);
+        this.m_btn_videoRwd = (this.getChildAt(3));
+        this.m_btn_nornalRwd = (this.getChildAt(4));
+        this.m_btn_close = (this.getChildAt(5));
+        this.m_dayList = (this.getChildAt(6));
+    }
+}
+UI_CommonSign2.URL = "ui://75kiu87kkj717j";
 
 
 /***/ }),
@@ -6680,6 +18105,33 @@ UI_CommonUnlockProgress.URL = "ui://75kiu87krk935n";
 
 /***/ }),
 
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_End3X3Ad.ts":
+/*!*************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_End3X3Ad.ts ***!
+  \*************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_End3X3Ad; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_End3X3Ad extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "End3X3Ad"));
+    }
+    onConstruct() {
+        this.m_list = (this.getChildAt(1));
+    }
+}
+UI_End3X3Ad.URL = "ui://75kiu87ki816ae";
+
+
+/***/ }),
+
 /***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_EndSlideGames.ts":
 /*!******************************************************************!*\
   !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_EndSlideGames.ts ***!
@@ -6703,6 +18155,39 @@ class UI_EndSlideGames extends fgui.GComponent {
     }
 }
 UI_EndSlideGames.URL = "ui://75kiu87kp2ld6k";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_ExSkin.ts":
+/*!***********************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_ExSkin.ts ***!
+  \***********************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_ExSkin; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_ExSkin extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "ExSkin"));
+    }
+    onConstruct() {
+        this.m_icon = (this.getChildAt(3));
+        this.m_btn_close = (this.getChildAt(5));
+        this.m_btn_ad = (this.getChildAt(6));
+        this.m_list_pro = (this.getChildAt(7));
+        this.m_tog = (this.getChildAt(9));
+        this.m_anim_enter = this.getTransitionAt(0);
+        this.m_t1 = this.getTransitionAt(1);
+    }
+}
+UI_ExSkin.URL = "ui://75kiu87kkj7184";
 
 
 /***/ }),
@@ -6812,6 +18297,65 @@ class UI_FlyPanel extends fgui.GComponent {
     }
 }
 UI_FlyPanel.URL = "ui://75kiu87kh75rf";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_GameCenter.ts":
+/*!***************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_GameCenter.ts ***!
+  \***************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_GameCenter; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_GameCenter extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "GameCenter"));
+    }
+    onConstruct() {
+        this.m_topList = (this.getChildAt(5));
+        this.m_centerList = (this.getChildAt(6));
+        this.m_btn_close = (this.getChildAt(7));
+        this.m_anim_enter = this.getTransitionAt(0);
+    }
+}
+UI_GameCenter.URL = "ui://75kiu87kr3yg75";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_GameIconF.ts":
+/*!**************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_GameIconF.ts ***!
+  \**************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_GameIconF; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_GameIconF extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "GameIconF"));
+    }
+    onConstruct() {
+        this.m_mask = (this.getChildAt(0));
+        this.m_icon = (this.getChildAt(1));
+        this.m_title = (this.getChildAt(2));
+    }
+}
+UI_GameIconF.URL = "ui://75kiu87kr3yg7g";
 
 
 /***/ }),
@@ -7090,6 +18634,35 @@ UI_NativeInterstitial_01.URL = "ui://75kiu87kocvx6r";
 
 /***/ }),
 
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_OpenAds.ts":
+/*!************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_OpenAds.ts ***!
+  \************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_OpenAds; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_OpenAds extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "OpenAds"));
+    }
+    onConstruct() {
+        this.m_bg = (this.getChildAt(0));
+        this.m_centerList = (this.getChildAt(2));
+        this.m_btn_close = (this.getChildAt(3));
+    }
+}
+UI_OpenAds.URL = "ui://75kiu87k9vu5ag";
+
+
+/***/ }),
+
 /***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_OppoEndExGame.ts":
 /*!******************************************************************!*\
   !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_OppoEndExGame.ts ***!
@@ -7109,19 +18682,44 @@ class UI_OppoEndExGame extends fgui.GComponent {
         return (fgui.UIPackage.createObject("LTGame", "OppoEndExGame"));
     }
     onConstruct() {
-        this.m_step = this.getControllerAt(0);
         this.m_win = (this.getChildAt(1));
         this.m___nativeinpage = (this.getChildAt(2));
-        this.m___bottomgames = (this.getChildAt(3));
-        this.m_btn_next = (this.getChildAt(4));
-        this.m_btn_reward = (this.getChildAt(5));
-        this.m_btn_continue = (this.getChildAt(6));
-        this.m_btn_adpay = (this.getChildAt(7));
-        this.m_icon_reward = (this.getChildAt(8));
-        this.m_text_add = (this.getChildAt(9));
+        this.m_btn_next = (this.getChildAt(3));
+        this.m_btn_reward = (this.getChildAt(4));
+        this.m_btn_adpay = (this.getChildAt(5));
+        this.m_icon_reward = (this.getChildAt(6));
+        this.m_text_add = (this.getChildAt(7));
+        this.m_anim_enter = this.getTransitionAt(0);
     }
 }
 UI_OppoEndExGame.URL = "ui://75kiu87kocvx6u";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_SelfBanner.ts":
+/*!***************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_SelfBanner.ts ***!
+  \***************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_SelfBanner; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_SelfBanner extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "SelfBanner"));
+    }
+    onConstruct() {
+        this.m_banner = (this.getChildAt(0));
+    }
+}
+UI_SelfBanner.URL = "ui://75kiu87kr3yg74";
 
 
 /***/ }),
@@ -7148,10 +18746,112 @@ class UI_SideGames extends fgui.GComponent {
         this.m_show = this.getControllerAt(0);
         this.m_bg = (this.getChildAt(0));
         this.m_btn_show = (this.getChildAt(1));
+        this.m_red = (this.getChildAt(2));
         this.m_ads = (this.getChildAt(3));
     }
 }
 UI_SideGames.URL = "ui://75kiu87keq3z6e";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_SignItem.ts":
+/*!*************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_SignItem.ts ***!
+  \*************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_SignItem; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_SignItem extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "SignItem"));
+    }
+    onConstruct() {
+        this.m_type = this.getControllerAt(0);
+        this.m_state = this.getControllerAt(1);
+        this.m_bg1 = (this.getChildAt(2));
+        this.m_d7 = (this.getChildAt(3));
+        this.m_day = (this.getChildAt(4));
+        this.m_title = (this.getChildAt(5));
+        this.m_icon = (this.getChildAt(6));
+    }
+}
+UI_SignItem.URL = "ui://75kiu87kkj717t";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_TrySkin.ts":
+/*!************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_TrySkin.ts ***!
+  \************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_TrySkin; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_TrySkin extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "TrySkin"));
+    }
+    onConstruct() {
+        this.m_check_type = this.getControllerAt(0);
+        this.m_oppo = this.getControllerAt(1);
+        this.m_bg = (this.getChildAt(0));
+        this.m_haro = (this.getChildAt(1));
+        this.m_icon = (this.getChildAt(4));
+        this.m_btn_pay = (this.getChildAt(5));
+        this.m_btn_watch = (this.getChildAt(6));
+        this.m_btn_close = (this.getChildAt(7));
+        this.m_btn_no = (this.getChildAt(8));
+        this.m_btn_try = (this.getChildAt(9));
+        this.m_t0 = this.getTransitionAt(0);
+        this.m_anim_enter = this.getTransitionAt(1);
+    }
+}
+UI_TrySkin.URL = "ui://75kiu87kkj719w";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_WxSideGames.ts":
+/*!****************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_WxSideGames.ts ***!
+  \****************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_WxSideGames; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_WxSideGames extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "WxSideGames"));
+    }
+    onConstruct() {
+        this.m_ad0 = (this.getChildAt(0));
+        this.m_ad1 = (this.getChildAt(1));
+        this.m_ad2 = (this.getChildAt(2));
+        this.m_ad3 = (this.getChildAt(3));
+    }
+}
+UI_WxSideGames.URL = "ui://75kiu87kr3yg7h";
 
 
 /***/ }),
@@ -7212,6 +18912,33 @@ UI_btn_double_get.URL = "ui://75kiu87kit2iq";
 
 /***/ }),
 
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_getegg.ts":
+/*!***************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_getegg.ts ***!
+  \***************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_btn_getegg; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_btn_getegg extends fgui.GButton {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "btn_getegg"));
+    }
+    onConstruct() {
+        this.m_lockState = this.getControllerAt(0);
+    }
+}
+UI_btn_getegg.URL = "ui://75kiu87kdywvb3";
+
+
+/***/ }),
+
 /***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_native.ts":
 /*!***************************************************************!*\
   !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_native.ts ***!
@@ -7262,6 +18989,33 @@ class UI_btn_normal extends fgui.GButton {
     }
 }
 UI_btn_normal.URL = "ui://75kiu87kl2ax4l";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_normal0.ts":
+/*!****************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_normal0.ts ***!
+  \****************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_btn_normal0; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_btn_normal0 extends fgui.GButton {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "btn_normal0"));
+    }
+    onConstruct() {
+        this.m_ad = this.getControllerAt(0);
+    }
+}
+UI_btn_normal0.URL = "ui://75kiu87kkj717q";
 
 
 /***/ }),
@@ -7320,6 +19074,119 @@ UI_btn_toggle_02.URL = "ui://75kiu87kgxi832";
 
 /***/ }),
 
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_twoIcon.ts":
+/*!****************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_twoIcon.ts ***!
+  \****************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_btn_twoIcon; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_btn_twoIcon extends fgui.GButton {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "btn_twoIcon"));
+    }
+    onConstruct() {
+        this.m_ad = this.getControllerAt(0);
+        this.m_anim = this.getTransitionAt(0);
+    }
+}
+UI_btn_twoIcon.URL = "ui://75kiu87kkj7186";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_watch.ts":
+/*!**************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_btn_watch.ts ***!
+  \**************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_btn_watch; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_btn_watch extends fgui.GButton {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "btn_watch"));
+    }
+    onConstruct() {
+        this.m_ad = this.getControllerAt(0);
+    }
+}
+UI_btn_watch.URL = "ui://75kiu87kkj718s";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_eggIcon.ts":
+/*!************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_eggIcon.ts ***!
+  \************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_eggIcon; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_eggIcon extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "eggIcon"));
+    }
+    onConstruct() {
+        this.m_lockState = this.getControllerAt(0);
+        this.m_selected = this.getControllerAt(1);
+        this.m_icon = (this.getChildAt(4));
+    }
+}
+UI_eggIcon.URL = "ui://75kiu87kdywvb8";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_eggItem.ts":
+/*!************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_eggItem.ts ***!
+  \************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_eggItem; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_eggItem extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "eggItem"));
+    }
+    onConstruct() {
+        this.m_type = this.getControllerAt(0);
+        this.m_icon = (this.getChildAt(0));
+        this.m_shake = this.getTransitionAt(0);
+    }
+}
+UI_eggItem.URL = "ui://75kiu87kdywvb6";
+
+
+/***/ }),
+
 /***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_hot_game.ts":
 /*!*************************************************************!*\
   !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_hot_game.ts ***!
@@ -7374,6 +19241,122 @@ class UI_iconLongComp extends fgui.GComponent {
     }
 }
 UI_iconLongComp.URL = "ui://75kiu87k92486x";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_info.ts":
+/*!*********************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_info.ts ***!
+  \*********************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_info; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_info extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "info"));
+    }
+    onConstruct() {
+        this.m_icon = (this.getChildAt(1));
+    }
+}
+UI_info.URL = "ui://75kiu87kdywvb2";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_item_game.ts":
+/*!**************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_item_game.ts ***!
+  \**************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_item_game; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_item_game extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "item_game"));
+    }
+    onConstruct() {
+        this.m_icon = (this.getChildAt(1));
+        this.m_title = (this.getChildAt(2));
+        this.m_red = (this.getChildAt(3));
+    }
+}
+UI_item_game.URL = "ui://75kiu87kr3yg7b";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_item_gameBig.ts":
+/*!*****************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_item_gameBig.ts ***!
+  \*****************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_item_gameBig; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_item_gameBig extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "item_gameBig"));
+    }
+    onConstruct() {
+        this.m_icon = (this.getChildAt(1));
+        this.m_title = (this.getChildAt(2));
+        this.m_player = (this.getChildAt(3));
+        this.m_red = (this.getChildAt(4));
+    }
+}
+UI_item_gameBig.URL = "ui://75kiu87kr3yg7d";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_item_gameSmall.ts":
+/*!*******************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_item_gameSmall.ts ***!
+  \*******************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_item_gameSmall; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_item_gameSmall extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "item_gameSmall"));
+    }
+    onConstruct() {
+        this.m_icon = (this.getChildAt(1));
+        this.m_title = (this.getChildAt(2));
+        this.m_red = (this.getChildAt(3));
+        this.m_shake = this.getTransitionAt(0);
+    }
+}
+UI_item_gameSmall.URL = "ui://75kiu87kr3yg7i";
 
 
 /***/ }),
@@ -7490,6 +19473,88 @@ class UI_sliderADs extends fgui.GComponent {
     }
 }
 UI_sliderADs.URL = "ui://75kiu87kulgb5x";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_tog_key.ts":
+/*!************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_tog_key.ts ***!
+  \************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_tog_key; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_tog_key extends fgui.GButton {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "tog_key"));
+    }
+    onConstruct() {
+        this.m_select = this.getControllerAt(0);
+    }
+}
+UI_tog_key.URL = "ui://75kiu87kpknzbh";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_tog_progress.ts":
+/*!*****************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_tog_progress.ts ***!
+  \*****************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_tog_progress; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_tog_progress extends fgui.GButton {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "tog_progress"));
+    }
+    onConstruct() {
+        this.m_select = this.getControllerAt(0);
+    }
+}
+UI_tog_progress.URL = "ui://75kiu87kkj7189";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_toggle_nogame.ts":
+/*!******************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_toggle_nogame.ts ***!
+  \******************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_toggle_nogame; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_toggle_nogame extends fgui.GButton {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "toggle_nogame"));
+    }
+    onConstruct() {
+        this.m_select = this.getControllerAt(0);
+        this.m_type = this.getControllerAt(1);
+    }
+}
+UI_toggle_nogame.URL = "ui://75kiu87kkj71a2";
 
 
 /***/ }),
@@ -7661,8 +19726,8 @@ class UI_view_item_game extends fgui.GComponent {
         return (fgui.UIPackage.createObject("LTGame", "view_item_game"));
     }
     onConstruct() {
-        this.m_icon = (this.getChildAt(0));
-        this.m_text_name = (this.getChildAt(1));
+        this.m_icon = (this.getChildAt(1));
+        this.m_text_name = (this.getChildAt(2));
     }
 }
 UI_view_item_game.URL = "ui://75kiu87kp2ld6o";
@@ -8049,6 +20114,172 @@ UI_view_toast.URL = "ui://75kiu87kovsy8";
 
 /***/ }),
 
+/***/ "./src/LTGame/UIExt/DefaultUI/UI_BonusBoxMediator.ts":
+/*!***********************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI_BonusBoxMediator.ts ***!
+  \***********************************************************/
+/*! exports provided: UI_BonusBoxMediator */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "UI_BonusBoxMediator", function() { return UI_BonusBoxMediator; });
+/* harmony import */ var _script_common_GameData__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../script/common/GameData */ "./src/script/common/GameData.ts");
+/* harmony import */ var _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../SDK/common/ECheckState */ "./src/SDK/common/ECheckState.ts");
+/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
+/* harmony import */ var _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../LTUtils/MathEx */ "./src/LTGame/LTUtils/MathEx.ts");
+/* harmony import */ var _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../Platform/EPlatformType */ "./src/LTGame/Platform/EPlatformType.ts");
+/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+/* harmony import */ var _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
+/* harmony import */ var _LTUI__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../LTUI */ "./src/LTGame/UIExt/LTUI.ts");
+/* harmony import */ var _Data_CommonRewardData__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./Data/CommonRewardData */ "./src/LTGame/UIExt/DefaultUI/Data/CommonRewardData.ts");
+/* harmony import */ var _UI_LTGame_UI_BonusBox__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./UI/LTGame/UI_BonusBox */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_BonusBox.ts");
+
+
+
+
+
+
+
+
+
+
+class UI_BonusBoxMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_6__["default"] {
+    constructor() {
+        super(...arguments);
+        this.keyCount = 3;
+        this.weight = [2, 2, 2, 5, 5, 5, 5, 5, 5];
+        this.adItems = [];
+        this.datas = [];
+    }
+    get ui() {
+        return this._ui;
+    }
+    static get instance() {
+        if (this._instance == null) {
+            this._instance = new UI_BonusBoxMediator();
+            this._instance._classDefine = _UI_LTGame_UI_BonusBox__WEBPACK_IMPORTED_MODULE_9__["default"];
+        }
+        return this._instance;
+    }
+    _OnShow() {
+        super._OnShow();
+        this._openData = new _Data_CommonRewardData__WEBPACK_IMPORTED_MODULE_8__["CommonRewardData"]();
+        if (this._openParam == null) {
+            console.error("请传入CommonRewardData用于初始化宝箱界面");
+        }
+        else {
+            for (let key in this._openParam) {
+                this._openData[key] = this._openParam[key];
+            }
+        }
+        this.keyCount = 3;
+        if (this._openData) {
+            this.datas = this._openData.datas;
+        }
+        this.adItems = _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].RandomArrayFromArray([0, 1, 2, 3, 4, 5, 6, 7, 8], 3);
+        this.ui.m_btn_close.visible = _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_5__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_4__["EPlatformType"].Oppo;
+        this.ui.m_keyList.setVirtual();
+        this.ui.m_keyList.itemRenderer = Laya.Handler.create(this, this.renderKeyItem, null, false);
+        this.ui.m_keyList.numItems = 3;
+        this.ui.m_keyList.refreshVirtualList();
+        this.ui.m_boxList.setVirtual();
+        this.ui.m_boxList.itemRenderer = Laya.Handler.create(this, this.renderBoxItem, null, false);
+        this.ui.m_boxList.on(fairygui.Events.CLICK_ITEM, this, this.clickBox);
+        this.ui.m_boxList.numItems = 9;
+        this.ui.m_boxList.refreshVirtualList();
+        this.ui.m_btn_close.onClick(this, this.Hide);
+        this.ui.m_txt_count.text = `可免费开启${this.keyCount}个宝箱`;
+        this.ui.m_btn_ad.onClick(this, this.addKey);
+        this.ui.m_tog.m_selected.selectedIndex = _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_2__["default"].instance.checkState == _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_1__["ECheckState"].InCheck ? 0 : 1;
+        this.ui.m_tog.onClick(this, () => {
+            this.ui.m_tog.m_selected.selectedIndex = (this.ui.m_tog.m_selected.selectedIndex + 1) % 2;
+            this.ui.m_btn_ad.m_ad.selectedIndex = this.ui.m_tog.m_selected.selectedIndex;
+        });
+        this.ui.m_btn_ad.m_ad.selectedIndex = this.ui.m_tog.m_selected.selectedIndex;
+    }
+    addKey() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.ui.m_tog.m_selected.selectedIndex == 1) {
+                let result = yield _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_5__["default"].instance.ShowRewardVideoAdAsync();
+                if (result) {
+                    this.keyCount = 3;
+                    this.ui.m_keyList.refreshVirtualList();
+                    this.ui.m_txt_count.text = `可免费开启${this.keyCount}个宝箱`;
+                }
+                else {
+                    _LTUI__WEBPACK_IMPORTED_MODULE_7__["default"].Toast("跳过广告无法获得奖励");
+                }
+            }
+            else {
+                this.Hide();
+            }
+        });
+    }
+    clickBox(item) {
+        if (parseInt(item.data.toString()) == 1 || this.keyCount == 0) {
+            this.getAdBonus(item);
+        }
+        else {
+            this.getBonus(item);
+        }
+    }
+    getAdBonus(item) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let result = yield _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_5__["default"].instance.ShowRewardVideoAdAsync();
+            if (result) {
+                this.getBonus(item);
+            }
+            else {
+                _LTUI__WEBPACK_IMPORTED_MODULE_7__["default"].Toast("跳过广告无法获得奖励");
+            }
+        });
+    }
+    getBonus(item) {
+        let data = _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].RandomFromWithWeight(this.datas, this.weight);
+        item.m_title.text = `${data.type == 1 ? '皮肤' : '金币'}${data.value}`;
+        item.m_icon.url = data.icon;
+        _LTUI__WEBPACK_IMPORTED_MODULE_7__["default"].Toast(`恭喜获得${data.type == 1 ? '皮肤' : '金币'}${data.value}`);
+        item.m_isclicked.selectedIndex = 1;
+        if (data.type == 0) {
+            _script_common_GameData__WEBPACK_IMPORTED_MODULE_0__["default"].instance.coinCount += data.value;
+            _script_common_GameData__WEBPACK_IMPORTED_MODULE_0__["default"].SaveToDisk();
+        }
+        else {
+            this._openData.onGetSkin();
+        }
+        if (this.keyCount > 0) {
+            this.keyCount -= 1;
+            this.ui.m_keyList.refreshVirtualList();
+            this.ui.m_canclose.selectedIndex = this.keyCount < 1 ? 1 : 0;
+        }
+        this.ui.m_txt_count.text = `可免费开启${this.keyCount}个宝箱`;
+    }
+    renderKeyItem(indx, item) {
+        if (indx < this.keyCount) {
+            item.m_select.selectedIndex = 1;
+        }
+        else {
+            item.m_select.selectedIndex = 0;
+        }
+    }
+    renderBoxItem(indx, item) {
+        if (this.adItems.indexOf(indx) >= 0) {
+            item.m_ad.selectedIndex = 1;
+            item.data = 1;
+        }
+        else {
+            item.m_ad.selectedIndex = 0;
+            item.data = 0;
+        }
+    }
+    _OnHide() {
+    }
+}
+
+
+/***/ }),
+
 /***/ "./src/LTGame/UIExt/DefaultUI/UI_CommomToastMediator.ts":
 /*!**************************************************************!*\
   !*** ./src/LTGame/UIExt/DefaultUI/UI_CommomToastMediator.ts ***!
@@ -8118,10 +20349,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
 /* harmony import */ var _UI_LTGame_UI_CommonEndLose__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./UI/LTGame/UI_CommonEndLose */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonEndLose.ts");
 /* harmony import */ var _Data_EndLoseOpenData__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./Data/EndLoseOpenData */ "./src/LTGame/UIExt/DefaultUI/Data/EndLoseOpenData.ts");
-/* harmony import */ var _Cmp_View_OtherGames__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./Cmp/View_OtherGames */ "./src/LTGame/UIExt/DefaultUI/Cmp/View_OtherGames.ts");
-/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
-/* harmony import */ var _LTUI__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../LTUI */ "./src/LTGame/UIExt/LTUI.ts");
-
+/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+/* harmony import */ var _LTUI__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../LTUI */ "./src/LTGame/UIExt/LTUI.ts");
 
 
 
@@ -8151,16 +20380,13 @@ class UI_CommonEndLoseMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MO
             this.ui.m_text_str.text = this._openData.showText;
         }
         this.ui.m_c1.selectedIndex = this._openData.enableShowGames ? 0 : 1;
-        if (this._openData.enableShowGames) {
-            _Cmp_View_OtherGames__WEBPACK_IMPORTED_MODULE_3__["default"].CreateView(this.ui.m_view_othergames);
-        }
         this.ui.m_btn_no.onClick(this, this._OnClickRestart);
         this.ui.m_btn_watchad.onClick(this, this._OnClickWatchAd);
-        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.ShowBannerAd();
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.ShowBannerAd();
     }
     _OnClickWatchAd() {
         return __awaiter(this, void 0, void 0, function* () {
-            let result = yield _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.ShowRewardVideoAdAsync();
+            let result = yield _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.ShowRewardVideoAdAsync();
             if (result) {
                 if (this._openData.onClose) {
                     this._openData.onClose.runWith([1]);
@@ -8168,7 +20394,7 @@ class UI_CommonEndLoseMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MO
                 this.Hide();
             }
             else {
-                _LTUI__WEBPACK_IMPORTED_MODULE_5__["default"].Toast("跳过广告无法获得奖励");
+                _LTUI__WEBPACK_IMPORTED_MODULE_4__["default"].Toast("跳过广告无法获得奖励");
             }
         });
     }
@@ -8179,7 +20405,7 @@ class UI_CommonEndLoseMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MO
         this.Hide();
     }
     _OnHide() {
-        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.HideBannerAd();
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.HideBannerAd();
     }
 }
 
@@ -8368,6 +20594,10 @@ __webpack_require__.r(__webpack_exports__);
 
 
 class UI_CommonEndShareMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__["default"] {
+    constructor() {
+        super(...arguments);
+        this.clickCount = 0;
+    }
     static get instance() {
         if (this._instance == null) {
             this._instance = new UI_CommonEndShareMediator();
@@ -8396,6 +20626,7 @@ class UI_CommonEndShareMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_M
         if (this._openData.rewardText) {
             this.ui.m_view.m_text_reward.text = this._openData.rewardText;
         }
+        this.clickCount = 0;
         this.ui.m_view.m_btn_nothanks.onClick(this, this._OnClickClose);
         this.ui.m_view.m_btn_share.onClick(this, this._OnClickShare);
         this.ui.m_view.m_btn_share.m_btn_type.selectedIndex = 1;
@@ -8414,6 +20645,10 @@ class UI_CommonEndShareMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_M
         }));
     }
     _OnClickClose() {
+        if (this.clickCount == 0) {
+            this.clickCount++;
+            return;
+        }
         if (this._openData.onClose) {
             this._openData.onClose.runWith([0, this.ui.m_view.m_icon_reward]);
         }
@@ -8665,16 +20900,16 @@ class UI_CommonOneMoreMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MO
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_CommonRollMediator; });
-/* harmony import */ var _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
-/* harmony import */ var _UI_LTGame_UI_CommonRoll__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./UI/LTGame/UI_CommonRoll */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonRoll.ts");
-/* harmony import */ var _Data_RollOpenData__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./Data/RollOpenData */ "./src/LTGame/UIExt/DefaultUI/Data/RollOpenData.ts");
-/* harmony import */ var _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../LTUtils/MathEx */ "./src/LTGame/LTUtils/MathEx.ts");
-/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
-/* harmony import */ var _LTUI__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../LTUI */ "./src/LTGame/UIExt/LTUI.ts");
-/* harmony import */ var _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../../Commom/CommonSaveData */ "./src/LTGame/Commom/CommonSaveData.ts");
-/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
-/* harmony import */ var _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../../../SDK/common/ECheckState */ "./src/SDK/common/ECheckState.ts");
-/* harmony import */ var _Async_Awaiters__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../../Async/Awaiters */ "./src/LTGame/Async/Awaiters.ts");
+/* harmony import */ var _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../SDK/common/ECheckState */ "./src/SDK/common/ECheckState.ts");
+/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
+/* harmony import */ var _Async_Awaiters__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../Async/Awaiters */ "./src/LTGame/Async/Awaiters.ts");
+/* harmony import */ var _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../Commom/CommonSaveData */ "./src/LTGame/Commom/CommonSaveData.ts");
+/* harmony import */ var _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../LTUtils/MathEx */ "./src/LTGame/LTUtils/MathEx.ts");
+/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+/* harmony import */ var _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
+/* harmony import */ var _LTUI__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../LTUI */ "./src/LTGame/UIExt/LTUI.ts");
+/* harmony import */ var _Data_RollOpenData__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./Data/RollOpenData */ "./src/LTGame/UIExt/DefaultUI/Data/RollOpenData.ts");
+/* harmony import */ var _UI_LTGame_UI_CommonRoll__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./UI/LTGame/UI_CommonRoll */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonRoll.ts");
 
 
 
@@ -8685,7 +20920,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-class UI_CommonRollMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__["default"] {
+class UI_CommonRollMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_6__["default"] {
     constructor() {
         super(...arguments);
         this._randomIndex = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -8696,7 +20931,7 @@ class UI_CommonRollMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODUL
     static get instance() {
         if (this._instance == null) {
             this._instance = new UI_CommonRollMediator();
-            this._instance._classDefine = _UI_LTGame_UI_CommonRoll__WEBPACK_IMPORTED_MODULE_1__["default"];
+            this._instance._classDefine = _UI_LTGame_UI_CommonRoll__WEBPACK_IMPORTED_MODULE_9__["default"];
         }
         return this._instance;
     }
@@ -8704,7 +20939,7 @@ class UI_CommonRollMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODUL
         super._OnShow();
         // your code
         this.isFake = false;
-        this._openData = new _Data_RollOpenData__WEBPACK_IMPORTED_MODULE_2__["default"]();
+        this._openData = new _Data_RollOpenData__WEBPACK_IMPORTED_MODULE_8__["default"]();
         if (this._openParam == null) {
             console.error("请传入RollOpenData用于初始化大转盘界面");
         }
@@ -8714,10 +20949,10 @@ class UI_CommonRollMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODUL
             }
         }
         this.ui.m_rewardPannel.visible = false;
-        if (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_7__["default"].instance.checkState == _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_8__["ECheckState"].NoGame) {
+        if (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__["default"].instance.checkState == _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_0__["ECheckState"].NoGame) {
             this.ui.m_rewardPannel.m_c1.selectedIndex = 1;
         }
-        this.ui.m_btn_roll.m_btn_type.selectedIndex = _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_6__["default"].instance.freeRollCount > 0 ? 3 : 0;
+        this.ui.m_btn_roll.m_btn_type.selectedIndex = _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].instance.freeRollCount > 0 ? 3 : 0;
         this.ui.m_btn_close.onClick(this, this._OnClickClose);
         this.ui.m_btn_roll.onClick(this, this._OnClickRoll);
         this.ui.m_rewardPannel.m_btn_get.onClick(this, this.onGetReward);
@@ -8738,7 +20973,7 @@ class UI_CommonRollMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODUL
                 this._openData.titleList[i] = "测试数据" + i;
             }
         }
-        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.ShowBannerAd();
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_5__["default"].instance.ShowBannerAd();
     }
     onGetReward() {
         // if (LTSDK.instance.checkState == ECheckState.NoGame) {
@@ -8751,7 +20986,7 @@ class UI_CommonRollMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODUL
             this._OnClickRoll();
             return;
         }
-        if (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_7__["default"].instance.checkState == _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_8__["ECheckState"].NoGame) {
+        if (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__["default"].instance.checkState == _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_0__["ECheckState"].NoGame) {
             this._fakeGet();
         }
         else {
@@ -8769,32 +21004,32 @@ class UI_CommonRollMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODUL
     _fakeGet() {
         return __awaiter(this, void 0, void 0, function* () {
             this.isFake = true;
-            yield _Async_Awaiters__WEBPACK_IMPORTED_MODULE_9__["default"].Seconds(1);
+            yield _Async_Awaiters__WEBPACK_IMPORTED_MODULE_2__["default"].Seconds(1);
             this.onRewardGot();
         });
     }
     _OnClickRoll() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (_Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_6__["default"].instance.freeRollCount > 0) {
-                _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_6__["default"].instance.freeRollCount--;
-                _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_6__["default"].SaveToDisk();
+            if (_Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].instance.freeRollCount > 0) {
+                _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].instance.freeRollCount--;
+                _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].SaveToDisk();
                 this._DoRoll();
                 return;
             }
-            let result = yield _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.ShowRewardVideoAdAsync();
+            let result = yield _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_5__["default"].instance.ShowRewardVideoAdAsync();
             if (result) {
                 this._DoRoll();
             }
             else {
-                _LTUI__WEBPACK_IMPORTED_MODULE_5__["default"].Toast("跳过视频无法获得奖励");
+                _LTUI__WEBPACK_IMPORTED_MODULE_7__["default"].Toast("跳过视频无法获得奖励");
             }
         });
     }
     _DoRoll() {
-        _LTUI__WEBPACK_IMPORTED_MODULE_5__["default"].LockScreen();
-        this._cacheIndex = _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].RandomFromWithWeight(this._randomIndex, this._openData.rollWeight);
+        _LTUI__WEBPACK_IMPORTED_MODULE_7__["default"].LockScreen();
+        this._cacheIndex = _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_4__["default"].RandomFromWithWeight(this._randomIndex, this._openData.rollWeight);
         let centerDegree = this._cacheIndex * this._unitDegree;
-        this._cacheDegree = centerDegree + _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(-this._unitDegree, this._unitDegree) * 0.2;
+        this._cacheDegree = centerDegree + _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_4__["default"].Random(-this._unitDegree, this._unitDegree) * 0.2;
         let targetDegree = 360 * this._rotateCount + this._cacheDegree;
         Laya.Tween.to(this.ui.m_view_roll, { rotation: targetDegree }, this._rotateTime, Laya.Ease.quadOut, Laya.Handler.create(this, this._OnRollEnd));
     }
@@ -8802,14 +21037,14 @@ class UI_CommonRollMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODUL
         this.ui.m_rewardPannel.visible = true;
         this.ui.m_rewardPannel.m_img.url = this._openData.iconList[this._cacheIndex];
         this.ui.m_rewardPannel.m_txt_reward.text = this._openData.titleList[this._cacheIndex];
-        this.ui.m_btn_roll.m_btn_type.selectedIndex = _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_6__["default"].instance.freeRollCount > 0 ? 3 : 0;
-        _LTUI__WEBPACK_IMPORTED_MODULE_5__["default"].UnlockScreen();
+        this.ui.m_btn_roll.m_btn_type.selectedIndex = _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].instance.freeRollCount > 0 ? 3 : 0;
+        _LTUI__WEBPACK_IMPORTED_MODULE_7__["default"].UnlockScreen();
     }
     _OnClickClose() {
         this.Hide();
     }
     _OnHide() {
-        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.HideBannerAd();
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_5__["default"].instance.HideBannerAd();
     }
 }
 
@@ -8894,20 +21129,22 @@ class UI_CommonSetMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE
 /*!*************************************************************!*\
   !*** ./src/LTGame/UIExt/DefaultUI/UI_CommonSignMediator.ts ***!
   \*************************************************************/
-/*! exports provided: default */
+/*! exports provided: UI_CommonSignMediator */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_CommonSignMediator; });
-/* harmony import */ var _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
-/* harmony import */ var _UI_LTGame_UI_CommonSign__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./UI/LTGame/UI_CommonSign */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonSign.ts");
-/* harmony import */ var _Data_SignOpenData__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./Data/SignOpenData */ "./src/LTGame/UIExt/DefaultUI/Data/SignOpenData.ts");
-/* harmony import */ var _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../Commom/CommonSaveData */ "./src/LTGame/Commom/CommonSaveData.ts");
-/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
-/* harmony import */ var _LTUI__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../LTUI */ "./src/LTGame/UIExt/LTUI.ts");
-/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
-/* harmony import */ var _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../../../SDK/common/ECheckState */ "./src/SDK/common/ECheckState.ts");
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "UI_CommonSignMediator", function() { return UI_CommonSignMediator; });
+/* harmony import */ var _script_common_GameData__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../script/common/GameData */ "./src/script/common/GameData.ts");
+/* harmony import */ var _script_config_SignConfig__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../script/config/SignConfig */ "./src/script/config/SignConfig.ts");
+/* harmony import */ var _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../SDK/common/ECheckState */ "./src/SDK/common/ECheckState.ts");
+/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
+/* harmony import */ var _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../Commom/CommonSaveData */ "./src/LTGame/Commom/CommonSaveData.ts");
+/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+/* harmony import */ var _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
+/* harmony import */ var _LTUI__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../LTUI */ "./src/LTGame/UIExt/LTUI.ts");
+/* harmony import */ var _Data_CommonRewardData__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./Data/CommonRewardData */ "./src/LTGame/UIExt/DefaultUI/Data/CommonRewardData.ts");
+/* harmony import */ var _UI_LTGame_UI_CommonSign2__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./UI/LTGame/UI_CommonSign2 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonSign2.ts");
 
 
 
@@ -8916,152 +21153,137 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-class UI_CommonSignMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__["default"] {
-    constructor() {
-        super(...arguments);
-        this._isChecked = true;
+
+
+/** 签到 */
+class UI_CommonSignMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_6__["default"] {
+    get ui() {
+        return this._ui;
     }
     static get instance() {
         if (this._instance == null) {
             this._instance = new UI_CommonSignMediator();
-            this._instance._classDefine = _UI_LTGame_UI_CommonSign__WEBPACK_IMPORTED_MODULE_1__["default"];
+            this._instance._classDefine = _UI_LTGame_UI_CommonSign2__WEBPACK_IMPORTED_MODULE_9__["default"];
         }
         return this._instance;
     }
     _OnShow() {
         super._OnShow();
-        // your code
-        this._openData = new _Data_SignOpenData__WEBPACK_IMPORTED_MODULE_2__["default"]();
+        this._openData = new _Data_CommonRewardData__WEBPACK_IMPORTED_MODULE_8__["CommonRewardData"]();
         if (this._openParam == null) {
-            console.error("请传入SignOpenData用于初始化签到界面");
+            console.error("请传入 CommonRewardData  onGetSkin  onGetMoney 用于初始化签到界面");
         }
         else {
             for (let key in this._openParam) {
                 this._openData[key] = this._openParam[key];
             }
         }
-        switch (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_6__["default"].instance.checkState) {
-            case _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_7__["ECheckState"].InCheck:
-                this.ui.m_view.m_toggle_watchad.visible = false;
-                this._isChecked = false;
-                this.ui.m_view.m_check_state.selectedIndex = 0;
-                break;
-            case _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_7__["ECheckState"].Normal:
-                this._isChecked = false;
-                this.ui.m_view.m_check_state.selectedIndex = 1;
-                break;
-            case _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_7__["ECheckState"].NoGame:
-                this._isChecked = true;
-                this.ui.m_view.m_check_state.selectedIndex = 1;
-                break;
+        if (!_Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].instance.isSigned && _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].instance.signDayCount == 7) {
+            _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].instance.signDayCount = 0;
+            _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].SaveToDisk();
         }
-        this.ui.m_view.m_btn_close.onClick(this, this._OnClickClose);
-        this.ui.m_view.m_btn_get.onClick(this, this._OnClickGet);
-        this.ui.m_view.m_toggle_watchad.onClick(this, this._OnClickToggle);
-        this.ui.m_view.m_btn_watchad.onClick(this, this._OnClickWatchAd);
-        this.ui.m_view.m_toggle_watchad.m_selected.selectedIndex = this._isChecked ? 1 : 0;
-        this._UpdateUI();
-        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.ShowBannerAd();
+        this.ui.m_isSigned.selectedIndex = _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].instance.isSigned ? 1 : 0;
+        this.ui.m_btn_close.onClick(this, this.Hide);
+        this.ui.m_btn_nornalRwd.onClick(this, this.onNormalGet);
+        this.ui.m_btn_videoRwd.onClick(this, this.onVideoGet);
+        this.ui.m_dayList.setVirtual();
+        this.ui.m_dayList.itemRenderer = Laya.Handler.create(this, this.renderItem, null, false);
+        this.ui.m_dayList.on(fairygui.Events.CLICK_ITEM, this, this.onItemClick);
+        this.ui.m_dayList.numItems = 7;
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_5__["default"].instance.HideBannerAd();
     }
-    _UpdateUI() {
-        let isSigned = _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].instance.isSigned;
-        if (this._openData.isSigned != null) {
-            isSigned = this._openData.isSigned;
+    onItemClick(item) {
+    }
+    renderItem(index, item) {
+        if (index == 6) {
+            item.m_type.selectedIndex = 2;
         }
-        this.ui.m_view.m_btn_get.enabled = !isSigned;
-        this.ui.m_view.m_signed.selectedIndex = isSigned ? 1 : 0;
-        let currentSignDay = _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].instance.signDayCount;
-        if (this._openData.currentDayCount != null) {
-            currentSignDay = this._openData.currentDayCount;
-        }
-        let displayDay = currentSignDay % 7;
-        // 更新6天内
-        for (let i = 0; i < this.ui.m_view.m_list_day.numChildren; ++i) {
-            let itemUI = this.ui.m_view.m_list_day.getChildAt(i);
-            itemUI.m_text_day.text = "第" + (i + 1) + "天";
-            if (this._openData.iconPaths && this._openData.iconPaths[i]) {
-                itemUI.m_icon_reward.url = this._openData.iconPaths[i];
-            }
-            if (i < displayDay || (displayDay == 0 && isSigned)) {
-                itemUI.m_c1.selectedIndex = 1;
-            }
-            else {
-                itemUI.m_c1.selectedIndex = 0;
-            }
-            itemUI.m_text_reward.text = this._openData.rewardStrs[i];
-        }
-        if (this._openData.iconPaths && this._openData.iconPaths[6]) {
-            this.ui.m_view.m_view_day7.m_icon_reward.url = this._openData.iconPaths[6];
-        }
-        // 更新第七天
-        this.ui.m_view.m_view_day7.m_text_day.text = "第七天";
-        this.ui.m_view.m_view_day7.m_text_reward.text = this._openData.rewardStrs[6];
-        if (displayDay == 0 && isSigned) {
-            this.ui.m_view.m_view_day7.m_c1.selectedIndex = 1;
+        else if (index % 2 == 0) {
+            item.m_type.selectedIndex = 1;
         }
         else {
-            this.ui.m_view.m_view_day7.m_c1.selectedIndex = 0;
+            item.m_type.selectedIndex = 0;
         }
-        if (!isSigned) {
-            if (displayDay < 6) {
-                this._cacheRewardItem = this.ui.m_view.m_list_day.getChildAt(displayDay);
-                this._cacheRewardItem.m_c1.selectedIndex = 2;
+        let data = _script_config_SignConfig__WEBPACK_IMPORTED_MODULE_1__["SignConfig"].dataList[index];
+        item.m_day.text = `第${data.id}天`;
+        item.m_icon.url = data.icon;
+        let showDesc = _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_3__["default"].instance.checkState != _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_2__["ECheckState"].InCheck || data.type == 1;
+        item.m_title.text = showDesc ? data.title : `+${data.value}`;
+        if (_Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].instance.isSigned) {
+            if (index < _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].instance.signDayCount) {
+                item.m_state.selectedIndex = 2;
             }
             else {
-                this._cacheRewardItem = this.ui.m_view.m_view_day7;
-                this._cacheRewardItem.m_c1.selectedIndex = 2;
+                item.m_state.selectedIndex = 0;
+            }
+        }
+        else {
+            if (index == _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].instance.signDayCount) {
+                item.m_state.selectedIndex = 1;
+                this.todayData = data;
+                this.ui.m_btn_nornalRwd.title = data.type == 1 ? '只拿皮肤' : '只拿金币';
+            }
+            else if (index < _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].instance.signDayCount) {
+                item.m_state.selectedIndex = 2;
+            }
+            else {
+                item.m_state.selectedIndex = 0;
             }
         }
     }
-    _OnClickToggle() {
-        this._isChecked = !this._isChecked;
-        this.ui.m_view.m_toggle_watchad.m_selected.selectedIndex = this._isChecked ? 1 : 0;
-    }
-    _OnClickGet() {
-        if (this._isChecked) {
-            this._OnClickDoubleGet();
-        }
-        else {
-            this._OnClickNormalGet();
-        }
-    }
-    _OnClickWatchAd() {
-        this._OnClickDoubleGet();
-    }
-    _OnClickNormalGet() {
-        _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].instance.isSigned = true;
-        _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].instance.signDayCount++;
-        _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].SaveToDisk();
-        if (this._openData.onClose) {
-            this._openData.onClose.runWith([1, this._cacheRewardItem.m_icon_reward, (_Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].instance.signDayCount - 1) % 7]);
-        }
-        this.Hide();
-    }
-    _OnClickDoubleGet() {
+    onVideoGet() {
         return __awaiter(this, void 0, void 0, function* () {
-            let result = yield _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.ShowRewardVideoAdAsync();
+            let result = yield _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_5__["default"].instance.ShowRewardVideoAdAsync();
             if (result) {
-                _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].instance.isSigned = true;
-                _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].instance.signDayCount++;
-                _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].SaveToDisk();
-                if (this._openData.onClose) {
-                    this._openData.onClose.runWith([2, this._cacheRewardItem.m_icon_reward, (_Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_3__["default"].instance.signDayCount - 1) % 7]);
+                _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].instance.signDayCount++;
+                _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].instance.isSigned = true;
+                this.ui.m_isSigned.selectedIndex = 1;
+                this.ui.m_dayList.refreshVirtualList();
+                let rewd = this.todayData.type == 1 ? `${this.todayData.title}+${this.todayData.money}金币` : `${this.todayData.value + this.todayData.money}金币`;
+                _LTUI__WEBPACK_IMPORTED_MODULE_7__["default"].Toast(`恭喜获得 ${rewd}`);
+                if (this.todayData.type == 1) {
+                    this.getSkin(this.todayData.value);
+                    _script_common_GameData__WEBPACK_IMPORTED_MODULE_0__["default"].instance.coinCount += (this.todayData.money);
+                    _script_common_GameData__WEBPACK_IMPORTED_MODULE_0__["default"].SaveToDisk();
                 }
+                else {
+                    _script_common_GameData__WEBPACK_IMPORTED_MODULE_0__["default"].instance.coinCount += (this.todayData.money + this.todayData.value);
+                    _script_common_GameData__WEBPACK_IMPORTED_MODULE_0__["default"].SaveToDisk();
+                }
+                _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].SaveToDisk();
                 this.Hide();
             }
             else {
-                _LTUI__WEBPACK_IMPORTED_MODULE_5__["default"].Toast("跳过广告无法获得奖励");
+                _LTUI__WEBPACK_IMPORTED_MODULE_7__["default"].Toast("跳过广告无法获得奖励");
             }
         });
     }
-    _OnClickClose() {
-        if (this._openData.onClose) {
-            this._openData.onClose.runWith(0);
+    getSkin(id) {
+        // CommonSaveData.instance.skinAdCount = 0;
+        if (this._openData) {
+            this._openData.onGetSkin(id);
         }
+    }
+    onNormalGet() {
+        if (this.todayData.type == 1) {
+            this.getSkin(this.todayData.value);
+        }
+        else {
+            _LTUI__WEBPACK_IMPORTED_MODULE_7__["default"].Toast(`恭喜获得 ${this.todayData.money}金币`);
+            _script_common_GameData__WEBPACK_IMPORTED_MODULE_0__["default"].instance.coinCount += this.todayData.money;
+            _script_common_GameData__WEBPACK_IMPORTED_MODULE_0__["default"].SaveToDisk();
+        }
+        _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].instance.signDayCount++;
+        _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].instance.isSigned = true;
+        _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_4__["default"].SaveToDisk();
         this.Hide();
+        // if (LTSDK.instance.checkState == ECheckState.InCheck) {
+        // }
+        // else {
+        //     this.onVideoGet();
+        // }
     }
     _OnHide() {
-        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.HideBannerAd();
     }
 }
 
@@ -9077,16 +21299,16 @@ class UI_CommonSignMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODUL
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_CommonTrySkinMediator; });
-/* harmony import */ var _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
-/* harmony import */ var _UI_LTGame_UI_CommonTrySkin__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./UI/LTGame/UI_CommonTrySkin */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonTrySkin.ts");
-/* harmony import */ var _Data_TrySkinOpenData__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./Data/TrySkinOpenData */ "./src/LTGame/UIExt/DefaultUI/Data/TrySkinOpenData.ts");
-/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
-/* harmony import */ var _LTUI__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../LTUI */ "./src/LTGame/UIExt/LTUI.ts");
-/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
-/* harmony import */ var _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../../../SDK/common/ECheckState */ "./src/SDK/common/ECheckState.ts");
-/* harmony import */ var _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../../LTUtils/MathEx */ "./src/LTGame/LTUtils/MathEx.ts");
-/* harmony import */ var _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../../Commom/CommonSaveData */ "./src/LTGame/Commom/CommonSaveData.ts");
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_TrySkinMediator; });
+/* harmony import */ var _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../SDK/common/ECheckState */ "./src/SDK/common/ECheckState.ts");
+/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
+/* harmony import */ var _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../LTUtils/MathEx */ "./src/LTGame/LTUtils/MathEx.ts");
+/* harmony import */ var _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../Platform/EPlatformType */ "./src/LTGame/Platform/EPlatformType.ts");
+/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+/* harmony import */ var _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
+/* harmony import */ var _LTUI__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../LTUI */ "./src/LTGame/UIExt/LTUI.ts");
+/* harmony import */ var _Data_TrySkinOpenData__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./Data/TrySkinOpenData */ "./src/LTGame/UIExt/DefaultUI/Data/TrySkinOpenData.ts");
+/* harmony import */ var _UI_LTGame_UI_TrySkin__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./UI/LTGame/UI_TrySkin */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_TrySkin.ts");
 
 
 
@@ -9096,26 +21318,21 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-class UI_CommonTrySkinMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__["default"] {
+class UI_TrySkinMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_5__["default"] {
     constructor() {
         super(...arguments);
-        this.checkFlag = true;
+        this.needPay = false;
     }
     static get instance() {
         if (this._instance == null) {
-            this._instance = new UI_CommonTrySkinMediator();
-            this._instance._classDefine = _UI_LTGame_UI_CommonTrySkin__WEBPACK_IMPORTED_MODULE_1__["default"];
+            this._instance = new UI_TrySkinMediator();
+            this._instance._classDefine = _UI_LTGame_UI_TrySkin__WEBPACK_IMPORTED_MODULE_8__["default"];
         }
         return this._instance;
     }
     _OnShow() {
-        if (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_5__["default"].instance.checkState != _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_6__["ECheckState"].Normal) {
-            _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_5__["default"].instance.isDelayClose = false;
-        }
         super._OnShow();
-        // your code
-        this.checkFlag = _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_8__["default"].instance.checkFlag;
-        this._openData = new _Data_TrySkinOpenData__WEBPACK_IMPORTED_MODULE_2__["default"]();
+        this._openData = new _Data_TrySkinOpenData__WEBPACK_IMPORTED_MODULE_7__["default"]();
         if (this._openParam == null) {
             console.error("请传入TrySkinOpenData用于初始化皮肤试用界面");
         }
@@ -9124,115 +21341,84 @@ class UI_CommonTrySkinMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MO
                 this._openData[key] = this._openParam[key];
             }
         }
-        _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_8__["default"].instance.trySignMissMode = 1 - _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_8__["default"].instance.trySignMissMode;
-        _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_8__["default"].SaveToDisk();
-        if (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_5__["default"].instance.checkState == _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_6__["ECheckState"].NoGame) {
-            this.changeCheck();
-            this.ui.m_btn_thanks.text = "暂时试用";
-        }
-        else {
-            this.ui.m_btn_thanks.text = "暂不试用";
-        }
-        if (this._openData.iconPaths == null || this._openData.iconPaths.length != 4) {
-            console.error("请传入试用皮肤图标");
-        }
-        for (let i = 0; i < this.ui.m_list_item.numChildren; ++i) {
-            let getUI = this.ui.m_list_item.getChildAt(i);
-            if (this._openData.iconPaths && this._openData.iconPaths[i]) {
-                getUI.m_icon.url = this._openData.iconPaths[i];
-            }
-            getUI.onClick(this, this._OnClickTrySkin, [i]);
-        }
-        this.ui.m_btn_thanks.onClick(this, this._OnClickNoThanks);
-        this.ui.m_btn_toggle_check.onClick(this, this._OnClickToggle);
-        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.ShowBannerAd();
+        this.Init();
+        //LTPlatform.instance.ShowBannerAd();
     }
-    _OnClickToggle() {
-        this.ui.m_btn_toggle_check.m_selected.selectedIndex = (this.ui.m_btn_toggle_check.m_selected.selectedIndex + 1) % 2;
-        if (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_5__["default"].instance.checkState == _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_6__["ECheckState"].NoGame) {
-            this.ui.m_btn_thanks.text = this.checkFlag ? (this.ui.m_btn_toggle_check.m_selected.selectedIndex == 1 ? "暂时试用" : "暂不试用") : (this.ui.m_btn_toggle_check.m_selected.selectedIndex == 0 ? "暂时试用" : "暂不试用");
+    Init() {
+        switch (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__["default"].instance.checkState) {
+            case _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_0__["ECheckState"].InCheck:
+            case _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_0__["ECheckState"].Normal:
+            default:
+                this.ui.m_check_type.selectedIndex = 1;
+                this.ui.m_btn_no.title = '不了，谢谢';
+                this.ui.m_btn_watch.title = "点击试用";
+                if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Oppo) {
+                    this.ui.m_check_type.selectedIndex = 1;
+                    this.ui.m_btn_pay.m_select.selectedIndex = 0;
+                    this.ui.m_btn_no.title = '不了，谢谢';
+                    this.ui.m_btn_watch.title = "点击试用";
+                    this.ui.m_oppo.selectedIndex = 1;
+                }
+                break;
+            case _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_0__["ECheckState"].NoGame:
+                this.ui.m_check_type.selectedIndex = 2;
+                this.ui.m_btn_no.title = '试用，谢谢';
+                break;
         }
-        else {
-            this.ui.m_btn_thanks.text = this.ui.m_btn_toggle_check.m_selected.selectedIndex == 1 ? "暂时试用" : "暂不试用";
-        }
-    }
-    changeCheck() {
-        if (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_5__["default"].instance.checkState == _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_6__["ECheckState"].NoGame) {
-            this.ui.m_btn_toggle_check.title = _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_8__["default"].instance.checkFlag ? '观看随机试用皮肤视频' : '不看随机试用皮肤视频';
-            this.ui.m_btn_toggle_check.m_selected.selectedIndex = _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_8__["default"].instance.checkFlag ? 1 : 0;
+        this.ui.m_btn_close.onClick(this, this.Hide);
+        this.ui.m_btn_watch.onClick(this, this.onVideoClick);
+        this.ui.m_btn_try.onClick(this, this.onVideoClick);
+        this.ui.m_btn_pay.onClick(this, this._onToggleClick);
+        this.ui.m_btn_no.onClick(this, this._onClickNo);
+        if (this._openData && this._openData.iconPaths) {
+            this._ui.m_icon.url = this._openData.iconPaths[0];
         }
     }
-    _OnClickTrySkin(index) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let result = yield _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.ShowRewardVideoAdAsync();
-            if (result) {
-                if (this._openData.onClose) {
-                    this._openData.onClose.runWith(index);
-                }
-                this.Hide();
-            }
-            else {
-                _LTUI__WEBPACK_IMPORTED_MODULE_4__["default"].Toast("跳过视频无法获得奖励");
-            }
-        });
-    }
-    _OnClickNoThanks() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_5__["default"].instance.checkState != _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_6__["ECheckState"].NoGame) {
-                if (this.ui.m_btn_toggle_check.m_selected.selectedIndex == 1) {
-                    yield this.randomRewardVideo();
-                }
-                else {
-                    this.noPayClose();
-                }
-            }
-            else {
-                if (this.ui.m_btn_toggle_check.m_selected.selectedIndex == 1) {
-                    if (this.checkFlag) {
-                        yield this.randomRewardVideo();
-                    }
-                    else {
-                        this.noPayClose();
-                    }
-                }
-                else {
-                    if (this.checkFlag) {
-                        this.noPayClose();
-                    }
-                    else {
-                        yield this.randomRewardVideo();
-                    }
-                }
-            }
-        });
-    }
-    noPayClose() {
-        if (this._openData.onClose) {
-            this._openData.onClose.runWith(-1);
-        }
-        this.checkFlag = !this.checkFlag;
+    _onClickNo() {
         this.Hide();
+        // if (LTSDK.instance.checkState == ECheckState.InCheck || LTPlatform.instance.platform == EPlatformType.Oppo) {
+        // } else {
+        //     if (this.ui.m_btn_pay.m_select.selectedIndex == 1) {
+        //         this.onVideoClick();
+        //     } else {
+        //         this.Hide();
+        //     }
+        // }
     }
-    randomRewardVideo() {
+    _onToggleClick() {
+        if (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__["default"].instance.checkState == _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_0__["ECheckState"].InCheck) {
+            // this.ui.m_btn_pay
+            return;
+        }
+        else if (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__["default"].instance.checkState == _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_0__["ECheckState"].Normal) {
+            this.ui.m_btn_pay.m_select.selectedIndex = (this.ui.m_btn_pay.m_select.selectedIndex + 1) % 2;
+            return;
+        }
+        let rand = _LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_2__["default"].RandomInt(0, 100);
+        this.needPay = rand < _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__["default"].instance.payRate;
+        if (this.needPay) {
+            this.onVideoClick();
+        }
+        else {
+            this.ui.m_btn_pay.m_select.selectedIndex = (this.ui.m_btn_pay.m_select.selectedIndex + 1) % 2;
+            this.ui.m_btn_no.title = this.ui.m_btn_pay.m_select.selectedIndex == 1 ? '试用，谢谢' : '不用，谢谢';
+        }
+    }
+    onVideoClick() {
         return __awaiter(this, void 0, void 0, function* () {
-            let result = yield _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.ShowRewardVideoAdAsync();
-            if (result) {
-                if (this._openData.onClose) {
-                    this._openData.onClose.runWith(_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_7__["default"].RandomInt(0, 4));
+            let res = yield _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.ShowRewardVideoAdAsync();
+            if (res) {
+                if (this._openData && this._openData.onClose) {
+                    this._openData.onClose.runWith(0);
+                    this.Hide();
                 }
-                this.Hide();
             }
             else {
-                _LTUI__WEBPACK_IMPORTED_MODULE_4__["default"].Toast("跳过视频无法获得奖励");
+                _LTUI__WEBPACK_IMPORTED_MODULE_6__["default"].Toast('完整观看视频可获得奖励');
             }
         });
     }
     _OnHide() {
-        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.HideBannerAd();
-        if (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_5__["default"].instance.checkState == _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_6__["ECheckState"].NoGame) {
-            _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_8__["default"].instance.checkFlag = this.checkFlag;
-            _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_8__["default"].SaveToDisk();
-        }
     }
 }
 
@@ -9375,6 +21561,135 @@ class UI_CommonUnlockProgressMediator extends _FGui_BaseUIMediator__WEBPACK_IMPO
                 _LTUI__WEBPACK_IMPORTED_MODULE_6__["default"].Toast("跳过广告无法获得奖励");
             }
         });
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI_ExSkinMediator.ts":
+/*!*********************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI_ExSkinMediator.ts ***!
+  \*********************************************************/
+/*! exports provided: UI_ExSkinMediator */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "UI_ExSkinMediator", function() { return UI_ExSkinMediator; });
+/* harmony import */ var _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../SDK/common/ECheckState */ "./src/SDK/common/ECheckState.ts");
+/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
+/* harmony import */ var _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../Commom/CommonSaveData */ "./src/LTGame/Commom/CommonSaveData.ts");
+/* harmony import */ var _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../Platform/EPlatformType */ "./src/LTGame/Platform/EPlatformType.ts");
+/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+/* harmony import */ var _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
+/* harmony import */ var _LTUI__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../LTUI */ "./src/LTGame/UIExt/LTUI.ts");
+/* harmony import */ var _Data_CommonRewardData__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./Data/CommonRewardData */ "./src/LTGame/UIExt/DefaultUI/Data/CommonRewardData.ts");
+/* harmony import */ var _UI_LTGame_UI_ExSkin__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./UI/LTGame/UI_ExSkin */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_ExSkin.ts");
+
+
+
+
+
+
+
+
+
+/**限定皮肤 */
+class UI_ExSkinMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_5__["default"] {
+    get ui() {
+        return this._ui;
+    }
+    static get instance() {
+        if (this._instance == null) {
+            this._instance = new UI_ExSkinMediator();
+            this._instance._classDefine = _UI_LTGame_UI_ExSkin__WEBPACK_IMPORTED_MODULE_8__["default"];
+        }
+        return this._instance;
+    }
+    _OnShow() {
+        super._OnShow();
+        this._openData = new _Data_CommonRewardData__WEBPACK_IMPORTED_MODULE_7__["CommonRewardData"]();
+        if (this._openParam == null) {
+            console.error("请传入CommonRewardData用于初始化限定皮肤界面");
+        }
+        else {
+            for (let key in this._openParam) {
+                this._openData[key] = this._openParam[key];
+            }
+        }
+        if (this._openData && this._openData.datas) {
+            this.ui.m_icon.url = this._openData.datas[0].icon;
+        }
+        if (_Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_2__["default"].instance.ExSkinAdCount >= 3) {
+            _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_2__["default"].instance.ExSkinAdCount = 0;
+            _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_2__["default"].SaveToDisk();
+        }
+        this.ui.m_list_pro.setVirtual();
+        this.ui.m_list_pro.itemRenderer = Laya.Handler.create(this, this.showProgress, null, false);
+        this.ui.m_list_pro.numItems = 3;
+        this.ui.m_list_pro.refreshVirtualList();
+        this.ui.m_btn_close.onClick(this, () => {
+            this.Hide();
+        });
+        this.ui.m_btn_ad.onClick(this, this.getReward);
+        this.ui.m_tog.onClick(this, () => {
+            this.ui.m_tog.m_selected.selectedIndex = (this.ui.m_tog.m_selected.selectedIndex + 1) % 2;
+            this.ui.m_btn_ad.m_ad.selectedIndex = this.ui.m_tog.m_selected.selectedIndex;
+        });
+        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Oppo) {
+            this.ui.m_btn_close.visible = true;
+            this.ui.m_tog.visible = false;
+            this.ui.m_tog.m_selected.selectedIndex = 1;
+        }
+        if (_SDK_LTSDK__WEBPACK_IMPORTED_MODULE_1__["default"].instance.checkState == _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_0__["ECheckState"].InCheck) {
+            this.ui.m_tog.m_selected.selectedIndex = 0;
+        }
+        else {
+            this.ui.m_tog.m_selected.selectedIndex = 1;
+        }
+        this.ui.m_btn_ad.m_ad.selectedIndex = this.ui.m_tog.m_selected.selectedIndex;
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.ShowBannerAd();
+    }
+    getReward() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.ui.m_tog.m_selected.selectedIndex == 1) {
+                let result = yield _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.ShowRewardVideoAdAsync();
+                if (result) {
+                    _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_2__["default"].instance.ExSkinAdCount += 1;
+                    _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_2__["default"].SaveToDisk();
+                    this.ui.m_list_pro.refreshVirtualList();
+                    if (_Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_2__["default"].instance.ExSkinAdCount >= 3) {
+                        this.getSkin();
+                    }
+                }
+                else {
+                    _LTUI__WEBPACK_IMPORTED_MODULE_6__["default"].Toast("跳过广告无法获得奖励");
+                }
+            }
+            else {
+                this.Hide();
+            }
+        });
+    }
+    getSkin() {
+        if (this._openData && this._openData.onGetSkin) {
+            this._openData.onGetSkin();
+        }
+        _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_2__["default"].instance.ExSkinAdCount = 0;
+        _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_2__["default"].SaveToDisk();
+        this.Hide();
+    }
+    showProgress(index, item) {
+        if (index < _Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_2__["default"].instance.ExSkinAdCount) {
+            item.m_select.selectedIndex = 1;
+        }
+        else {
+            item.m_select.selectedIndex = 0;
+        }
+    }
+    _OnHide() {
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.HideBannerAd();
     }
 }
 
@@ -9654,6 +21969,110 @@ class UI_FlyPanelMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_
 
 /***/ }),
 
+/***/ "./src/LTGame/UIExt/DefaultUI/UI_GameCenterMediator.ts":
+/*!*************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI_GameCenterMediator.ts ***!
+  \*************************************************************/
+/*! exports provided: UI_GameCenterMediator */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "UI_GameCenterMediator", function() { return UI_GameCenterMediator; });
+/* harmony import */ var _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
+/* harmony import */ var _UI_LTGame_UI_GameCenter__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./UI/LTGame/UI_GameCenter */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_GameCenter.ts");
+/* harmony import */ var _UI_LTGame_UI_item_gameBig__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./UI/LTGame/UI_item_gameBig */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_item_gameBig.ts");
+/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
+/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+
+
+
+
+
+class UI_GameCenterMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__["default"] {
+    constructor() {
+        super(...arguments);
+        this._posId = 5;
+    }
+    get ui() {
+        return this._ui;
+    }
+    static get instance() {
+        if (this._instance == null) {
+            this._instance = new UI_GameCenterMediator();
+            this._instance._classDefine = _UI_LTGame_UI_GameCenter__WEBPACK_IMPORTED_MODULE_1__["default"];
+        }
+        return this._instance;
+    }
+    _OnShow() {
+        super._OnShow();
+        this.cacheAds = _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_3__["default"].instance.adManager.GetADListByLocationId(this._posId);
+        if (!this.cacheAds) {
+            console.error('获取广告ID失败GameCenter');
+            this.Hide();
+            return;
+        }
+        this.ui.m_topList.setVirtualAndLoop();
+        this.ui.m_topList.itemRenderer = Laya.Handler.create(this, this.renderItem, null, false);
+        this.ui.m_topList.on(fairygui.Events.CLICK_ITEM, this, this.clickItem);
+        this.ui.m_topList.numItems = this.cacheAds.length;
+        this.ui.m_topList.refreshVirtualList();
+        Laya.timer.loop(1000 * 5, this, () => {
+            this.ui.m_topList.scrollPane.scrollRight(148 / 128, true); //148/697*4
+        });
+        this.ui.m_centerList.setVirtual();
+        this.ui.m_centerList.itemRenderer = Laya.Handler.create(this, this.renderItem, null, false);
+        this.ui.m_centerList.on(fairygui.Events.CLICK_ITEM, this, this.clickItem);
+        this.ui.m_centerList.numItems = this.cacheAds.length;
+        this.ui.m_centerList.refreshVirtualList();
+        Laya.timer.loop(100, this, () => {
+            this.ui.m_centerList.scrollPane.scrollDown(0.005, true);
+        });
+        this.ui.m_btn_close.onClick(this, this.Hide);
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.HideBannerAd();
+        this.ui.m_btn_close.visible = false;
+        Laya.timer.once(3000, this, () => {
+            this.ui.m_btn_close.visible = true;
+        });
+        let ads = [];
+        this.cacheAds.forEach(adData => {
+            let ad = {};
+            ad.ad_id = adData.ad_id;
+            ad.location_id = this._posId;
+            ad.num = 1;
+            ads.push(ad);
+        });
+        _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_3__["default"].instance.ReportShowAd(ads);
+    }
+    clickItem(item) {
+        let uid = item.data['id'];
+        let path = item.data['path'];
+        let adid = item.data['adid'];
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.NavigateToApp(uid, path, null, false, false, adid);
+    }
+    renderItem(index, item) {
+        let data = this.cacheAds[index];
+        let info = {
+            id: data.ad_appid,
+            path: data.ad_path,
+            adid: data.ad_id
+        };
+        item.data = info;
+        item.m_title.text = data.ad_name;
+        item.m_icon.m_icon.url = data.ad_img;
+        item.m_red.visible = data.ad_dot == 1;
+        if (item instanceof _UI_LTGame_UI_item_gameBig__WEBPACK_IMPORTED_MODULE_2__["default"]) {
+            item.m_player.text = `${data.ad_count}人玩`;
+        }
+    }
+    _OnHide() {
+        // LTPlatform.instance.ShowBannerAd();
+    }
+}
+
+
+/***/ }),
+
 /***/ "./src/LTGame/UIExt/DefaultUI/UI_ImageBannerMediator.ts":
 /*!**************************************************************!*\
   !*** ./src/LTGame/UIExt/DefaultUI/UI_ImageBannerMediator.ts ***!
@@ -9815,6 +22234,72 @@ class FakeInterstitalData {
 
 /***/ }),
 
+/***/ "./src/LTGame/UIExt/DefaultUI/UI_SelfBannerMediator.ts":
+/*!*************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI_SelfBannerMediator.ts ***!
+  \*************************************************************/
+/*! exports provided: UI_SelfBannerMediator */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "UI_SelfBannerMediator", function() { return UI_SelfBannerMediator; });
+/* harmony import */ var _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
+/* harmony import */ var _UI_LTGame_UI_SelfBanner__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./UI/LTGame/UI_SelfBanner */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_SelfBanner.ts");
+/* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
+/* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+/* harmony import */ var _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../../SDK/common/ECheckState */ "./src/SDK/common/ECheckState.ts");
+
+
+
+
+
+class UI_SelfBannerMediator extends _FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__["default"] {
+    constructor() {
+        super(...arguments);
+        this._posId = 19;
+        this.showingIndex = 0;
+    }
+    get ui() {
+        return this._ui;
+    }
+    static get instance() {
+        if (this._instance == null) {
+            this._instance = new UI_SelfBannerMediator();
+            this._instance._classDefine = _UI_LTGame_UI_SelfBanner__WEBPACK_IMPORTED_MODULE_1__["default"];
+        }
+        return this._instance;
+    }
+    _OnShow() {
+        super._OnShow();
+        this.cacheAds = _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_2__["default"].instance.adManager.GetADListByLocationId(this._posId);
+        if (!this.cacheAds || _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_2__["default"].instance.checkState == _SDK_common_ECheckState__WEBPACK_IMPORTED_MODULE_4__["ECheckState"].InCheck) {
+            this.Hide();
+            console.error('获取广告ID失败Banner');
+            return;
+        }
+        this.ui.sortingOrder = Number.MAX_SAFE_INTEGER;
+        this.refresh();
+        Laya.timer.loop(15 * 1000, this, this.refresh);
+        this.ui.m_banner.onClick(this, this.clickBanner);
+    }
+    clickBanner() {
+        let ad = this.cacheAds[this.showingIndex % this.cacheAds.length];
+        _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.NavigateToApp(ad.ad_appid, ad.ad_path);
+        this.refresh();
+    }
+    refresh() {
+        this.showingIndex++;
+        let id = this.showingIndex % this.cacheAds.length;
+        let data = this.cacheAds[id];
+        this.ui.m_banner.icon = data.ad_img;
+    }
+    _OnHide() { }
+}
+
+
+/***/ }),
+
 /***/ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts":
 /*!*************************************************!*\
   !*** ./src/LTGame/UIExt/FGui/BaseUIMediator.ts ***!
@@ -9836,6 +22321,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../../../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
 /* harmony import */ var _DefaultUI_Cmp_View_NativeIconLong__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../DefaultUI/Cmp/View_NativeIconLong */ "./src/LTGame/UIExt/DefaultUI/Cmp/View_NativeIconLong.ts");
 /* harmony import */ var _DefaultUI_Cmp_View_NativeInpage__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../DefaultUI/Cmp/View_NativeInpage */ "./src/LTGame/UIExt/DefaultUI/Cmp/View_NativeInpage.ts");
+/* harmony import */ var _DefaultUI_Cmp_View_WxSideGames__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../DefaultUI/Cmp/View_WxSideGames */ "./src/LTGame/UIExt/DefaultUI/Cmp/View_WxSideGames.ts");
+/* harmony import */ var _DefaultUI_Cmp_View_End3X3Games__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../DefaultUI/Cmp/View_End3X3Games */ "./src/LTGame/UIExt/DefaultUI/Cmp/View_End3X3Games.ts");
+
+
 
 
 
@@ -9856,7 +22345,7 @@ class BaseUIMediator {
          */
         this._needFilScreen = false;
         this._isShow = false;
-        this._sortOrder = 0;
+        this._sortOrder = 10;
     }
     get ui() {
         return this._ui;
@@ -9894,8 +22383,13 @@ class BaseUIMediator {
         const anim_enter = "m_anim_enter";
         if (this._ui[anim_enter] && _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_8__["default"].instance.isDelayClose) {
             let anim = this._ui[anim_enter];
-            anim.play();
+            anim.play(Laya.Handler.create(this, this._CallEnterAnimEnd));
         }
+    }
+    _CallEnterAnimEnd() {
+        this._OnEnterAnimEnd();
+    }
+    _OnEnterAnimEnd() {
     }
     _InitSelfAd() {
         let othergames = _DefaultUI_Cmp_View_OtherGames__WEBPACK_IMPORTED_MODULE_2__["default"].CreateView(this._ui['m___othergames']);
@@ -9953,6 +22447,20 @@ class BaseUIMediator {
         }
         else {
             this._ui['m___endSG'] = null;
+        }
+        let m___wxSG = _DefaultUI_Cmp_View_WxSideGames__WEBPACK_IMPORTED_MODULE_11__["default"].CreateView(this._ui['m___wxSG']);
+        if (m___wxSG) {
+            this._ui['m___wxSG'] = m___wxSG.ui;
+        }
+        else {
+            this._ui['m___wxSG'] = null;
+        }
+        let end3x3 = _DefaultUI_Cmp_View_End3X3Games__WEBPACK_IMPORTED_MODULE_12__["default"].CreateView(this._ui['m___end3x3']);
+        if (end3x3) {
+            this._ui['m___end3x3'] = end3x3.ui;
+        }
+        else {
+            this._ui['m___end3x3'] = null;
         }
     }
     _OnShow() { }
@@ -10142,20 +22650,26 @@ class LoadUIPack {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return LTUI; });
-/* harmony import */ var _DefaultUI_UI_CommomToastMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./DefaultUI/UI_CommomToastMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommomToastMediator.ts");
-/* harmony import */ var _DefaultUI_UI_CommonLoadMediator__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./DefaultUI/UI_CommonLoadMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonLoadMediator.ts");
-/* harmony import */ var _DefaultUI_UI_FlyPanelMediator__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./DefaultUI/UI_FlyPanelMediator */ "./src/LTGame/UIExt/DefaultUI/UI_FlyPanelMediator.ts");
-/* harmony import */ var _DefaultUI_UI_CommonSignMediator__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./DefaultUI/UI_CommonSignMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonSignMediator.ts");
+/* harmony import */ var _DefaultUI_Data_CommonRewardData__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./DefaultUI/Data/CommonRewardData */ "./src/LTGame/UIExt/DefaultUI/Data/CommonRewardData.ts");
+/* harmony import */ var _DefaultUI_UI_CommomToastMediator__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./DefaultUI/UI_CommomToastMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommomToastMediator.ts");
+/* harmony import */ var _DefaultUI_UI_CommonEndLoseMediator__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./DefaultUI/UI_CommonEndLoseMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonEndLoseMediator.ts");
+/* harmony import */ var _DefaultUI_UI_CommonEndRewardMediator__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./DefaultUI/UI_CommonEndRewardMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonEndRewardMediator.ts");
 /* harmony import */ var _DefaultUI_UI_CommonEndShareMediator__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./DefaultUI/UI_CommonEndShareMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonEndShareMediator.ts");
-/* harmony import */ var _DefaultUI_UI_CommonEndRewardMediator__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./DefaultUI/UI_CommonEndRewardMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonEndRewardMediator.ts");
-/* harmony import */ var _DefaultUI_UI_CommonOfflineMediator__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./DefaultUI/UI_CommonOfflineMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonOfflineMediator.ts");
-/* harmony import */ var _DefaultUI_UI_CommonTrySkinMediator__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./DefaultUI/UI_CommonTrySkinMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonTrySkinMediator.ts");
-/* harmony import */ var _DefaultUI_UI_CommonSetMediator__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./DefaultUI/UI_CommonSetMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonSetMediator.ts");
+/* harmony import */ var _DefaultUI_UI_CommonLoadMediator__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./DefaultUI/UI_CommonLoadMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonLoadMediator.ts");
+/* harmony import */ var _DefaultUI_UI_CommonLockScreenMediator__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./DefaultUI/UI_CommonLockScreenMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonLockScreenMediator.ts");
+/* harmony import */ var _DefaultUI_UI_CommonOfflineMediator__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./DefaultUI/UI_CommonOfflineMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonOfflineMediator.ts");
+/* harmony import */ var _DefaultUI_UI_CommonOneMoreMediator__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./DefaultUI/UI_CommonOneMoreMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonOneMoreMediator.ts");
 /* harmony import */ var _DefaultUI_UI_CommonRollMediator__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./DefaultUI/UI_CommonRollMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonRollMediator.ts");
-/* harmony import */ var _DefaultUI_UI_CommonLockScreenMediator__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./DefaultUI/UI_CommonLockScreenMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonLockScreenMediator.ts");
-/* harmony import */ var _DefaultUI_UI_CommonOneMoreMediator__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./DefaultUI/UI_CommonOneMoreMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonOneMoreMediator.ts");
-/* harmony import */ var _DefaultUI_UI_CommonEndLoseMediator__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ./DefaultUI/UI_CommonEndLoseMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonEndLoseMediator.ts");
+/* harmony import */ var _DefaultUI_UI_CommonSetMediator__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./DefaultUI/UI_CommonSetMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonSetMediator.ts");
+/* harmony import */ var _DefaultUI_UI_CommonSignMediator__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./DefaultUI/UI_CommonSignMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonSignMediator.ts");
+/* harmony import */ var _DefaultUI_UI_CommonTrySkinMediator__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ./DefaultUI/UI_CommonTrySkinMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonTrySkinMediator.ts");
 /* harmony import */ var _DefaultUI_UI_CommonUnlockProgressMediator__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ./DefaultUI/UI_CommonUnlockProgressMediator */ "./src/LTGame/UIExt/DefaultUI/UI_CommonUnlockProgressMediator.ts");
+/* harmony import */ var _DefaultUI_UI_FlyPanelMediator__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(/*! ./DefaultUI/UI_FlyPanelMediator */ "./src/LTGame/UIExt/DefaultUI/UI_FlyPanelMediator.ts");
+/* harmony import */ var _DefaultUI_UI_BonusBoxMediator__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(/*! ./DefaultUI/UI_BonusBoxMediator */ "./src/LTGame/UIExt/DefaultUI/UI_BonusBoxMediator.ts");
+/* harmony import */ var _DefaultUI_UI_ExSkinMediator__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ./DefaultUI/UI_ExSkinMediator */ "./src/LTGame/UIExt/DefaultUI/UI_ExSkinMediator.ts");
+
+
+
 
 
 
@@ -10173,36 +22687,36 @@ __webpack_require__.r(__webpack_exports__);
 class LTUI {
     static Toast(str) {
         console.log("[Toast]" + str);
-        _DefaultUI_UI_CommomToastMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.Show(str);
+        _DefaultUI_UI_CommomToastMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.Show(str);
     }
     static ShowLoading(str, isBig = false) {
-        if (_DefaultUI_UI_CommonLoadMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.isShow) {
+        if (_DefaultUI_UI_CommonLoadMediator__WEBPACK_IMPORTED_MODULE_5__["default"].instance.isShow) {
             console.log("加载弹窗界面已打开");
             return;
         }
-        _DefaultUI_UI_CommonLoadMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.Show([str, isBig]);
+        _DefaultUI_UI_CommonLoadMediator__WEBPACK_IMPORTED_MODULE_5__["default"].instance.Show([str, isBig]);
     }
     static HideLoading() {
-        _DefaultUI_UI_CommonLoadMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.Hide();
+        _DefaultUI_UI_CommonLoadMediator__WEBPACK_IMPORTED_MODULE_5__["default"].instance.Hide();
     }
     static BoomObjs(fromObj, boomCount = 10, flyTime = 1, circleRadius = 60) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield _DefaultUI_UI_FlyPanelMediator__WEBPACK_IMPORTED_MODULE_2__["default"].instance.BoomObjs(fromObj, boomCount, flyTime, circleRadius);
+            yield _DefaultUI_UI_FlyPanelMediator__WEBPACK_IMPORTED_MODULE_14__["default"].instance.BoomObjs(fromObj, boomCount, flyTime, circleRadius);
         });
     }
     static FlyObjsTo(fromObj, toObj, flyCount = 10, flyTime = 1, circleRadius = 60) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield _DefaultUI_UI_FlyPanelMediator__WEBPACK_IMPORTED_MODULE_2__["default"].instance.FlyObjs(fromObj, toObj, flyCount, flyTime, circleRadius);
+            yield _DefaultUI_UI_FlyPanelMediator__WEBPACK_IMPORTED_MODULE_14__["default"].instance.FlyObjs(fromObj, toObj, flyCount, flyTime, circleRadius);
         });
     }
     static FlyCoinsTo(fromObj, toObj, flyIcon = null, flyCount = 10, flyTime = 1, circleRadius = 60) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield _DefaultUI_UI_FlyPanelMediator__WEBPACK_IMPORTED_MODULE_2__["default"].instance.FlyCoins(fromObj, toObj, flyIcon, flyCount, flyTime, circleRadius);
+            yield _DefaultUI_UI_FlyPanelMediator__WEBPACK_IMPORTED_MODULE_14__["default"].instance.FlyCoins(fromObj, toObj, flyIcon, flyCount, flyTime, circleRadius);
         });
     }
     static BoomCoins(fromObj, flyIcon = null, flyCount = 10, flyTime = 1, circleRadius = 60) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield _DefaultUI_UI_FlyPanelMediator__WEBPACK_IMPORTED_MODULE_2__["default"].instance.BoomCoins(fromObj, flyIcon, flyCount, flyTime, circleRadius);
+            yield _DefaultUI_UI_FlyPanelMediator__WEBPACK_IMPORTED_MODULE_14__["default"].instance.BoomCoins(fromObj, flyIcon, flyCount, flyTime, circleRadius);
         });
     }
     /**
@@ -10210,45 +22724,73 @@ class LTUI {
      * @param openData
      */
     static ShowSignUI(openData) {
-        _DefaultUI_UI_CommonSignMediator__WEBPACK_IMPORTED_MODULE_3__["default"].instance.Show(openData);
+        _DefaultUI_UI_CommonSignMediator__WEBPACK_IMPORTED_MODULE_11__["UI_CommonSignMediator"].instance.Show(openData);
     }
     /**
      * 打开再来一份界面
      * @param openData
      */
     static ShowOneMore(openData) {
-        _DefaultUI_UI_CommonOneMoreMediator__WEBPACK_IMPORTED_MODULE_11__["default"].instance.Show(openData);
+        _DefaultUI_UI_CommonOneMoreMediator__WEBPACK_IMPORTED_MODULE_8__["default"].instance.Show(openData);
     }
     static ShowEndShare(openData) {
         // 不在内部进行平台判断,防止开发过程中功能遗漏
         _DefaultUI_UI_CommonEndShareMediator__WEBPACK_IMPORTED_MODULE_4__["default"].instance.Show(openData);
     }
     static ShowEndReward(openData) {
-        _DefaultUI_UI_CommonEndRewardMediator__WEBPACK_IMPORTED_MODULE_5__["default"].instance.Show(openData);
+        _DefaultUI_UI_CommonEndRewardMediator__WEBPACK_IMPORTED_MODULE_3__["default"].instance.Show(openData);
     }
     static ShowEndLose(openData) {
-        _DefaultUI_UI_CommonEndLoseMediator__WEBPACK_IMPORTED_MODULE_12__["default"].instance.Show(openData);
+        _DefaultUI_UI_CommonEndLoseMediator__WEBPACK_IMPORTED_MODULE_2__["default"].instance.Show(openData);
     }
     static ShowUnlockProgress(openData) {
         _DefaultUI_UI_CommonUnlockProgressMediator__WEBPACK_IMPORTED_MODULE_13__["default"].instance.Show(openData);
     }
     static ShowOffline(openData) {
-        _DefaultUI_UI_CommonOfflineMediator__WEBPACK_IMPORTED_MODULE_6__["default"].instance.Show(openData);
+        _DefaultUI_UI_CommonOfflineMediator__WEBPACK_IMPORTED_MODULE_7__["default"].instance.Show(openData);
     }
     static ShowTrySkin(openData) {
-        _DefaultUI_UI_CommonTrySkinMediator__WEBPACK_IMPORTED_MODULE_7__["default"].instance.Show(openData);
+        _DefaultUI_UI_CommonTrySkinMediator__WEBPACK_IMPORTED_MODULE_12__["default"].instance.Show(openData);
     }
     static ShowSet(openData) {
-        _DefaultUI_UI_CommonSetMediator__WEBPACK_IMPORTED_MODULE_8__["default"].instance.Show(openData);
+        _DefaultUI_UI_CommonSetMediator__WEBPACK_IMPORTED_MODULE_10__["default"].instance.Show(openData);
     }
     static ShowRoll(openData) {
         _DefaultUI_UI_CommonRollMediator__WEBPACK_IMPORTED_MODULE_9__["default"].instance.Show(openData);
     }
     static LockScreen() {
-        _DefaultUI_UI_CommonLockScreenMediator__WEBPACK_IMPORTED_MODULE_10__["default"].instance.Show();
+        _DefaultUI_UI_CommonLockScreenMediator__WEBPACK_IMPORTED_MODULE_6__["default"].instance.Show();
     }
     static UnlockScreen() {
-        _DefaultUI_UI_CommonLockScreenMediator__WEBPACK_IMPORTED_MODULE_10__["default"].instance.Hide();
+        _DefaultUI_UI_CommonLockScreenMediator__WEBPACK_IMPORTED_MODULE_6__["default"].instance.Hide();
+    }
+    /**展示九宫宝箱 demo */
+    static ShowBonusBox() {
+        console.error('demo 数据');
+        let openData = new _DefaultUI_Data_CommonRewardData__WEBPACK_IMPORTED_MODULE_0__["CommonRewardData"]();
+        openData.datas = [
+            { type: 0, value: 10, icon: 'ui://75kiu87kbg0016' },
+            { type: 0, value: 20, icon: 'ui://75kiu87kbg0016' },
+            { type: 0, value: 30, icon: 'ui://75kiu87kbg0016' },
+            { type: 0, value: 40, icon: 'ui://75kiu87kbg0016' },
+            { type: 0, value: 50, icon: 'ui://75kiu87kbg0016' },
+            { type: 0, value: 60, icon: 'ui://75kiu87kbg0016' },
+            { type: 0, value: 70, icon: 'ui://75kiu87kbg0016' },
+            { type: 0, value: 80, icon: 'ui://75kiu87kbg0016' },
+            { type: 1, value: 9, icon: 'test/test.png' }
+        ];
+        openData.onGetSkin = () => { LTUI.Toast('恭喜获得皮肤'); };
+        _DefaultUI_UI_BonusBoxMediator__WEBPACK_IMPORTED_MODULE_15__["UI_BonusBoxMediator"].instance.Show(openData);
+    }
+    /**展示限定皮肤 demo */
+    static ShowExSKin() {
+        console.error('demo 数据');
+        let openData = new _DefaultUI_Data_CommonRewardData__WEBPACK_IMPORTED_MODULE_0__["CommonRewardData"]();
+        openData.datas = [
+            { type: 1, value: 9, icon: 'test/test.png' }
+        ];
+        openData.onGetSkin = () => { LTUI.Toast(`恭喜获得限定 皮肤 ${openData.datas[0].value}`); };
+        _DefaultUI_UI_ExSkinMediator__WEBPACK_IMPORTED_MODULE_16__["UI_ExSkinMediator"].instance.Show(openData);
     }
 }
 
@@ -10294,8 +22836,12 @@ class SDK_CQ extends _SDK_Default__WEBPACK_IMPORTED_MODULE_7__["default"] {
         this._RequestShareInfo();
     }
     _RequestShareInfo() {
+        let uid = this.appId;
+        if (_LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Oppo) {
+            uid = _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platformData.appKey;
+        }
         let sendData = {
-            appid: this.appId,
+            appid: uid,
         };
         _LTGame_Net_LTHttp__WEBPACK_IMPORTED_MODULE_1__["default"].Send(this._headPrefix + "/api/shares", Laya.Handler.create(this, this._OnRequestShareInfo), Laya.Handler.create(this, (res) => {
             console.log("获取分享接口访问失败", res);
@@ -10322,18 +22868,22 @@ class SDK_CQ extends _SDK_Default__WEBPACK_IMPORTED_MODULE_7__["default"] {
             console.error("分享接口返回错误", getObj);
         }
     }
-    RecordShowAd(adList) {
+    ReportShowAd(adList) {
         console.log("功能暂未实现");
     }
-    RecordClickAd(adInfo, locationId, jumpSuccess) {
+    ReportClickAd(adid, locationId, jumpSuccess) {
         console.log("功能暂未实现");
     }
     RequestADList() {
         console.log("功能暂未实现");
     }
     RequestRemoteConfig() {
+        let uid = this.appId;
+        if (_LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Oppo || _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Vivo) {
+            uid = _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platformData.appKey;
+        }
         let sendData = {
-            appid: this.appId,
+            appid: uid,
             version: this.controlVersion
         };
         _LTGame_Net_LTHttp__WEBPACK_IMPORTED_MODULE_1__["default"].Send(this._headPrefix + "/api/game/config", Laya.Handler.create(this, this._OnRemoteConfigBack), Laya.Handler.create(this, (res) => {
@@ -10357,14 +22907,10 @@ class SDK_CQ extends _SDK_Default__WEBPACK_IMPORTED_MODULE_7__["default"] {
             // 成功
             let result = res.data;
             if (result) {
-                let rate = 0;
+                console.log('如果需要在重庆后台配置参数 ');
                 if (result['payRate']) {
-                    rate = parseInt(result['payRate']);
+                    this.payRate = parseInt(result['payRate']);
                 }
-                else {
-                    console.log('如果需要在重庆后台配置参数 payRate 概率 0-100');
-                }
-                this.payRate = rate;
                 if (result['isDelayClose']) {
                     this.isDelayClose = parseInt(result['isDelayClose']) == 1;
                 }
@@ -10403,9 +22949,14 @@ class SDK_CQ extends _SDK_Default__WEBPACK_IMPORTED_MODULE_7__["default"] {
         Laya.stage.event(_LTGame_Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_0__["CommonEventId"].AD_CONFIG_GETTED);
     }
     Login(code, fromAppId) {
+        console.error('登录参数：code:', code);
+        let uid = (_LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Oppo || _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Vivo) ? _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platformData.appKey : this.appId;
         let sendData = {
-            flg: this.flg,
-            code: code
+            appid: uid,
+            // flg: this.flg,
+            code: code,
+            channel: 'own',
+            version: this.controlVersion
         };
         if (this.channel) {
             sendData["channel"] = this.channel;
@@ -10420,9 +22971,10 @@ class SDK_CQ extends _SDK_Default__WEBPACK_IMPORTED_MODULE_7__["default"] {
     _OnAuthSuccess(res) {
         if (this.enableDebug)
             console.log("SDK登录回调触发", res);
-        if (res.result == 1) {
+        res = JSON.parse(res);
+        if (res.code == 1) {
             // 成功
-            this._OnLoginSuccess(res.result);
+            this._OnLoginSuccess(res);
         }
         else {
             this._OnLoginFailed(res);
@@ -10431,16 +22983,16 @@ class SDK_CQ extends _SDK_Default__WEBPACK_IMPORTED_MODULE_7__["default"] {
     _OnLoginSuccess(res) {
         console.log("SDK登录成功", res);
         this.uid = res.openid;
-        this.RecordDaily();
+        this.ReportDaily();
     }
     _OnLoginFailed(res) {
-        console.error("SDK登录失败", res);
+        console.error("SDK登录失败", this.appId, res);
     }
-    RecordStat(isShare, sid) {
+    ReportStat(isShare, sid) {
         console.log("功能暂未实现");
     }
-    RecordDaily() {
-        console.log("功能暂未实现");
+    ReportDaily() {
+        console.log("上报日活 功能暂未实现");
     }
 }
 
@@ -10485,6 +23037,7 @@ class SDK_Default {
         this.controlVersion = controlVersion;
         this.appId = appid;
         this.severTime = new Date();
+        this.shieldHours = [];
         this.adManager = new _SDKADManager__WEBPACK_IMPORTED_MODULE_4__["default"]();
         this._RequestSelfAdInfo();
         console.log("SDK:Init", this);
@@ -10557,15 +23110,20 @@ class SDK_Default {
                 isWorkday = today[0].type == 0; //type：0 工作日 1 周末  2 节假日 
             }
             //工作  时段  
-            if (isWorkday && this.shieldHours.indexOf(h.toString()) >= 0) {
+            if (isWorkday && this.shieldHours && this.shieldHours.indexOf(h.toString()) >= 0) {
                 console.log('工作', this.shieldHours, h);
                 this.checkState = _common_ECheckState__WEBPACK_IMPORTED_MODULE_3__["ECheckState"].Normal;
             }
             else {
                 console.log('休息', date, h);
             }
+            if (this.isShielding) {
+                //屏蔽洗钱
+                this.checkState = _common_ECheckState__WEBPACK_IMPORTED_MODULE_3__["ECheckState"].Normal;
+                this.payRate = 0;
+            }
         }
-        console.log("---云控版本为:", this.controlVersion, "config:", this.isConfigEnable, `广告开关:${this.isADEnable}, 审核状态:${_common_ECheckState__WEBPACK_IMPORTED_MODULE_3__["ECheckState"][this.checkState]},误触概率:${this.payRate},屏蔽状态:${this.isShielding},延迟按钮:${this.isDelayClose}`);
+        console.log(`${this.appId}---云控版本为:`, this.controlVersion, "config:", this.isConfigEnable, `广告开关:${this.isADEnable}, 审核状态:${_common_ECheckState__WEBPACK_IMPORTED_MODULE_3__["ECheckState"][this.checkState]},误触概率:${this.payRate},屏蔽状态:${this.isShielding},延迟按钮:${this.isDelayClose}`);
     }
     Login(code, fromAppId) {
         console.log("SDK:Login", code, fromAppId);
@@ -10576,14 +23134,16 @@ class SDK_Default {
     RequestADList() {
         console.log("SDK:RequestADList");
     }
-    RecordClickAd(adInfo, locationId, jumpSuccess) {
-        console.log("SDK:RecordClickAd", adInfo, locationId, jumpSuccess);
+    ReportClickAd(ad_id, locationId, jumpSuccess) {
+        console.log("SDK:ReportClickAd", ad_id);
     }
-    RecordShowAd(adList) {
-        console.log("SDK:RecordShowAd", adList);
+    ReportShowAd(adList) {
+        console.log("SDK:ReportShowAd", adList);
     }
-    RecordStat(isShare, sid) {
-        console.log("SDK:RecordStat", isShare, sid);
+    ReportStat(isShare, sid) {
+        console.log("SDK:ReportStat", isShare, sid);
+    }
+    ReportLogin() {
     }
 }
 
@@ -10608,6 +23168,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _LTGame_Platform_ShareManager__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../LTGame/Platform/ShareManager */ "./src/LTGame/Platform/ShareManager.ts");
 /* harmony import */ var _LTGame_Platform_ShareInfo__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../../LTGame/Platform/ShareInfo */ "./src/LTGame/Platform/ShareInfo.ts");
 /* harmony import */ var _SDK_Default__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./SDK_Default */ "./src/SDK/Impl/SDK_Default.ts");
+/* harmony import */ var _common_ECheckState__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../common/ECheckState */ "./src/SDK/common/ECheckState.ts");
+
 
 
 
@@ -10629,31 +23191,38 @@ class SDK_YQ extends _SDK_Default__WEBPACK_IMPORTED_MODULE_7__["default"] {
         this.appId = appId;
         this.isADEnable = false;
         this.isConfigEnable = false;
+        this.checkState = _common_ECheckState__WEBPACK_IMPORTED_MODULE_8__["ECheckState"].Normal;
         this.adManager = new _SDKADManager__WEBPACK_IMPORTED_MODULE_1__["default"]();
     }
-    RecordShowAd(adList) {
+    ReportShowAd(adList) {
         let reportData = {};
         reportData["gflg"] = this.flg;
         reportData["channel"] = this.channel;
         reportData["data"] = adList;
-        _LTGame_Net_LTHttp__WEBPACK_IMPORTED_MODULE_0__["default"].Send("https://api.yz061.com/exposure", null, null, false, reportData);
+        _LTGame_Net_LTHttp__WEBPACK_IMPORTED_MODULE_0__["default"].Send("https://api.yz061.com/exposure", Laya.Handler.create(this, (res) => { console.log('ad SHow', reportData, res); }), null, false, reportData);
     }
-    RecordClickAd(adInfo, locationId, jumpSuccess) {
+    ReportClickAd(ad_id, locationId, jumpSuccess) {
         let reportData = {};
         reportData["gflg"] = this.flg;
         reportData["uid"] = this.uid;
-        reportData["ad_id"] = adInfo.ad_id;
+        reportData["ad_id"] = ad_id;
         reportData["location_id"] = locationId;
         reportData["channel"] = this.channel;
         if (jumpSuccess) {
             reportData["status"] = "cb";
         }
-        _LTGame_Net_LTHttp__WEBPACK_IMPORTED_MODULE_0__["default"].Send("https://api.yz061.com/reportad", null, null, false, reportData);
+        _LTGame_Net_LTHttp__WEBPACK_IMPORTED_MODULE_0__["default"].Send("https://api.yz061.com/reportad", Laya.Handler.create(this, (res) => { console.log('ad click', reportData, res); }), null, false, reportData);
     }
     RequestADList() {
         _LTGame_Net_LTHttp__WEBPACK_IMPORTED_MODULE_0__["default"].Send("https://api.yz061.com/game/" + this.flg, Laya.Handler.create(this, this._OnGetADList), Laya.Handler.create(this, (res) => {
             console.log("请求广告位HTTP访问失败", res);
         }), true);
+    }
+    ReportLogin() {
+        let reportData = {};
+        reportData["flg"] = this.flg;
+        reportData["uid"] = this.uid;
+        _LTGame_Net_LTHttp__WEBPACK_IMPORTED_MODULE_0__["default"].Send("https://api.yz061.com/matter/report", Laya.Handler.create(this, (res) => { console.log('report login', reportData, res); }), null, false, reportData);
     }
     /**
      * 获取广告位列表回调
@@ -10718,7 +23287,7 @@ class SDK_YQ extends _SDK_Default__WEBPACK_IMPORTED_MODULE_7__["default"] {
         else if (adPosData.matter_type == 2) {
             // 分享
             _LTGame_Net_LTHttp__WEBPACK_IMPORTED_MODULE_0__["default"].Send(adPosData.url, Laya.Handler.create(this, (res) => {
-                if (res.status == null) {
+                if (res != null) {
                     res = JSON.parse(res);
                 }
                 if (this.enableDebug)
@@ -10756,25 +23325,25 @@ class SDK_YQ extends _SDK_Default__WEBPACK_IMPORTED_MODULE_7__["default"] {
      */
     _OnRemoteConfigBack(res) {
         // 防止后台配置错误
-        if (res.status == null) {
+        if (res) {
             res = JSON.parse(res);
         }
-        if (this.enableDebug)
-            console.log("云控返回消息:", res);
+        console.log("云控返回消息:", res);
         if (res.status == 1) {
             // 成功
             let result = res.result;
             if (result != null) {
                 let config = result["config"];
-                let ad = result["ad"];
-                for (let key in config) {
-                    if (key == this.controlVersion) {
-                        this.isConfigEnable = config[key] == "1";
-                        break;
-                    }
-                }
+                let ad = result["config"];
+                // for (let key in config) {
+                //     if (key == this.controlVersion) {
+                //         this.isConfigEnable = config[key] == "1";
+                //         break;
+                //     }
+                // }
                 for (let key in ad) {
                     if (key == this.controlVersion) {
+                        console.log('YQ ad:', key, ad[key]);
                         this.isADEnable = (ad[key] == "1" && this.channel != "own");
                         break;
                     }
@@ -10787,12 +23356,16 @@ class SDK_YQ extends _SDK_Default__WEBPACK_IMPORTED_MODULE_7__["default"] {
             this.isADEnable = false;
             this.isConfigEnable = false;
         }
+        if (!this.isADEnable) {
+            this.checkState = _common_ECheckState__WEBPACK_IMPORTED_MODULE_8__["ECheckState"].Normal;
+        }
         console.log("云控版本为:", this.controlVersion, "config:", this.isConfigEnable, "ad:", this.isADEnable);
         if (this.controlVersion) {
             this.RequestADList();
         }
     }
     Login(code, fromAppId) {
+        console.log('登录YQ', code, fromAppId);
         let sendData = {
             flg: this.flg,
             code: code
@@ -10808,11 +23381,13 @@ class SDK_YQ extends _SDK_Default__WEBPACK_IMPORTED_MODULE_7__["default"] {
         }), true, sendData);
     }
     _OnAuthSuccess(res) {
+        res = JSON.parse(res);
         if (this.enableDebug)
             console.log("SDK登录回调触发", res);
-        if (res.result == 1) {
+        if (res.status == 1) {
             // 成功
             this._OnLoginSuccess(res.result);
+            this.ReportLogin();
         }
         else {
             this._OnLoginFailed(res);
@@ -10820,14 +23395,14 @@ class SDK_YQ extends _SDK_Default__WEBPACK_IMPORTED_MODULE_7__["default"] {
     }
     canShowAds() {
     }
-    RecordDaily() {
+    ReportDaily() {
         let recordData = {};
         recordData["flg"] = this.flg;
         recordData["uid"] = this.uid;
         recordData["channel"] = this.channel;
         _LTGame_Net_LTHttp__WEBPACK_IMPORTED_MODULE_0__["default"].Send("https://api.yz061.com/daily", null, null, false, recordData);
     }
-    RecordStat(isShare, sid) {
+    ReportStat(isShare, sid) {
         let recordData = {};
         recordData["flg"] = this.flg;
         recordData["channel"] = this.channel;
@@ -10853,7 +23428,7 @@ class SDK_YQ extends _SDK_Default__WEBPACK_IMPORTED_MODULE_7__["default"] {
     _OnLoginSuccess(res) {
         console.log("SDK登录成功", res);
         this.uid = res.openid;
-        this.RecordDaily();
+        this.ReportDaily();
     }
     _OnLoginFailed(res) {
         console.error("SDK登录失败", res);
@@ -10874,6 +23449,8 @@ class SDK_YQ extends _SDK_Default__WEBPACK_IMPORTED_MODULE_7__["default"] {
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return LTSDK; });
 /* harmony import */ var _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../LTGame/Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+/* harmony import */ var _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../LTGame/Platform/EPlatformType */ "./src/LTGame/Platform/EPlatformType.ts");
+
 
 class LTSDK {
     static get instance() {
@@ -10898,25 +23475,50 @@ class LTSDK {
             return this._instance;
         }
         this._instance = new sdkClass();
+        console.log('开始初始化SDK');
         // 初始化sdk
-        let channel = "own";
-        let options = _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.lauchOption;
-        if (options && options.query && options.query.channel) {
-            channel = options.query.channel;
-        }
+        let channel = LTSDK.getChannel();
         this._instance.Init(identifyId, channel, controlVersion, appId);
+        console.log(`channel=${channel}`);
         // 请求云控信息
         this._instance.RequestRemoteConfig();
         // 自动sdk登录
         _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.onLoginEnd = Laya.Handler.create(null, () => {
-            if (_LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.loginState.isLogin) {
-                LTSDK.instance.Login(_LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.loginState.code, _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.GetFromAppId());
+            if (_LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.platform == _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_1__["EPlatformType"].WX) {
+                if (_LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.loginCode) {
+                    LTSDK.instance.Login(_LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.loginCode, _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.GetFromAppId());
+                }
+                else {
+                    console.log("wx平台未登录,跳过登录sdk");
+                }
             }
             else {
-                console.log("平台未登录,跳过登录sdk");
+                if (_LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.loginState.isLogin) {
+                    LTSDK.instance.Login(_LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.loginState.code, _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.GetFromAppId());
+                }
+                else {
+                    console.log("平台未登录,跳过登录sdk");
+                }
             }
         });
         return this._instance;
+    }
+    static getChannel() {
+        let channel = _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.GetStorage('user_from_channel');
+        let options = _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.lauchOption;
+        console.log('本地channel', channel);
+        if (!channel) {
+            if (options && options.query) {
+                channel = options.query['channel'];
+                console.log('options channel', channel);
+            }
+            if (!channel) {
+                console.log('没有本地数据,channel默认 own');
+                channel = 'own';
+            }
+            _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_0__["default"].instance.SetStorage('user_from_channel', channel);
+        }
+        return channel;
     }
 }
 
@@ -11607,16 +24209,15 @@ new _LTGame_Start_LTMain__WEBPACK_IMPORTED_MODULE_0__["default"](_script_MainSta
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return MainStart; });
-/* harmony import */ var _LTGame_Start_LTStart__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../LTGame/Start/LTStart */ "./src/LTGame/Start/LTStart.ts");
-/* harmony import */ var _scene_SplashScene__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./scene/SplashScene */ "./src/script/scene/SplashScene.ts");
-/* harmony import */ var _scene_MainScene__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./scene/MainScene */ "./src/script/scene/MainScene.ts");
-/* harmony import */ var _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../LTGame/Platform/EPlatformType */ "./src/LTGame/Platform/EPlatformType.ts");
-/* harmony import */ var _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../LTGame/Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
-/* harmony import */ var _LTGame_Res_LTRespackManager__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../LTGame/Res/LTRespackManager */ "./src/LTGame/Res/LTRespackManager.ts");
+/* harmony import */ var _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../LTGame/Platform/EPlatformType */ "./src/LTGame/Platform/EPlatformType.ts");
+/* harmony import */ var _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../LTGame/Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
+/* harmony import */ var _LTGame_Res_LTRespackManager__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../LTGame/Res/LTRespackManager */ "./src/LTGame/Res/LTRespackManager.ts");
+/* harmony import */ var _LTGame_Start_LTStart__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../LTGame/Start/LTStart */ "./src/LTGame/Start/LTStart.ts");
+/* harmony import */ var _SDK_Impl_SDK_CQ__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../SDK/Impl/SDK_CQ */ "./src/SDK/Impl/SDK_CQ.ts");
+/* harmony import */ var _SDK_Impl_SDK_YQ__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../SDK/Impl/SDK_YQ */ "./src/SDK/Impl/SDK_YQ.ts");
 /* harmony import */ var _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../SDK/LTSDK */ "./src/SDK/LTSDK.ts");
-/* harmony import */ var _SDK_Impl_SDK_CQ__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../SDK/Impl/SDK_CQ */ "./src/SDK/Impl/SDK_CQ.ts");
-/* harmony import */ var _SDK_Impl_SDK_YQ__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../SDK/Impl/SDK_YQ */ "./src/SDK/Impl/SDK_YQ.ts");
-/* harmony import */ var _SDK_Impl_SDK_Default__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../SDK/Impl/SDK_Default */ "./src/SDK/Impl/SDK_Default.ts");
+/* harmony import */ var _scene_MainScene__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./scene/MainScene */ "./src/script/scene/MainScene.ts");
+/* harmony import */ var _scene_SplashScene__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./scene/SplashScene */ "./src/script/scene/SplashScene.ts");
 
 
 
@@ -11626,8 +24227,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-
-class MainStart extends _LTGame_Start_LTStart__WEBPACK_IMPORTED_MODULE_0__["LTStart"] {
+class MainStart extends _LTGame_Start_LTStart__WEBPACK_IMPORTED_MODULE_3__["LTStart"] {
     constructor() {
         super();
         this._appId = "ttbe90c82d21ba845b";
@@ -11637,48 +24237,61 @@ class MainStart extends _LTGame_Start_LTStart__WEBPACK_IMPORTED_MODULE_0__["LTSt
         this._resVersion = "0515";
         /**项目名 */
         this._gameName = "p_ltg";
-        // this.enableStat = true;
+        this.enableStat = true;
     }
     _HandleInitPlatform(ePlatform, platformData) {
         switch (ePlatform) {
-            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Web:
+            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_0__["EPlatformType"].Web:
                 console.log("web平台,默认框架测试数据");
                 this._gameVersion = '1.0.1'; //1.0.1 为全策略模式 
-                this._appId = '88888888';
+                platformData.appId = "100006589"; //'88888888';
+                platformData.appKey = '100006589';
                 break;
-            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].TT:
-                this._gameVersion = "v0.0.1";
-                this._resVersion = 'v0.0.1';
-                platformData.appId = "ttbe90c82d21ba845b";
+            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_0__["EPlatformType"].TT:
+                this._gameVersion = "v0.0.2";
+                this._resVersion = 'v0.0.2';
+                platformData.appId = "ttd60ba0b64931e10f";
                 platformData.bannerId = "1bhbt9cjpr9a35bd30";
                 platformData.rewardVideoId = "6tnnb4e3em519ja6d2";
                 platformData.interstitialId = "8oe7qjl1pon2g930jf";
-                _LTGame_Res_LTRespackManager__WEBPACK_IMPORTED_MODULE_5__["default"].instance.SetRemoteUrl(`https://hs.yz061.com/res/down/public/${this._gameName}/${this._resVersion}_tt/`);
+                _LTGame_Res_LTRespackManager__WEBPACK_IMPORTED_MODULE_2__["default"].instance.SetRemoteUrl(`https://hs.yz061.com/res/down/public/${this._gameName}/${this._resVersion}_tt/`);
                 break;
-            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].WX:
+            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_0__["EPlatformType"].WX:
                 this._gameVersion = "v0.0.1";
                 this._resVersion = 'v0.0.1';
                 platformData.appId = "wx7bcca975ff17ebe9";
                 platformData.bannerId = "adunit-11a2571806b5fc5c";
                 platformData.rewardVideoId = "adunit-fa6dd5b431c41ceb";
                 platformData.interstitialId = "adunit-abe9d252f3a3956c";
-                _LTGame_Res_LTRespackManager__WEBPACK_IMPORTED_MODULE_5__["default"].instance.SetRemoteUrl(`https://hs.yz061.com/res/down/public/${this._gameName}/${this._resVersion}_wx/`);
+                _LTGame_Res_LTRespackManager__WEBPACK_IMPORTED_MODULE_2__["default"].instance.SetRemoteUrl(`https://hs.yz061.com/res/down/public/${this._gameName}/${this._resVersion}_wx/`);
                 break;
-            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Oppo:
-                this._gameVersion = "v0.0.1";
-                this._resVersion = 'v0.0.1';
-                platformData.appId = "30260170";
-                platformData.bannerId = "174341";
-                platformData.interstitialId = "174344";
-                platformData.rewardVideoId = "174349";
-                platformData.nativeId = "174348";
-                platformData.nativeBannerIds = ["178853"];
-                platformData.nativeinterstitialIds = ["178854"];
-                platformData.nativeIconIds = ["178855"];
-                _LTGame_Res_LTRespackManager__WEBPACK_IMPORTED_MODULE_5__["default"].instance.SetRemoteUrl(`https://hs.yz061.com/res/down/public/${this._gameName}/${this._resVersion}_oppo/`);
+            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_0__["EPlatformType"].Oppo:
+                this._gameVersion = "1.0.2";
+                this._resVersion = "0710";
+                platformData.appId = "30302891";
+                platformData.appKey = "6fyGQ6x2pzk8W84c0s04ows00";
+                platformData.bannerId = "195984";
+                platformData.rewardVideoId = "195985";
+                platformData.nativeBannerIds = ['195994', '195995', '195998'];
+                platformData.nativeIconIds = ['195986', '196003'];
+                platformData.nativeinpageIds = ['195999', '196002', '196003'];
+                _LTGame_Res_LTRespackManager__WEBPACK_IMPORTED_MODULE_2__["default"].instance.SetRemoteUrl(`https://hs.yz061.com/res/down/public/${this._gameName}/${this._resVersion}_oppo/`);
+                break;
+            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_0__["EPlatformType"].Vivo:
+                this._gameVersion = "1.0.0";
+                this._resVersion = "0723";
+                platformData.appId = "100006589";
+                platformData.appKey = "100006589"; // "4593206c07a95b1edf85";
+                platformData.bannerId = "792dc45d716346679aed674122b687c4";
+                platformData.rewardVideoId = "6f7ac05280f94772900d65f30b89b218";
+                platformData.interstitialId = "5c199af4a8244a3991a22c9debe32ca9";
+                platformData.nativeBannerIds = ['699d13284f5e4c769d59ba7ef2f4aa05', '9703bd90cbf74014853971a55cac7fe6'];
+                platformData.nativeIconIds = ['91686cf4a42a4144b884f8843d947727', 'd987f0a85f724700aa098631c751ca7e'];
+                platformData.nativeinpageIds = ['b82fb9b9d97d4a5c8281a943d41ea0aa', '4de349a96b6a432bb1b2f215493f1b07'];
+                _LTGame_Res_LTRespackManager__WEBPACK_IMPORTED_MODULE_2__["default"].instance.SetRemoteUrl(`https://hs.yz061.com/res/down/public/${this._gameName}/vivo_${this._resVersion}/`);
                 break;
             default:
-                console.error("未处理平台内容", _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].platformStr, "请在MainStart中添加处理");
+                console.error("未处理平台内容", _LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].platformStr, "请在MainStart中添加处理");
                 break;
         }
         if (platformData.appId) {
@@ -11686,23 +24299,92 @@ class MainStart extends _LTGame_Start_LTStart__WEBPACK_IMPORTED_MODULE_0__["LTSt
         }
     }
     _HandleSDK() {
-        switch (_LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_4__["default"].instance.platform) {
-            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].WX:
-                _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_6__["default"].CreateInstace(_SDK_Impl_SDK_YQ__WEBPACK_IMPORTED_MODULE_8__["default"], this._gameName, this._gameVersion, this._appId);
+        switch (_LTGame_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_1__["default"].instance.platform) {
+            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_0__["EPlatformType"].WX:
+                // case EPlatformType.Web:
+                _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_6__["default"].CreateInstace(_SDK_Impl_SDK_YQ__WEBPACK_IMPORTED_MODULE_5__["default"], 'yfct', this._gameVersion, this._appId); //
                 break;
-            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Web:
-                _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_6__["default"].CreateInstace(_SDK_Impl_SDK_Default__WEBPACK_IMPORTED_MODULE_9__["default"], this._gameName, this._gameVersion, this._appId);
-                break;
-            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].Oppo:
-            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_3__["EPlatformType"].TT:
+            // LTSDK.CreateInstace(SDK_Default, this._gameName, this._gameVersion, this._appId);
+            // break;
+            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_0__["EPlatformType"].Oppo:
+            case _LTGame_Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_0__["EPlatformType"].TT:
             default:
-                _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_6__["default"].CreateInstace(_SDK_Impl_SDK_CQ__WEBPACK_IMPORTED_MODULE_7__["default"], this._gameName, this._gameVersion, this._appId);
+                _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_6__["default"].CreateInstace(_SDK_Impl_SDK_CQ__WEBPACK_IMPORTED_MODULE_4__["default"], this._gameName, this._gameVersion, this._appId);
                 break;
         }
     }
     _InitFsm() {
-        this._fsm.Add(new _scene_SplashScene__WEBPACK_IMPORTED_MODULE_1__["default"]());
-        this._fsm.Add(new _scene_MainScene__WEBPACK_IMPORTED_MODULE_2__["default"]());
+        this._fsm.Add(new _scene_SplashScene__WEBPACK_IMPORTED_MODULE_8__["default"]());
+        this._fsm.Add(new _scene_MainScene__WEBPACK_IMPORTED_MODULE_7__["default"]());
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/script/common/GameData.ts":
+/*!***************************************!*\
+  !*** ./src/script/common/GameData.ts ***!
+  \***************************************/
+/*! exports provided: SaveData, default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SaveData", function() { return SaveData; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return GameData; });
+/* harmony import */ var _LTGame_LTUtils_StringEx__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../LTGame/LTUtils/StringEx */ "./src/LTGame/LTUtils/StringEx.ts");
+/* harmony import */ var _LTGame_Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../LTGame/Commom/CommonSaveData */ "./src/LTGame/Commom/CommonSaveData.ts");
+
+
+class SaveData {
+    constructor() {
+        /**
+         * 金币数量
+         */
+        this.coinCount = 0;
+        /**
+     * 彩蛋获得数据
+     */
+        this.EggPassIds = [];
+        /**
+        * 彩蛋密语数据
+        */
+        this.EggSecretIds = [];
+        /**
+        * 彩蛋暗号数据
+        */
+        this.EggPasswordIds = [];
+    }
+}
+class GameData {
+    constructor() {
+        this._savePath = "game01.sav";
+    }
+    static get instance() {
+        if (this._instance == null) {
+            this._instance = new GameData();
+            this._instance._ReadFromFile();
+        }
+        return this._instance._saveData;
+    }
+    static SaveToDisk() {
+        if (!this._instance)
+            return;
+        let json = JSON.stringify(this._instance._saveData);
+        Laya.LocalStorage.setJSON(this._instance._savePath, json);
+        _LTGame_Commom_CommonSaveData__WEBPACK_IMPORTED_MODULE_1__["default"].SaveToDisk();
+    }
+    _ReadFromFile() {
+        let readStr = Laya.LocalStorage.getJSON(this._savePath);
+        this._saveData = new SaveData();
+        if (!_LTGame_LTUtils_StringEx__WEBPACK_IMPORTED_MODULE_0__["default"].IsNullOrEmpty(readStr)) {
+            let jsonData = JSON.parse(readStr);
+            for (let key in jsonData) {
+                this._saveData[key] = jsonData[key];
+            }
+        }
+        console.log(this._saveData);
     }
 }
 
@@ -11790,6 +24472,27 @@ var EffectConfig;
 
 /***/ }),
 
+/***/ "./src/script/config/EggConfig.ts":
+/*!****************************************!*\
+  !*** ./src/script/config/EggConfig.ts ***!
+  \****************************************/
+/*! exports provided: EggConfig */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "EggConfig", function() { return EggConfig; });
+var EggConfig;
+(function (EggConfig) {
+    class config {
+    }
+    EggConfig.config = config;
+    EggConfig.path = "res/config/EggConfig.json";
+})(EggConfig || (EggConfig = {}));
+
+
+/***/ }),
+
 /***/ "./src/script/config/GameConst.ts":
 /*!****************************************!*\
   !*** ./src/script/config/GameConst.ts ***!
@@ -11828,6 +24531,27 @@ var PackConst;
     PackConst.config = config;
     PackConst.path = "res/config/PackConst.json";
 })(PackConst || (PackConst = {}));
+
+
+/***/ }),
+
+/***/ "./src/script/config/SignConfig.ts":
+/*!*****************************************!*\
+  !*** ./src/script/config/SignConfig.ts ***!
+  \*****************************************/
+/*! exports provided: SignConfig */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SignConfig", function() { return SignConfig; });
+var SignConfig;
+(function (SignConfig) {
+    class config {
+    }
+    SignConfig.config = config;
+    SignConfig.path = "res/config/SignConfig.json";
+})(SignConfig || (SignConfig = {}));
 
 
 /***/ }),
@@ -11953,6 +24677,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _LTGame_Async_Awaiters__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../LTGame/Async/Awaiters */ "./src/LTGame/Async/Awaiters.ts");
 /* harmony import */ var _LTGame_LTUtils_ArrayEx__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../LTGame/LTUtils/ArrayEx */ "./src/LTGame/LTUtils/ArrayEx.ts");
 /* harmony import */ var _common_ResDefine__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../common/ResDefine */ "./src/script/common/ResDefine.ts");
+/* harmony import */ var _LTGame_LTUtils_CameraEx__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../../LTGame/LTUtils/CameraEx */ "./src/LTGame/LTUtils/CameraEx.ts");
+/* harmony import */ var _LTGame_LTUtils_Vector3Ex__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../../LTGame/LTUtils/Vector3Ex */ "./src/LTGame/LTUtils/Vector3Ex.ts");
+
+
 
 
 
@@ -11969,6 +24697,12 @@ class EffectManager {
             this._instance = new EffectManager();
         }
         return this._instance;
+    }
+    get uiEffectScene() {
+        return this._uiEffectScene;
+    }
+    get uiEffectCamera() {
+        return this._uiEffectCamera;
     }
     _Init() {
         this._effectRoot = new Laya.Sprite3D("EffectManager");
@@ -11987,6 +24721,11 @@ class EffectManager {
     }
     WarmEffects() {
         return __awaiter(this, void 0, void 0, function* () {
+            this._uiEffectScene = new Laya.Scene3D();
+            Laya.stage.addChild(this._uiEffectScene);
+            this._uiEffectCamera = new Laya.Camera();
+            this._uiEffectCamera.clearFlag = Laya.CameraClearFlags.DepthOnly;
+            this._uiEffectScene.addChild(this._uiEffectCamera);
             let preloadEffects = [];
             for (let i = 0; i < _config_EffectConfig__WEBPACK_IMPORTED_MODULE_2__["EffectConfig"].dataList.length; ++i) {
                 let configItem = _config_EffectConfig__WEBPACK_IMPORTED_MODULE_2__["EffectConfig"].dataList[i];
@@ -12044,7 +24783,17 @@ class EffectManager {
                 showData.parent.addChild(instEffect);
             }
             else {
-                this._effectRoot.addChild(instEffect);
+                let effectConfig = _config_EffectConfig__WEBPACK_IMPORTED_MODULE_2__["EffectConfig"].data[showData.effectId];
+                if (effectConfig.isUIEffect) {
+                    this._uiEffectScene.addChild(instEffect);
+                    if (showData.setPos != null) {
+                        let ray = _LTGame_LTUtils_CameraEx__WEBPACK_IMPORTED_MODULE_7__["CameraEx"].ScreenPosToRay(this.uiEffectCamera, new Laya.Vector2(showData.setPos.x, showData.setPos.y));
+                        showData.setPos = _LTGame_LTUtils_Vector3Ex__WEBPACK_IMPORTED_MODULE_8__["default"].Add(ray.origin, _LTGame_LTUtils_Vector3Ex__WEBPACK_IMPORTED_MODULE_8__["default"].Scale(ray.origin, 100));
+                    }
+                }
+                else {
+                    this._effectRoot.addChild(instEffect);
+                }
             }
             if (showData.setPos != null) {
                 instEffect.transform.position = showData.setPos.clone();
@@ -12145,18 +24894,20 @@ class MainScene extends _LTGame_Fsm_BaseState__WEBPACK_IMPORTED_MODULE_0__["defa
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return SplashScene; });
-/* harmony import */ var _ui_Load_UI_splash__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../ui/Load/UI_splash */ "./src/ui/Load/UI_splash.ts");
-/* harmony import */ var _LTGame_Start_LTSplashScene__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../LTGame/Start/LTSplashScene */ "./src/LTGame/Start/LTSplashScene.ts");
-/* harmony import */ var _ui_Load_LoadBinder__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../ui/Load/LoadBinder */ "./src/ui/Load/LoadBinder.ts");
-/* harmony import */ var _ui_Main_MainBinder__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../ui/Main/MainBinder */ "./src/ui/Main/MainBinder.ts");
-/* harmony import */ var _LTGame_Config_ConfigManager__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../LTGame/Config/ConfigManager */ "./src/LTGame/Config/ConfigManager.ts");
-/* harmony import */ var _common_GlobalUnit__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../common/GlobalUnit */ "./src/script/common/GlobalUnit.ts");
-/* harmony import */ var _config_AudioConfig__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../config/AudioConfig */ "./src/script/config/AudioConfig.ts");
-/* harmony import */ var _LTGame_Start_ESceneType__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../../LTGame/Start/ESceneType */ "./src/LTGame/Start/ESceneType.ts");
+/* harmony import */ var _LTGame_Config_ConfigManager__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../LTGame/Config/ConfigManager */ "./src/LTGame/Config/ConfigManager.ts");
+/* harmony import */ var _LTGame_Start_ESceneType__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../LTGame/Start/ESceneType */ "./src/LTGame/Start/ESceneType.ts");
+/* harmony import */ var _LTGame_Start_LTSplashScene__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../LTGame/Start/LTSplashScene */ "./src/LTGame/Start/LTSplashScene.ts");
+/* harmony import */ var _ui_Load_LoadBinder__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../ui/Load/LoadBinder */ "./src/ui/Load/LoadBinder.ts");
+/* harmony import */ var _ui_Load_UI_splash__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../ui/Load/UI_splash */ "./src/ui/Load/UI_splash.ts");
+/* harmony import */ var _ui_Main_MainBinder__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../ui/Main/MainBinder */ "./src/ui/Main/MainBinder.ts");
+/* harmony import */ var _common_GlobalUnit__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../common/GlobalUnit */ "./src/script/common/GlobalUnit.ts");
+/* harmony import */ var _config_AudioConfig__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../config/AudioConfig */ "./src/script/config/AudioConfig.ts");
 /* harmony import */ var _config_EffectConfig__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../config/EffectConfig */ "./src/script/config/EffectConfig.ts");
-/* harmony import */ var _config_GameConst__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../config/GameConst */ "./src/script/config/GameConst.ts");
-/* harmony import */ var _manager_EffectManager__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../manager/EffectManager */ "./src/script/manager/EffectManager.ts");
+/* harmony import */ var _config_EggConfig__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../config/EggConfig */ "./src/script/config/EggConfig.ts");
+/* harmony import */ var _config_GameConst__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../config/GameConst */ "./src/script/config/GameConst.ts");
 /* harmony import */ var _config_PackConst__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ../config/PackConst */ "./src/script/config/PackConst.ts");
+/* harmony import */ var _config_SignConfig__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ../config/SignConfig */ "./src/script/config/SignConfig.ts");
+/* harmony import */ var _manager_EffectManager__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(/*! ../manager/EffectManager */ "./src/script/manager/EffectManager.ts");
 
 
 
@@ -12169,31 +24920,755 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-class SplashScene extends _LTGame_Start_LTSplashScene__WEBPACK_IMPORTED_MODULE_1__["default"] {
+
+
+class SplashScene extends _LTGame_Start_LTSplashScene__WEBPACK_IMPORTED_MODULE_2__["default"] {
     constructor() {
         super();
-        this._splashUIClass = _ui_Load_UI_splash__WEBPACK_IMPORTED_MODULE_0__["default"];
+        this._splashUIClass = _ui_Load_UI_splash__WEBPACK_IMPORTED_MODULE_4__["default"];
     }
     _OnBindUI() {
-        _ui_Load_LoadBinder__WEBPACK_IMPORTED_MODULE_2__["default"].bindAll();
-        _ui_Main_MainBinder__WEBPACK_IMPORTED_MODULE_3__["default"].bindAll();
+        _ui_Load_LoadBinder__WEBPACK_IMPORTED_MODULE_3__["default"].bindAll();
+        _ui_Main_MainBinder__WEBPACK_IMPORTED_MODULE_5__["default"].bindAll();
     }
     _OnSetLoadConfig() {
-        _LTGame_Config_ConfigManager__WEBPACK_IMPORTED_MODULE_4__["ConfigManager"].AddConfig(_config_AudioConfig__WEBPACK_IMPORTED_MODULE_6__["AudioConfig"]);
-        _LTGame_Config_ConfigManager__WEBPACK_IMPORTED_MODULE_4__["ConfigManager"].AddConfig(_config_EffectConfig__WEBPACK_IMPORTED_MODULE_8__["EffectConfig"]);
-        _LTGame_Config_ConfigManager__WEBPACK_IMPORTED_MODULE_4__["ConfigManager"].AddConfig(_config_GameConst__WEBPACK_IMPORTED_MODULE_9__["GameConst"]);
-        _LTGame_Config_ConfigManager__WEBPACK_IMPORTED_MODULE_4__["ConfigManager"].AddConfig(_config_PackConst__WEBPACK_IMPORTED_MODULE_11__["PackConst"]);
+        _LTGame_Config_ConfigManager__WEBPACK_IMPORTED_MODULE_0__["ConfigManager"].AddConfig(_config_AudioConfig__WEBPACK_IMPORTED_MODULE_7__["AudioConfig"]);
+        _LTGame_Config_ConfigManager__WEBPACK_IMPORTED_MODULE_0__["ConfigManager"].AddConfig(_config_EffectConfig__WEBPACK_IMPORTED_MODULE_8__["EffectConfig"]);
+        _LTGame_Config_ConfigManager__WEBPACK_IMPORTED_MODULE_0__["ConfigManager"].AddConfig(_config_GameConst__WEBPACK_IMPORTED_MODULE_10__["GameConst"]);
+        _LTGame_Config_ConfigManager__WEBPACK_IMPORTED_MODULE_0__["ConfigManager"].AddConfig(_config_PackConst__WEBPACK_IMPORTED_MODULE_11__["PackConst"]);
+        _LTGame_Config_ConfigManager__WEBPACK_IMPORTED_MODULE_0__["ConfigManager"].AddConfig(_config_EggConfig__WEBPACK_IMPORTED_MODULE_9__["EggConfig"]);
+        _LTGame_Config_ConfigManager__WEBPACK_IMPORTED_MODULE_0__["ConfigManager"].AddConfig(_config_SignConfig__WEBPACK_IMPORTED_MODULE_12__["SignConfig"]);
     }
     _OnGameResPrepared(urls) {
-        _common_GlobalUnit__WEBPACK_IMPORTED_MODULE_5__["default"].InitAll();
-        _manager_EffectManager__WEBPACK_IMPORTED_MODULE_10__["EffectManager"].instance.Preload(urls);
+        _common_GlobalUnit__WEBPACK_IMPORTED_MODULE_6__["default"].InitAll();
+        _manager_EffectManager__WEBPACK_IMPORTED_MODULE_13__["EffectManager"].instance.Preload(urls);
     }
     _OnGameResLoaded() {
         return __awaiter(this, void 0, void 0, function* () {
-            yield _manager_EffectManager__WEBPACK_IMPORTED_MODULE_10__["EffectManager"].instance.WarmEffects();
+            yield _manager_EffectManager__WEBPACK_IMPORTED_MODULE_13__["EffectManager"].instance.WarmEffects();
             this.isFinished = true;
-            this.nextState = _LTGame_Start_ESceneType__WEBPACK_IMPORTED_MODULE_7__["ESceneType"].Main;
+            this.nextState = _LTGame_Start_ESceneType__WEBPACK_IMPORTED_MODULE_1__["ESceneType"].Main;
         });
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/script/test/HeightFogTest.ts":
+/*!******************************************!*\
+  !*** ./src/script/test/HeightFogTest.ts ***!
+  \******************************************/
+/*! exports provided: HeightFogTest */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "HeightFogTest", function() { return HeightFogTest; });
+/* harmony import */ var _LTGame_Res_LTRes__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../LTGame/Res/LTRes */ "./src/LTGame/Res/LTRes.ts");
+/* harmony import */ var _ui_UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../ui/UI_FunctionTestMediator */ "./src/script/ui/UI_FunctionTestMediator.ts");
+/* harmony import */ var _LTGame_Material_LTBlinnPhong_HeightFog__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../LTGame/Material/LTBlinnPhong_HeightFog */ "./src/LTGame/Material/LTBlinnPhong_HeightFog.ts");
+/* harmony import */ var _LTGame_Material_HeightFogManager__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../LTGame/Material/HeightFogManager */ "./src/LTGame/Material/HeightFogManager.ts");
+/* harmony import */ var _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../ui/UI_TestMediator */ "./src/script/ui/UI_TestMediator.ts");
+/* harmony import */ var _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../LTGame/LTUtils/MathEx */ "./src/LTGame/LTUtils/MathEx.ts");
+
+
+
+
+
+
+const scene_path = "res/export/Conventional/HeightFog.ls";
+class HeightFogTest {
+    constructor() {
+        this.name = "高度雾测试";
+    }
+    Create() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this._s3d = yield _LTGame_Res_LTRes__WEBPACK_IMPORTED_MODULE_0__["default"].LoadAndGet(scene_path, true);
+            Laya.stage.addChildAt(this._s3d, 1);
+            Laya.Shader3D.debugMode = true;
+            _LTGame_Material_HeightFogManager__WEBPACK_IMPORTED_MODULE_3__["HeightFogManager"].instance.fogColor = new Laya.Vector3(_LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_5__["default"].Random(0, 1), _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_5__["default"].Random(0, 1), _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_5__["default"].Random(0, 1));
+            _LTGame_Material_HeightFogManager__WEBPACK_IMPORTED_MODULE_3__["HeightFogManager"].instance.fogDistance = 10;
+            _LTGame_Material_HeightFogManager__WEBPACK_IMPORTED_MODULE_3__["HeightFogManager"].instance.fogStartHeight = 10;
+            let shareMat = null;
+            let cubes = this._s3d.getChildByName("cubes");
+            for (let i = 0; i < cubes.numChildren; ++i) {
+                let getChild = cubes.getChildAt(i).getChildAt(0);
+                if (shareMat == null) {
+                    shareMat = _LTGame_Material_LTBlinnPhong_HeightFog__WEBPACK_IMPORTED_MODULE_2__["LTBlinnPhong_HeightFog"].CreateFromBlinnPhong(getChild.meshRenderer.sharedMaterial);
+                }
+                getChild.meshRenderer.sharedMaterial = shareMat;
+            }
+            let panel = this._s3d.getChildByName("Plane");
+            panel.meshRenderer.material
+                = _LTGame_Material_LTBlinnPhong_HeightFog__WEBPACK_IMPORTED_MODULE_2__["LTBlinnPhong_HeightFog"].CreateFromBlinnPhong(panel.meshRenderer.sharedMaterial);
+            /*
+            HeightFogManager.instance.fogColor = new Laya.Vector3(1, 0, 0);
+            HeightFogManager.instance.fogDistance = 5;
+            HeightFogManager.instance.fogStartHeight = 10;
+            */
+            _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_4__["default"].instance.Show(Laya.Handler.create(this, this.Clear));
+        });
+    }
+    Clear() {
+        this._s3d.destroy();
+        _LTGame_Res_LTRes__WEBPACK_IMPORTED_MODULE_0__["default"].Unload(scene_path);
+        _ui_UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.Show();
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/script/test/HybridPhysicTest.ts":
+/*!*********************************************!*\
+  !*** ./src/script/test/HybridPhysicTest.ts ***!
+  \*********************************************/
+/*! exports provided: HybridPhysicTest */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "HybridPhysicTest", function() { return HybridPhysicTest; });
+/* harmony import */ var _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../ui/UI_TestMediator */ "./src/script/ui/UI_TestMediator.ts");
+/* harmony import */ var _ui_UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../ui/UI_FunctionTestMediator */ "./src/script/ui/UI_FunctionTestMediator.ts");
+/* harmony import */ var _LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../LTGame/LTUtils/MonoHelper */ "./src/LTGame/LTUtils/MonoHelper.ts");
+/* harmony import */ var _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../LTGame/LTUtils/MathEx */ "./src/LTGame/LTUtils/MathEx.ts");
+/* harmony import */ var _LTGame_LTUtils_Vector3Ex__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../LTGame/LTUtils/Vector3Ex */ "./src/LTGame/LTUtils/Vector3Ex.ts");
+/* harmony import */ var _LTGame_LTUtils_QuaternionEx__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../LTGame/LTUtils/QuaternionEx */ "./src/LTGame/LTUtils/QuaternionEx.ts");
+/* harmony import */ var _LTGame_3rd_oimo_core_World__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../../LTGame/3rd/oimo/core/World */ "./src/LTGame/3rd/oimo/core/World.ts");
+
+
+
+
+
+
+
+class HybridPhysicTest {
+    constructor() {
+        this.name = "混合物理";
+        this._isPressed = false;
+        this._panelSize = 50;
+    }
+    Create() {
+        this._s3d = new Laya.Scene3D();
+        Laya.stage.addChildAt(this._s3d, 1);
+        this._world = new _LTGame_3rd_oimo_core_World__WEBPACK_IMPORTED_MODULE_6__["World"]({
+            timestep: 1 / 60,
+            iterations: 8,
+            broadphase: 3,
+            worldscale: 1,
+            random: false,
+            info: false,
+            gravity: [0, -9.8, 0]
+        });
+        let panelMesh = Laya.PrimitiveMesh.createPlane(this._panelSize, this._panelSize, 1, 1);
+        let panelMat = new Laya.BlinnPhongMaterial();
+        panelMat.albedoColor = new Laya.Vector4(0.8, 0.8, 0.8, 1);
+        let panelObj = new Laya.MeshSprite3D(panelMesh, "floor");
+        panelObj.meshRenderer.material = panelMat;
+        panelObj.meshRenderer.receiveShadow = true;
+        this._s3d.addChild(panelObj);
+        panelObj.transform.localPosition = new Laya.Vector3(0, 0, 0);
+        // 增加oimo物理
+        this._world.add({
+            type: 'box',
+            size: [this._panelSize, 1, this._panelSize],
+            pos: [0, 0, 0],
+            rot: [0, 0, 0],
+            move: false,
+            belongsTo: 1,
+            collidesWith: 0xffffffff // The bits of the collision groups with which the shape collides.
+        });
+        // 增加bullet物理
+        let colliderCmp = panelObj.addComponent(Laya.PhysicsCollider);
+        colliderCmp.colliderShape = new Laya.BoxColliderShape(this._panelSize, 1, this._panelSize);
+        let camera = new Laya.Camera();
+        camera.name = "camera";
+        this._s3d.addChild(camera);
+        camera.transform.localPosition = new Laya.Vector3(0, this._panelSize * 1.2, this._panelSize * 1.2);
+        camera.transform.localRotationEuler = new Laya.Vector3(-45, 0, 0);
+        let light = new Laya.DirectionLight();
+        this._s3d.addChild(light);
+        light.transform.localRotationEuler = new Laya.Vector3(-75, 0, 0);
+        light.shadowCascadesMode = Laya.ShadowCascadesMode.NoCascades;
+        light.shadowMode = Laya.ShadowMode.SoftHigh;
+        light.shadowDistance = 200;
+        _LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["default"].instance.AddAction(_LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["EActionType"].Update, this, this._LogicUpdate);
+        _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.Show(Laya.Handler.create(this, this.Clear));
+        _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ui.m_img_bg.on(Laya.Event.MOUSE_DOWN, this, this._OnMouseDown);
+        _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ui.on(Laya.Event.MOUSE_UP, this, this._OnMouseUp);
+        _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ui.on(Laya.Event.MOUSE_OUT, this, this._OnMouseUp);
+        this._cacheMaterial = new Laya.BlinnPhongMaterial();
+        this._cacheMaterial.albedoColor = new Laya.Vector4(0.1, 0.1, 0.6, 1);
+        this._sleepMaterial = new Laya.BlinnPhongMaterial();
+        this._sleepMaterial.albedoColor = new Laya.Vector4(0.5, 0.5, 0, 1);
+        this._cacheMesh = Laya.PrimitiveMesh.createBox(1, 1, 1);
+        this._cubeRigs = [];
+        this._cubeObjs = [];
+        this._s3d.physicsSimulation.maxSubSteps = 2;
+        this._s3d.physicsSimulation.fixedTimeStep = 1 / 30;
+    }
+    _LogicUpdate() {
+        let dt = Laya.timer.delta * 0.001;
+        if (this._isPressed) {
+            this._remainTime -= dt;
+            if (this._remainTime < 0) {
+                this._GenCube();
+                this._remainTime = 0.1;
+            }
+        }
+        this._world.timeStep = dt;
+        this._world.step();
+        for (let i = 0; i < this._cubeObjs.length; ++i) {
+            let cubeObj = this._cubeObjs[i];
+            let rig = this._cubeRigs[i];
+            let pos = rig.position;
+            _LTGame_LTUtils_Vector3Ex__WEBPACK_IMPORTED_MODULE_4__["default"].cacheVec0.setValue(pos.x, pos.y, pos.z);
+            cubeObj.transform.position = _LTGame_LTUtils_Vector3Ex__WEBPACK_IMPORTED_MODULE_4__["default"].cacheVec0;
+            let rot = rig.quaternion;
+            _LTGame_LTUtils_QuaternionEx__WEBPACK_IMPORTED_MODULE_5__["default"].cacheVec0.x = rot.x;
+            _LTGame_LTUtils_QuaternionEx__WEBPACK_IMPORTED_MODULE_5__["default"].cacheVec0.y = rot.y;
+            _LTGame_LTUtils_QuaternionEx__WEBPACK_IMPORTED_MODULE_5__["default"].cacheVec0.z = rot.z;
+            _LTGame_LTUtils_QuaternionEx__WEBPACK_IMPORTED_MODULE_5__["default"].cacheVec0.w = rot.w;
+            cubeObj.transform.rotation = _LTGame_LTUtils_QuaternionEx__WEBPACK_IMPORTED_MODULE_5__["default"].cacheVec0;
+            cubeObj.meshRenderer.sharedMaterial = rig.sleeping ? this._sleepMaterial : this._cacheMaterial;
+        }
+    }
+    _GenCube() {
+        let cubeObj = new Laya.MeshSprite3D(this._cacheMesh, "cube");
+        cubeObj.meshRenderer.sharedMaterial = this._cacheMaterial;
+        this._s3d.addChild(cubeObj);
+        let size = new Laya.Vector3(_LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0.5, 2), _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0.5, 2), _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0.5, 2));
+        cubeObj.transform.localPosition = new Laya.Vector3(_LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(-5, 5), this._panelSize, _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(-5, 5));
+        cubeObj.transform.localRotationEuler = new Laya.Vector3(_LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0, 360), _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0, 360), _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0, 360));
+        cubeObj.transform.localScale = size;
+        cubeObj.meshRenderer.castShadow = true;
+        cubeObj.meshRenderer.receiveShadow = true;
+        // oimo物理
+        let rig = this._world.add({
+            type: 'box',
+            size: [size.x, size.y, size.z],
+            pos: [cubeObj.transform.localPosition.x, cubeObj.transform.localPosition.y, cubeObj.transform.localPosition.z],
+            rot: [cubeObj.transform.localRotationEuler.x, cubeObj.transform.localRotationEuler.y, cubeObj.transform.localRotationEuler.z],
+            move: true,
+            density: 1,
+            friction: 0.8,
+            restitution: 0.2,
+            belongsTo: 1,
+            collidesWith: 0xffffffff // The bits of the collision groups with which the shape collides.
+        });
+        // 增加bullet物理
+        let colliderCmp = cubeObj.addComponent(Laya.PhysicsCollider);
+        colliderCmp.colliderShape = new Laya.BoxColliderShape(1, 1, 1);
+        this._cubeObjs.push(cubeObj);
+        this._cubeRigs.push(rig);
+        _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ui.m_text_notice.text = "物体数量:" + this._cubeObjs.length;
+    }
+    _OnMouseDown(event) {
+        if (this._isPressed)
+            return;
+        this._isPressed = true;
+        this._touchId = event.touchId;
+        this._remainTime = 0;
+    }
+    _OnMouseUp(event) {
+        if (!this._isPressed)
+            return;
+        if (this._touchId != event.touchId)
+            return;
+        this._isPressed = false;
+    }
+    Clear() {
+        _LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["default"].instance.RemoveAction(_LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["EActionType"].Update, this, this._LogicUpdate);
+        this._s3d.destroy();
+        _ui_UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.Show();
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/script/test/OimoPhysicTest.ts":
+/*!*******************************************!*\
+  !*** ./src/script/test/OimoPhysicTest.ts ***!
+  \*******************************************/
+/*! exports provided: OimoPhysicTest */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "OimoPhysicTest", function() { return OimoPhysicTest; });
+/* harmony import */ var _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../ui/UI_TestMediator */ "./src/script/ui/UI_TestMediator.ts");
+/* harmony import */ var _ui_UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../ui/UI_FunctionTestMediator */ "./src/script/ui/UI_FunctionTestMediator.ts");
+/* harmony import */ var _LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../LTGame/LTUtils/MonoHelper */ "./src/LTGame/LTUtils/MonoHelper.ts");
+/* harmony import */ var _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../LTGame/LTUtils/MathEx */ "./src/LTGame/LTUtils/MathEx.ts");
+/* harmony import */ var _LTGame_LTUtils_Vector3Ex__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../LTGame/LTUtils/Vector3Ex */ "./src/LTGame/LTUtils/Vector3Ex.ts");
+/* harmony import */ var _LTGame_LTUtils_QuaternionEx__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../../LTGame/LTUtils/QuaternionEx */ "./src/LTGame/LTUtils/QuaternionEx.ts");
+/* harmony import */ var _LTGame_3rd_oimo_core_World__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../../LTGame/3rd/oimo/core/World */ "./src/LTGame/3rd/oimo/core/World.ts");
+
+
+
+
+
+
+
+class OimoPhysicTest {
+    constructor() {
+        this.name = "Oimo物理";
+        this._isPressed = false;
+        this._panelSize = 50;
+    }
+    Create() {
+        this._s3d = new Laya.Scene3D();
+        Laya.stage.addChildAt(this._s3d, 1);
+        this._world = new _LTGame_3rd_oimo_core_World__WEBPACK_IMPORTED_MODULE_6__["World"]({
+            timestep: 1 / 60,
+            iterations: 8,
+            broadphase: 3,
+            worldscale: 1,
+            random: false,
+            info: false,
+            gravity: [0, -9.8, 0]
+        });
+        let panelMesh = Laya.PrimitiveMesh.createPlane(this._panelSize, this._panelSize, 1, 1);
+        let panelMat = new Laya.BlinnPhongMaterial();
+        panelMat.albedoColor = new Laya.Vector4(0.8, 0.8, 0.8, 1);
+        let panelObj = new Laya.MeshSprite3D(panelMesh, "floor");
+        panelObj.meshRenderer.material = panelMat;
+        panelObj.meshRenderer.receiveShadow = true;
+        this._s3d.addChild(panelObj);
+        panelObj.transform.localPosition = new Laya.Vector3(0, 0, 0);
+        let collider = this._world.add({
+            type: 'box',
+            size: [this._panelSize, 1, this._panelSize],
+            pos: [0, 0, 0],
+            rot: [0, 0, 0],
+            move: false,
+            belongsTo: 1,
+            collidesWith: 0xffffffff // The bits of the collision groups with which the shape collides.
+        });
+        let camera = new Laya.Camera();
+        camera.name = "camera";
+        this._s3d.addChild(camera);
+        camera.transform.localPosition = new Laya.Vector3(0, this._panelSize * 1.2, this._panelSize * 1.2);
+        camera.transform.localRotationEuler = new Laya.Vector3(-45, 0, 0);
+        let light = new Laya.DirectionLight();
+        this._s3d.addChild(light);
+        light.transform.localRotationEuler = new Laya.Vector3(-75, 0, 0);
+        light.shadowCascadesMode = Laya.ShadowCascadesMode.NoCascades;
+        light.shadowMode = Laya.ShadowMode.SoftHigh;
+        light.shadowDistance = 200;
+        _LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["default"].instance.AddAction(_LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["EActionType"].Update, this, this._LogicUpdate);
+        _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.Show(Laya.Handler.create(this, this.Clear));
+        _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ui.m_img_bg.on(Laya.Event.MOUSE_DOWN, this, this._OnMouseDown);
+        _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ui.on(Laya.Event.MOUSE_UP, this, this._OnMouseUp);
+        _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ui.on(Laya.Event.MOUSE_OUT, this, this._OnMouseUp);
+        this._cacheMaterial = new Laya.BlinnPhongMaterial();
+        this._cacheMaterial.albedoColor = new Laya.Vector4(0.1, 0.1, 0.6, 1);
+        this._sleepMaterial = new Laya.BlinnPhongMaterial();
+        this._sleepMaterial.albedoColor = new Laya.Vector4(0.5, 0.5, 0, 1);
+        this._cacheMesh = Laya.PrimitiveMesh.createBox(1, 1, 1);
+        this._cubeRigs = [];
+        this._cubeObjs = [];
+        this._s3d.physicsSimulation.maxSubSteps = 2;
+        this._s3d.physicsSimulation.fixedTimeStep = 1 / 30;
+    }
+    _LogicUpdate() {
+        let dt = Laya.timer.delta * 0.001;
+        if (this._isPressed) {
+            this._remainTime -= dt;
+            if (this._remainTime < 0) {
+                this._GenCube();
+                this._remainTime = 0.1;
+            }
+        }
+        this._world.timeStep = dt;
+        this._world.step();
+        for (let i = 0; i < this._cubeObjs.length; ++i) {
+            let cubeObj = this._cubeObjs[i];
+            let rig = this._cubeRigs[i];
+            let pos = rig.position;
+            _LTGame_LTUtils_Vector3Ex__WEBPACK_IMPORTED_MODULE_4__["default"].cacheVec0.setValue(pos.x, pos.y, pos.z);
+            cubeObj.transform.position = _LTGame_LTUtils_Vector3Ex__WEBPACK_IMPORTED_MODULE_4__["default"].cacheVec0;
+            let rot = rig.quaternion;
+            _LTGame_LTUtils_QuaternionEx__WEBPACK_IMPORTED_MODULE_5__["default"].cacheVec0.x = rot.x;
+            _LTGame_LTUtils_QuaternionEx__WEBPACK_IMPORTED_MODULE_5__["default"].cacheVec0.y = rot.y;
+            _LTGame_LTUtils_QuaternionEx__WEBPACK_IMPORTED_MODULE_5__["default"].cacheVec0.z = rot.z;
+            _LTGame_LTUtils_QuaternionEx__WEBPACK_IMPORTED_MODULE_5__["default"].cacheVec0.w = rot.w;
+            cubeObj.transform.rotation = _LTGame_LTUtils_QuaternionEx__WEBPACK_IMPORTED_MODULE_5__["default"].cacheVec0;
+            cubeObj.meshRenderer.sharedMaterial = rig.sleeping ? this._sleepMaterial : this._cacheMaterial;
+        }
+    }
+    _GenCube() {
+        let cubeObj = new Laya.MeshSprite3D(this._cacheMesh, "cube");
+        cubeObj.meshRenderer.sharedMaterial = this._cacheMaterial;
+        this._s3d.addChild(cubeObj);
+        let size = new Laya.Vector3(_LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0.5, 2), _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0.5, 2), _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0.5, 2));
+        cubeObj.transform.localPosition = new Laya.Vector3(_LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(-5, 5), this._panelSize, _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(-5, 5));
+        cubeObj.transform.localRotationEuler = new Laya.Vector3(_LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0, 360), _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0, 360), _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0, 360));
+        cubeObj.transform.localScale = size;
+        cubeObj.meshRenderer.castShadow = true;
+        cubeObj.meshRenderer.receiveShadow = true;
+        let rig = this._world.add({
+            type: 'box',
+            size: [size.x, size.y, size.z],
+            pos: [cubeObj.transform.localPosition.x, cubeObj.transform.localPosition.y, cubeObj.transform.localPosition.z],
+            rot: [cubeObj.transform.localRotationEuler.x, cubeObj.transform.localRotationEuler.y, cubeObj.transform.localRotationEuler.z],
+            move: true,
+            density: 1,
+            friction: 0.8,
+            restitution: 0.2,
+            belongsTo: 1,
+            collidesWith: 0xffffffff // The bits of the collision groups with which the shape collides.
+        });
+        this._cubeObjs.push(cubeObj);
+        this._cubeRigs.push(rig);
+        _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ui.m_text_notice.text = "物体数量:" + this._cubeObjs.length;
+    }
+    _OnMouseDown(event) {
+        if (this._isPressed)
+            return;
+        this._isPressed = true;
+        this._touchId = event.touchId;
+        this._remainTime = 0;
+    }
+    _OnMouseUp(event) {
+        if (!this._isPressed)
+            return;
+        if (this._touchId != event.touchId)
+            return;
+        this._isPressed = false;
+    }
+    Clear() {
+        _LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["default"].instance.RemoveAction(_LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["EActionType"].Update, this, this._LogicUpdate);
+        this._s3d.destroy();
+        _ui_UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.Show();
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/script/test/PBRTest.ts":
+/*!************************************!*\
+  !*** ./src/script/test/PBRTest.ts ***!
+  \************************************/
+/*! exports provided: PBRTest */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "PBRTest", function() { return PBRTest; });
+/* harmony import */ var _LTGame_Res_LTRes__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../LTGame/Res/LTRes */ "./src/LTGame/Res/LTRes.ts");
+/* harmony import */ var _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../ui/UI_TestMediator */ "./src/script/ui/UI_TestMediator.ts");
+/* harmony import */ var _ui_UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../ui/UI_FunctionTestMediator */ "./src/script/ui/UI_FunctionTestMediator.ts");
+
+
+
+const scene_path = "res/export/Conventional/SkyBox.ls";
+class PBRTest {
+    constructor() {
+        this.name = "PBR测试";
+    }
+    Create() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this._s3d = yield _LTGame_Res_LTRes__WEBPACK_IMPORTED_MODULE_0__["default"].LoadAndGet(scene_path, true);
+            Laya.stage.addChildAt(this._s3d, 1);
+            this._s3d.reflection = this._s3d.skyRenderer.material.textureCube;
+            let sphereMesh = Laya.PrimitiveMesh.createSphere(0.25, 32, 32);
+            const row = 6;
+            this.addSpheresSpecialMetallic(sphereMesh, new Laya.Vector3(0, 1.5, 2), this._s3d, row, new Laya.Vector4(186 / 255, 110 / 255, 64 / 255, 1.0), 1.0);
+            this.addSpheresSmoothnessMetallic(sphereMesh, new Laya.Vector3(0, 0, 2), this._s3d, 3, row, new Laya.Vector4(1.0, 1.0, 1.0, 1.0));
+            this.addSpheresSpecialMetallic(sphereMesh, new Laya.Vector3(0, -1.5, 2), this._s3d, row, new Laya.Vector4(0.0, 0.0, 0.0, 1.0), 0.0);
+            _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.Show(Laya.Handler.create(this, this.Clear));
+        });
+    }
+    /**
+     * Add some different smoothness with special metallic sphere.
+     */
+    addSpheresSpecialMetallic(sphereMesh, offset, scene, col, color, metallic = 0) {
+        const width = col * 0.5;
+        for (var i = 0, n = col; i < n; i++) { //diffenent smoothness
+            var smoothness = i / (n - 1);
+            // var metallic: number = metallic;
+            var pos = new Laya.Vector3();
+            pos.setValue(-width / 2 + i * width / (n - 1), 0, 3.0);
+            Laya.Vector3.add(offset, pos, pos);
+            this.addPBRSphere(sphereMesh, pos, scene, color, smoothness, metallic);
+        }
+    }
+    /**
+     * Add some different smoothness and metallic sphere.
+     */
+    addSpheresSmoothnessMetallic(sphereMesh, offset, scene, row, col, color) {
+        const width = col * 0.5;
+        const height = row * 0.5;
+        for (var i = 0, n = col; i < n; i++) { //diffenent smoothness
+            for (var j = 0, m = row; j < m; j++) { //diffenent metallic
+                var smoothness = i / (n - 1);
+                var metallic = 1.0 - j / (m - 1);
+                var pos = new Laya.Vector3();
+                pos.setValue(-width / 2 + i * width / (n - 1), height / 2 - j * height / (m - 1), 3.0);
+                Laya.Vector3.add(offset, pos, pos);
+                this.addPBRSphere(sphereMesh, pos, scene, color, smoothness, metallic);
+            }
+        }
+    }
+    /**
+     * Add one with smoothness and metallic sphere.
+     */
+    addPBRSphere(sphereMesh, position, scene, color, smoothness, metallic) {
+        var mat = new Laya.PBRStandardMaterial();
+        mat.albedoColor = color;
+        mat.smoothness = smoothness;
+        mat.metallic = metallic;
+        var meshSprite = new Laya.MeshSprite3D(sphereMesh);
+        meshSprite.meshRenderer.sharedMaterial = mat;
+        var transform = meshSprite.transform;
+        transform.localPosition = position;
+        scene.addChild(meshSprite);
+        return mat;
+    }
+    Clear() {
+        this._s3d.destroy();
+        _LTGame_Res_LTRes__WEBPACK_IMPORTED_MODULE_0__["default"].Unload(scene_path);
+        _ui_UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_2__["default"].instance.Show();
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/script/test/PhysicTest.ts":
+/*!***************************************!*\
+  !*** ./src/script/test/PhysicTest.ts ***!
+  \***************************************/
+/*! exports provided: PhysicTest */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "PhysicTest", function() { return PhysicTest; });
+/* harmony import */ var _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../ui/UI_TestMediator */ "./src/script/ui/UI_TestMediator.ts");
+/* harmony import */ var _ui_UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../ui/UI_FunctionTestMediator */ "./src/script/ui/UI_FunctionTestMediator.ts");
+/* harmony import */ var _LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../LTGame/LTUtils/MonoHelper */ "./src/LTGame/LTUtils/MonoHelper.ts");
+/* harmony import */ var _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../LTGame/LTUtils/MathEx */ "./src/LTGame/LTUtils/MathEx.ts");
+/* harmony import */ var _LTGame_Async_Awaiters__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../LTGame/Async/Awaiters */ "./src/LTGame/Async/Awaiters.ts");
+
+
+
+
+
+class PhysicTest {
+    constructor() {
+        this.name = "Bullet物理";
+        this._isPressed = false;
+        this._panelSize = 50;
+    }
+    Create() {
+        this._s3d = new Laya.Scene3D();
+        Laya.stage.addChildAt(this._s3d, 1);
+        let panelMesh = Laya.PrimitiveMesh.createPlane(this._panelSize, this._panelSize, 1, 1);
+        let panelMat = new Laya.BlinnPhongMaterial();
+        panelMat.albedoColor = new Laya.Vector4(0.8, 0.8, 0.8, 1);
+        let panelObj = new Laya.MeshSprite3D(panelMesh, "floor");
+        panelObj.meshRenderer.material = panelMat;
+        panelObj.meshRenderer.receiveShadow = true;
+        this._s3d.addChild(panelObj);
+        panelObj.transform.localPosition = new Laya.Vector3(0, 0, 0);
+        let colliderCmp = panelObj.addComponent(Laya.PhysicsCollider);
+        colliderCmp.colliderShape = new Laya.BoxColliderShape(this._panelSize, 1, this._panelSize);
+        colliderCmp.friction = 1;
+        let camera = new Laya.Camera();
+        camera.name = "camera";
+        this._s3d.addChild(camera);
+        camera.transform.localPosition = new Laya.Vector3(0, this._panelSize * 1.2, this._panelSize * 1.2);
+        camera.transform.localRotationEuler = new Laya.Vector3(-45, 0, 0);
+        let light = new Laya.DirectionLight();
+        this._s3d.addChild(light);
+        light.transform.localRotationEuler = new Laya.Vector3(-75, 0, 0);
+        light.shadowCascadesMode = Laya.ShadowCascadesMode.NoCascades;
+        light.shadowMode = Laya.ShadowMode.SoftHigh;
+        light.shadowDistance = 200;
+        _LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["default"].instance.AddAction(_LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["EActionType"].Update, this, this._LogicUpdate);
+        _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.Show(Laya.Handler.create(this, this.Clear));
+        _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ui.m_img_bg.on(Laya.Event.MOUSE_DOWN, this, this._OnMouseDown);
+        _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ui.on(Laya.Event.MOUSE_UP, this, this._OnMouseUp);
+        _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ui.on(Laya.Event.MOUSE_OUT, this, this._OnMouseUp);
+        this._cacheMaterial = new Laya.BlinnPhongMaterial();
+        this._cacheMaterial.albedoColor = new Laya.Vector4(0.1, 0.1, 0.6, 1);
+        this._sleepMaterial = new Laya.BlinnPhongMaterial();
+        this._sleepMaterial.albedoColor = new Laya.Vector4(0.5, 0.5, 0, 1);
+        this._cacheMesh = Laya.PrimitiveMesh.createBox(1, 1, 1);
+        this._cubeRigs = [];
+        this._cubeObjs = [];
+        this._s3d.physicsSimulation.maxSubSteps = 2;
+        this._s3d.physicsSimulation.fixedTimeStep = 1 / 30;
+    }
+    _LogicUpdate() {
+        let dt = Laya.timer.delta * 0.001;
+        if (this._isPressed) {
+            this._remainTime -= dt;
+            if (this._remainTime < 0) {
+                this._GenCube();
+                this._remainTime = 0.1;
+            }
+        }
+        for (let i = 0; i < this._cubeObjs.length; ++i) {
+            let cubeObj = this._cubeObjs[i];
+            let rig = this._cubeRigs[i];
+            cubeObj.meshRenderer.sharedMaterial = rig.isSleeping ? this._sleepMaterial : this._cacheMaterial;
+        }
+    }
+    _GenCube() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let cubeObj = new Laya.MeshSprite3D(this._cacheMesh, "cube");
+            cubeObj.meshRenderer.sharedMaterial = this._cacheMaterial;
+            this._s3d.addChild(cubeObj);
+            cubeObj.transform.localPosition = new Laya.Vector3(_LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(-5, 5), this._panelSize, _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(-5, 5));
+            cubeObj.transform.localRotationEuler = new Laya.Vector3(_LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0, 360), _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0, 360), _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0, 360));
+            cubeObj.transform.localScale = new Laya.Vector3(_LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0.5, 2), _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0.5, 2), _LTGame_LTUtils_MathEx__WEBPACK_IMPORTED_MODULE_3__["default"].Random(0.5, 2));
+            cubeObj.meshRenderer.castShadow = true;
+            cubeObj.meshRenderer.receiveShadow = true;
+            yield _LTGame_Async_Awaiters__WEBPACK_IMPORTED_MODULE_4__["default"].NextFrame();
+            let rig = cubeObj.addComponent(Laya.Rigidbody3D);
+            rig.colliderShape = new Laya.BoxColliderShape(1, 1, 1);
+            rig.sleepAngularVelocity = 0.1;
+            rig.sleepLinearVelocity = 0.1;
+            rig.ccdMotionThreshold = 0;
+            rig.ccdSweptSphereRadius = 0;
+            this._cubeObjs.push(cubeObj);
+            this._cubeRigs.push(rig);
+            _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_0__["default"].instance.ui.m_text_notice.text = "物体数量:" + this._cubeObjs.length;
+        });
+    }
+    _OnMouseDown(event) {
+        if (this._isPressed)
+            return;
+        this._isPressed = true;
+        this._touchId = event.touchId;
+        this._remainTime = 0;
+    }
+    _OnMouseUp(event) {
+        if (!this._isPressed)
+            return;
+        if (this._touchId != event.touchId)
+            return;
+        this._isPressed = false;
+    }
+    Clear() {
+        _LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["default"].instance.RemoveAction(_LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["EActionType"].Update, this, this._LogicUpdate);
+        this._s3d.destroy();
+        _ui_UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.Show();
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/script/test/RenderTextureTest.ts":
+/*!**********************************************!*\
+  !*** ./src/script/test/RenderTextureTest.ts ***!
+  \**********************************************/
+/*! exports provided: RenderTextureTest */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "RenderTextureTest", function() { return RenderTextureTest; });
+/* harmony import */ var _LTGame_Res_LTRes__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../LTGame/Res/LTRes */ "./src/LTGame/Res/LTRes.ts");
+/* harmony import */ var _ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../ui/UI_TestRTMediator */ "./src/script/ui/UI_TestRTMediator.ts");
+/* harmony import */ var _LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../LTGame/LTUtils/MonoHelper */ "./src/LTGame/LTUtils/MonoHelper.ts");
+/* harmony import */ var _ui_UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../ui/UI_FunctionTestMediator */ "./src/script/ui/UI_FunctionTestMediator.ts");
+
+
+
+
+const scene_path = "res/export/Conventional/HeightFog.ls";
+class RenderTextureTest {
+    constructor() {
+        this.name = "RT测试";
+    }
+    Create() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this._s3d = yield _LTGame_Res_LTRes__WEBPACK_IMPORTED_MODULE_0__["default"].LoadAndGet(scene_path, true);
+            Laya.stage.addChildAt(this._s3d, 1);
+            _ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.Show();
+            let getCamera = this._s3d.getChildByName("Main Camera");
+            this._renderCamera = getCamera.clone();
+            this._s3d.addChild(this._renderCamera);
+            // 注意格式只能用r8g8b8a8否则ip6不支持
+            this._cacheRT = new Laya.RenderTexture(_ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.ui.m_img_display.width, _ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.ui.m_img_display.height, Laya.RenderTextureFormat.R8G8B8A8, Laya.RenderTextureDepthFormat.DEPTH_16);
+            this._renderCamera.renderTarget = this._cacheRT;
+            this._renderCamera.enableRender = false;
+            this._cacheImage = new fgui.GImage();
+            _ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.ui.addChildAt(this._cacheImage, _ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.ui.getChildIndex(_ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.ui.m_img_display) + 1);
+            this._cacheImage.image.texture = new Laya.Texture(this._cacheRT);
+            this._cacheImage.setPivot(_ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.ui.m_img_display.pivotX, _ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.ui.m_img_display.pivotY, _ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.ui.m_img_display.pivotAsAnchor);
+            _ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.ui.m_img_display.draggable = true;
+            _ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.ui.m_btn_back.onClick(this, this.Clear);
+            _LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["default"].instance.AddAction(_LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["EActionType"].Update, this, this._LogicUpdate);
+        });
+    }
+    _LogicUpdate() {
+        let dt = Laya.timer.delta / 1000;
+        this._renderCamera.transform.localRotationEulerY += dt * 10;
+        this._renderCamera.render();
+        this._cacheImage.setXY(_ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.ui.m_img_display.x, _ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.ui.m_img_display.y);
+    }
+    Clear() {
+        this._cacheRT.destroy();
+        _LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["default"].instance.RemoveAction(_LTGame_LTUtils_MonoHelper__WEBPACK_IMPORTED_MODULE_2__["EActionType"].Update, this, this._LogicUpdate);
+        this._s3d.destroy();
+        _LTGame_Res_LTRes__WEBPACK_IMPORTED_MODULE_0__["default"].Unload(scene_path);
+        _ui_UI_TestRTMediator__WEBPACK_IMPORTED_MODULE_1__["default"].instance.Hide();
+        _ui_UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_3__["default"].instance.Show();
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/script/test/UIEffectTest.ts":
+/*!*****************************************!*\
+  !*** ./src/script/test/UIEffectTest.ts ***!
+  \*****************************************/
+/*! exports provided: UIEffectTest */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "UIEffectTest", function() { return UIEffectTest; });
+/* harmony import */ var _LTGame_Res_LTRes__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../LTGame/Res/LTRes */ "./src/LTGame/Res/LTRes.ts");
+/* harmony import */ var _manager_EffectManager__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../manager/EffectManager */ "./src/script/manager/EffectManager.ts");
+/* harmony import */ var _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../ui/UI_TestMediator */ "./src/script/ui/UI_TestMediator.ts");
+/* harmony import */ var _ui_UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../ui/UI_FunctionTestMediator */ "./src/script/ui/UI_FunctionTestMediator.ts");
+
+
+
+
+const scene_path = "res/export/Conventional/HeightFog.ls";
+class UIEffectTest {
+    constructor() {
+        this.name = "UI特效测试";
+    }
+    Create() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this._s3d = yield _LTGame_Res_LTRes__WEBPACK_IMPORTED_MODULE_0__["default"].LoadAndGet(scene_path, true);
+            Laya.stage.addChildAt(this._s3d, 1);
+            _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_2__["default"].instance.Show(Laya.Handler.create(this, this.Clear));
+            _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_2__["default"].instance.ui.m_img_bg.on(Laya.Event.MOUSE_DOWN, this, this._OnPressDown);
+            _ui_UI_TestMediator__WEBPACK_IMPORTED_MODULE_2__["default"].instance.ui.m_img_bg.color = "ffffffff";
+        });
+    }
+    _OnPressDown(event) {
+        _manager_EffectManager__WEBPACK_IMPORTED_MODULE_1__["EffectManager"].instance.PlayEffectById(2, 2, new Laya.Vector3(event.stageX, event.stageY));
+    }
+    Clear() {
+        this._s3d.destroy();
+        _LTGame_Res_LTRes__WEBPACK_IMPORTED_MODULE_0__["default"].Unload(scene_path);
+        _ui_UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_3__["default"].instance.Show();
     }
 }
 
@@ -12214,6 +25689,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../LTGame/UIExt/FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
 /* harmony import */ var _LTGame_UIExt_LTUI__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../LTGame/UIExt/LTUI */ "./src/LTGame/UIExt/LTUI.ts");
 /* harmony import */ var _ui_Main_UI_ADDemo__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../ui/Main/UI_ADDemo */ "./src/ui/Main/UI_ADDemo.ts");
+/* harmony import */ var _UI_NativeDemoMediator__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./UI_NativeDemoMediator */ "./src/script/ui/UI_NativeDemoMediator.ts");
+
 
 
 
@@ -12235,13 +25712,10 @@ class UI_ADDemoMediator extends _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMPOR
         this.ui.m_btn_rewardvideo.onClick(this, this._OnClickRewardAd);
         this.ui.m_btn_intvideo.onClick(this, this._OnClickIntAd);
         this.ui.m_btn_native.onClick(this, this._OnClickNative);
-        this.ui.m_btn_native_close.onClick(this, this._OnClickHideNative);
     }
     _OnClickNative() {
         // (LTPlatform.instance as OppoPlatform).ShowNativeAd();
-    }
-    _OnClickHideNative() {
-        // (LTPlatform.instance as OppoPlatform).HideNativeAd();
+        _UI_NativeDemoMediator__WEBPACK_IMPORTED_MODULE_4__["default"].instance.Show();
     }
     _OnClickBack() {
         this.Hide();
@@ -12424,10 +25898,12 @@ class UI_CommonUIMediator extends _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMP
         this.ui.m_btn_moudle.onClick(this, this._OnClickModule);
         this.ui.m_btn_endlose.onClick(this, this._OnClickEndLose);
         this.ui.m_btn_unlockprogress.onClick(this, this._OnClickUnlockProgress);
+        this.ui.m_btn_bonus.onClick(this, _LTGame_UIExt_LTUI__WEBPACK_IMPORTED_MODULE_11__["default"].ShowBonusBox);
+        this.ui.m_btn_exskin.onClick(this, _LTGame_UIExt_LTUI__WEBPACK_IMPORTED_MODULE_11__["default"].ShowExSKin);
     }
     _OnClickModule() {
-        _LTGame_UIExt_LTUI__WEBPACK_IMPORTED_MODULE_11__["default"].Toast('完善中');
-        return;
+        // LTUI.Toast('完善中');
+        // return;
         _UI_MoudleDemoMediator__WEBPACK_IMPORTED_MODULE_13__["default"].instance.Show();
     }
     _OnClickRoll() {
@@ -12446,6 +25922,8 @@ class UI_CommonUIMediator extends _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMP
     }
     _OnClickTrySkin() {
         let openData = new _LTGame_UIExt_DefaultUI_Data_TrySkinOpenData__WEBPACK_IMPORTED_MODULE_8__["default"]();
+        console.error('demo 数据');
+        openData.iconPaths = ['test/test.png'];
         openData.onClose = Laya.Handler.create(null, (type) => {
             if (type < 0) {
                 _LTGame_UIExt_LTUI__WEBPACK_IMPORTED_MODULE_11__["default"].Toast("不试用皮肤");
@@ -12602,6 +26080,83 @@ class UI_CommonUIMediator extends _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMP
 
 /***/ }),
 
+/***/ "./src/script/ui/UI_FunctionTestMediator.ts":
+/*!**************************************************!*\
+  !*** ./src/script/ui/UI_FunctionTestMediator.ts ***!
+  \**************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_FunctionTestMediator; });
+/* harmony import */ var _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../LTGame/UIExt/FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
+/* harmony import */ var _ui_Main_UI_FunctionTest__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../ui/Main/UI_FunctionTest */ "./src/ui/Main/UI_FunctionTest.ts");
+/* harmony import */ var _UI_MainMediator__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./UI_MainMediator */ "./src/script/ui/UI_MainMediator.ts");
+/* harmony import */ var _test_PBRTest__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../test/PBRTest */ "./src/script/test/PBRTest.ts");
+/* harmony import */ var _test_HeightFogTest__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../test/HeightFogTest */ "./src/script/test/HeightFogTest.ts");
+/* harmony import */ var _test_RenderTextureTest__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../test/RenderTextureTest */ "./src/script/test/RenderTextureTest.ts");
+/* harmony import */ var _test_UIEffectTest__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ../test/UIEffectTest */ "./src/script/test/UIEffectTest.ts");
+/* harmony import */ var _test_PhysicTest__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ../test/PhysicTest */ "./src/script/test/PhysicTest.ts");
+/* harmony import */ var _test_OimoPhysicTest__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../test/OimoPhysicTest */ "./src/script/test/OimoPhysicTest.ts");
+/* harmony import */ var _test_HybridPhysicTest__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../test/HybridPhysicTest */ "./src/script/test/HybridPhysicTest.ts");
+
+
+
+
+
+
+
+
+
+
+class UI_FunctionTestMediator extends _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__["default"] {
+    constructor() {
+        super(...arguments);
+        this._sampleList = [
+            new _test_PBRTest__WEBPACK_IMPORTED_MODULE_3__["PBRTest"](),
+            new _test_HeightFogTest__WEBPACK_IMPORTED_MODULE_4__["HeightFogTest"](),
+            new _test_RenderTextureTest__WEBPACK_IMPORTED_MODULE_5__["RenderTextureTest"](),
+            new _test_UIEffectTest__WEBPACK_IMPORTED_MODULE_6__["UIEffectTest"](),
+            new _test_PhysicTest__WEBPACK_IMPORTED_MODULE_7__["PhysicTest"](),
+            new _test_OimoPhysicTest__WEBPACK_IMPORTED_MODULE_8__["OimoPhysicTest"](),
+            new _test_HybridPhysicTest__WEBPACK_IMPORTED_MODULE_9__["HybridPhysicTest"](),
+        ];
+    }
+    static get instance() {
+        if (this._instance == null) {
+            this._instance = new UI_FunctionTestMediator();
+            this._instance._classDefine = _ui_Main_UI_FunctionTest__WEBPACK_IMPORTED_MODULE_1__["default"];
+        }
+        return this._instance;
+    }
+    _OnShow() {
+        super._OnShow();
+        // your code
+        this.ui.m_btn_back.onClick(this, this._OnClickClose);
+        this.ui.m_list_btns.setVirtual();
+        this.ui.m_list_btns.itemRenderer = Laya.Handler.create(this, this._OnItemBtnsRender, null, false);
+        this.ui.m_list_btns.numItems = this._sampleList.length;
+    }
+    _OnItemBtnsRender(index, itemUI) {
+        let data = this._sampleList[index];
+        itemUI.text = data.name;
+        itemUI.onClick(this, this._OnClickBtns, [index]);
+    }
+    _OnClickBtns(index) {
+        this.Hide();
+        let data = this._sampleList[index];
+        data.Create();
+    }
+    _OnClickClose() {
+        this.Hide();
+        _UI_MainMediator__WEBPACK_IMPORTED_MODULE_2__["UI_MainMediator"].instance.Show();
+    }
+}
+
+
+/***/ }),
+
 /***/ "./src/script/ui/UI_MainMediator.ts":
 /*!******************************************!*\
   !*** ./src/script/ui/UI_MainMediator.ts ***!
@@ -12614,12 +26169,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "UI_MainMediator", function() { return UI_MainMediator; });
 /* harmony import */ var _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../LTGame/UIExt/FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
 /* harmony import */ var _ui_Main_UI_Main__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../ui/Main/UI_Main */ "./src/ui/Main/UI_Main.ts");
-/* harmony import */ var _UI_UIDemoMediator__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./UI_UIDemoMediator */ "./src/script/ui/UI_UIDemoMediator.ts");
-/* harmony import */ var _UI_ADDemoMediator__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./UI_ADDemoMediator */ "./src/script/ui/UI_ADDemoMediator.ts");
-/* harmony import */ var _UI_RecordDemoMediator__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./UI_RecordDemoMediator */ "./src/script/ui/UI_RecordDemoMediator.ts");
-/* harmony import */ var _UI_CommonUIMediator__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./UI_CommonUIMediator */ "./src/script/ui/UI_CommonUIMediator.ts");
+/* harmony import */ var _UI_ADDemoMediator__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./UI_ADDemoMediator */ "./src/script/ui/UI_ADDemoMediator.ts");
+/* harmony import */ var _UI_CommonUIMediator__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./UI_CommonUIMediator */ "./src/script/ui/UI_CommonUIMediator.ts");
+/* harmony import */ var _UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./UI_FunctionTestMediator */ "./src/script/ui/UI_FunctionTestMediator.ts");
+/* harmony import */ var _UI_OthersMediator__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./UI_OthersMediator */ "./src/script/ui/UI_OthersMediator.ts");
 /* harmony import */ var _UI_PerfomanceMediator__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./UI_PerfomanceMediator */ "./src/script/ui/UI_PerfomanceMediator.ts");
-/* harmony import */ var _UI_OthersMediator__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./UI_OthersMediator */ "./src/script/ui/UI_OthersMediator.ts");
+/* harmony import */ var _UI_RecordDemoMediator__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./UI_RecordDemoMediator */ "./src/script/ui/UI_RecordDemoMediator.ts");
+/* harmony import */ var _UI_UIDemoMediator__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./UI_UIDemoMediator */ "./src/script/ui/UI_UIDemoMediator.ts");
+
 
 
 
@@ -12644,24 +26201,29 @@ class UI_MainMediator extends _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMPORTE
         this.ui.m_btn_common.onClick(this, this._OnClickCommon);
         this.ui.m_btn_others.onClick(this, this._OnClickOthers);
         this.ui.m_btn_performance.onClick(this, this._OnClickPerfomance);
+        this.ui.m_btn_feature.onClick(this, this._OnClickFunctionTest);
+    }
+    _OnClickFunctionTest() {
+        this.Hide();
+        _UI_FunctionTestMediator__WEBPACK_IMPORTED_MODULE_4__["default"].instance.Show();
     }
     _OnClickPerfomance() {
         _UI_PerfomanceMediator__WEBPACK_IMPORTED_MODULE_6__["default"].instance.Show();
     }
     _OnClickOthers() {
-        _UI_OthersMediator__WEBPACK_IMPORTED_MODULE_7__["default"].instance.Show();
+        _UI_OthersMediator__WEBPACK_IMPORTED_MODULE_5__["default"].instance.Show();
     }
     _OnClickBtnAd() {
-        _UI_ADDemoMediator__WEBPACK_IMPORTED_MODULE_3__["default"].instance.Show();
+        _UI_ADDemoMediator__WEBPACK_IMPORTED_MODULE_2__["default"].instance.Show();
     }
     _OnClickBtnUI() {
-        _UI_UIDemoMediator__WEBPACK_IMPORTED_MODULE_2__["default"].instance.Show();
+        _UI_UIDemoMediator__WEBPACK_IMPORTED_MODULE_8__["default"].instance.Show();
     }
     _OnClickRecord() {
-        _UI_RecordDemoMediator__WEBPACK_IMPORTED_MODULE_4__["default"].instance.Show();
+        _UI_RecordDemoMediator__WEBPACK_IMPORTED_MODULE_7__["default"].instance.Show();
     }
     _OnClickCommon() {
-        _UI_CommonUIMediator__WEBPACK_IMPORTED_MODULE_5__["default"].instance.Show();
+        _UI_CommonUIMediator__WEBPACK_IMPORTED_MODULE_3__["default"].instance.Show();
     }
 }
 
@@ -12687,6 +26249,42 @@ class UI_MoudleDemoMediator extends _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_I
         if (this._instance == null) {
             this._instance = new UI_MoudleDemoMediator();
             this._instance._classDefine = _ui_Main_UI_MoudleDemo__WEBPACK_IMPORTED_MODULE_1__["default"];
+        }
+        return this._instance;
+    }
+    _OnShow() {
+        super._OnShow();
+        // your code
+        this.ui.m_btn_back.onClick(this, this._OnClickBack);
+        console.log(this.ui.m___wxSG);
+    }
+    _OnClickBack() {
+        this.Hide();
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/script/ui/UI_NativeDemoMediator.ts":
+/*!************************************************!*\
+  !*** ./src/script/ui/UI_NativeDemoMediator.ts ***!
+  \************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_NativeDemoMediator; });
+/* harmony import */ var _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../LTGame/UIExt/FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
+/* harmony import */ var _ui_Main_UI_NativeDemo__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../ui/Main/UI_NativeDemo */ "./src/ui/Main/UI_NativeDemo.ts");
+
+
+class UI_NativeDemoMediator extends _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__["default"] {
+    static get instance() {
+        if (this._instance == null) {
+            this._instance = new UI_NativeDemoMediator();
+            this._instance._classDefine = _ui_Main_UI_NativeDemo__WEBPACK_IMPORTED_MODULE_1__["default"];
         }
         return this._instance;
     }
@@ -12958,6 +26556,75 @@ class UI_RecordDemoMediator extends _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_I
 
 /***/ }),
 
+/***/ "./src/script/ui/UI_TestMediator.ts":
+/*!******************************************!*\
+  !*** ./src/script/ui/UI_TestMediator.ts ***!
+  \******************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_TestMediator; });
+/* harmony import */ var _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../LTGame/UIExt/FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
+/* harmony import */ var _ui_Main_UI_Test__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../ui/Main/UI_Test */ "./src/ui/Main/UI_Test.ts");
+
+
+class UI_TestMediator extends _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__["default"] {
+    static get instance() {
+        if (this._instance == null) {
+            this._instance = new UI_TestMediator();
+            this._instance._classDefine = _ui_Main_UI_Test__WEBPACK_IMPORTED_MODULE_1__["default"];
+        }
+        return this._instance;
+    }
+    _OnShow() {
+        super._OnShow();
+        // your code
+        this._onCloseAction = this._openParam;
+        this.ui.m_btn_back.onClick(this, this._OnClickClose);
+    }
+    _OnClickClose() {
+        var _a;
+        this.Hide();
+        (_a = this._onCloseAction) === null || _a === void 0 ? void 0 : _a.run();
+    }
+}
+
+
+/***/ }),
+
+/***/ "./src/script/ui/UI_TestRTMediator.ts":
+/*!********************************************!*\
+  !*** ./src/script/ui/UI_TestRTMediator.ts ***!
+  \********************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_TestRTMediator; });
+/* harmony import */ var _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../LTGame/UIExt/FGui/BaseUIMediator */ "./src/LTGame/UIExt/FGui/BaseUIMediator.ts");
+/* harmony import */ var _ui_Main_UI_TestRT__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../ui/Main/UI_TestRT */ "./src/ui/Main/UI_TestRT.ts");
+
+
+class UI_TestRTMediator extends _LTGame_UIExt_FGui_BaseUIMediator__WEBPACK_IMPORTED_MODULE_0__["default"] {
+    static get instance() {
+        if (this._instance == null) {
+            this._instance = new UI_TestRTMediator();
+            this._instance._classDefine = _ui_Main_UI_TestRT__WEBPACK_IMPORTED_MODULE_1__["default"];
+        }
+        return this._instance;
+    }
+    _OnShow() {
+        super._OnShow();
+        // your code
+    }
+}
+
+
+/***/ }),
+
 /***/ "./src/script/ui/UI_UIDemoMediator.ts":
 /*!********************************************!*\
   !*** ./src/script/ui/UI_UIDemoMediator.ts ***!
@@ -13085,13 +26752,21 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _UI_CommonUI__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./UI_CommonUI */ "./src/ui/Main/UI_CommonUI.ts");
 /* harmony import */ var _UI_ADDemo__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./UI_ADDemo */ "./src/ui/Main/UI_ADDemo.ts");
 /* harmony import */ var _UI_UIDemo__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./UI_UIDemo */ "./src/ui/Main/UI_UIDemo.ts");
-/* harmony import */ var _UI_Main__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./UI_Main */ "./src/ui/Main/UI_Main.ts");
-/* harmony import */ var _UI_PerfomanceDemo__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./UI_PerfomanceDemo */ "./src/ui/Main/UI_PerfomanceDemo.ts");
-/* harmony import */ var _UI_BoneAnimTest__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./UI_BoneAnimTest */ "./src/ui/Main/UI_BoneAnimTest.ts");
-/* harmony import */ var _UI_MoudleDemo__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./UI_MoudleDemo */ "./src/ui/Main/UI_MoudleDemo.ts");
-/* harmony import */ var _UI_RecordDemo__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./UI_RecordDemo */ "./src/ui/Main/UI_RecordDemo.ts");
-/* harmony import */ var _UI_Others__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./UI_Others */ "./src/ui/Main/UI_Others.ts");
+/* harmony import */ var _UI_TestRT__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./UI_TestRT */ "./src/ui/Main/UI_TestRT.ts");
+/* harmony import */ var _UI_Main__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./UI_Main */ "./src/ui/Main/UI_Main.ts");
+/* harmony import */ var _UI_PerfomanceDemo__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./UI_PerfomanceDemo */ "./src/ui/Main/UI_PerfomanceDemo.ts");
+/* harmony import */ var _UI_BoneAnimTest__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./UI_BoneAnimTest */ "./src/ui/Main/UI_BoneAnimTest.ts");
+/* harmony import */ var _UI_NativeDemo__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./UI_NativeDemo */ "./src/ui/Main/UI_NativeDemo.ts");
+/* harmony import */ var _UI_MoudleDemo__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ./UI_MoudleDemo */ "./src/ui/Main/UI_MoudleDemo.ts");
+/* harmony import */ var _UI_RecordDemo__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ./UI_RecordDemo */ "./src/ui/Main/UI_RecordDemo.ts");
+/* harmony import */ var _UI_Others__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ./UI_Others */ "./src/ui/Main/UI_Others.ts");
+/* harmony import */ var _UI_FunctionTest__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(/*! ./UI_FunctionTest */ "./src/ui/Main/UI_FunctionTest.ts");
+/* harmony import */ var _UI_Test__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(/*! ./UI_Test */ "./src/ui/Main/UI_Test.ts");
 /** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+
+
+
+
 
 
 
@@ -13106,12 +26781,16 @@ class MainBinder {
         fgui.UIObjectFactory.setExtension(_UI_CommonUI__WEBPACK_IMPORTED_MODULE_0__["default"].URL, _UI_CommonUI__WEBPACK_IMPORTED_MODULE_0__["default"]);
         fgui.UIObjectFactory.setExtension(_UI_ADDemo__WEBPACK_IMPORTED_MODULE_1__["default"].URL, _UI_ADDemo__WEBPACK_IMPORTED_MODULE_1__["default"]);
         fgui.UIObjectFactory.setExtension(_UI_UIDemo__WEBPACK_IMPORTED_MODULE_2__["default"].URL, _UI_UIDemo__WEBPACK_IMPORTED_MODULE_2__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_Main__WEBPACK_IMPORTED_MODULE_3__["default"].URL, _UI_Main__WEBPACK_IMPORTED_MODULE_3__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_PerfomanceDemo__WEBPACK_IMPORTED_MODULE_4__["default"].URL, _UI_PerfomanceDemo__WEBPACK_IMPORTED_MODULE_4__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_BoneAnimTest__WEBPACK_IMPORTED_MODULE_5__["default"].URL, _UI_BoneAnimTest__WEBPACK_IMPORTED_MODULE_5__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_MoudleDemo__WEBPACK_IMPORTED_MODULE_6__["default"].URL, _UI_MoudleDemo__WEBPACK_IMPORTED_MODULE_6__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_RecordDemo__WEBPACK_IMPORTED_MODULE_7__["default"].URL, _UI_RecordDemo__WEBPACK_IMPORTED_MODULE_7__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_Others__WEBPACK_IMPORTED_MODULE_8__["default"].URL, _UI_Others__WEBPACK_IMPORTED_MODULE_8__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_TestRT__WEBPACK_IMPORTED_MODULE_3__["default"].URL, _UI_TestRT__WEBPACK_IMPORTED_MODULE_3__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_Main__WEBPACK_IMPORTED_MODULE_4__["default"].URL, _UI_Main__WEBPACK_IMPORTED_MODULE_4__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_PerfomanceDemo__WEBPACK_IMPORTED_MODULE_5__["default"].URL, _UI_PerfomanceDemo__WEBPACK_IMPORTED_MODULE_5__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_BoneAnimTest__WEBPACK_IMPORTED_MODULE_6__["default"].URL, _UI_BoneAnimTest__WEBPACK_IMPORTED_MODULE_6__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_NativeDemo__WEBPACK_IMPORTED_MODULE_7__["default"].URL, _UI_NativeDemo__WEBPACK_IMPORTED_MODULE_7__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_MoudleDemo__WEBPACK_IMPORTED_MODULE_8__["default"].URL, _UI_MoudleDemo__WEBPACK_IMPORTED_MODULE_8__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_RecordDemo__WEBPACK_IMPORTED_MODULE_9__["default"].URL, _UI_RecordDemo__WEBPACK_IMPORTED_MODULE_9__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_Others__WEBPACK_IMPORTED_MODULE_10__["default"].URL, _UI_Others__WEBPACK_IMPORTED_MODULE_10__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_FunctionTest__WEBPACK_IMPORTED_MODULE_11__["default"].URL, _UI_FunctionTest__WEBPACK_IMPORTED_MODULE_11__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_Test__WEBPACK_IMPORTED_MODULE_12__["default"].URL, _UI_Test__WEBPACK_IMPORTED_MODULE_12__["default"]);
     }
 }
 
@@ -13146,7 +26825,6 @@ class UI_ADDemo extends fgui.GComponent {
         this.m_btn_moregame = (this.getChildAt(7));
         this.m_btn_hotgame = (this.getChildAt(8));
         this.m_btn_native = (this.getChildAt(9));
-        this.m_btn_native_close = (this.getChildAt(10));
     }
 }
 UI_ADDemo.URL = "ui://kk7g5mmmgxfzb";
@@ -13166,9 +26844,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_BoneAnimTest; });
 /** This is an automatically generated class by FairyGUI. Please do not modify it. **/
 class UI_BoneAnimTest extends fgui.GComponent {
-    constructor() {
-        super();
-    }
     static createInstance() {
         return (fgui.UIPackage.createObject("Main", "BoneAnimTest"));
     }
@@ -13196,9 +26871,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_CommonUI; });
 /** This is an automatically generated class by FairyGUI. Please do not modify it. **/
 class UI_CommonUI extends fgui.GComponent {
-    constructor() {
-        super();
-    }
     static createInstance() {
         return (fgui.UIPackage.createObject("Main", "CommonUI"));
     }
@@ -13216,9 +26888,36 @@ class UI_CommonUI extends fgui.GComponent {
         this.m_btn_moudle = (this.getChildAt(11));
         this.m_btn_offline = (this.getChildAt(12));
         this.m_btn_unlockprogress = (this.getChildAt(13));
+        this.m_btn_exskin = (this.getChildAt(14));
+        this.m_btn_bonus = (this.getChildAt(15));
     }
 }
 UI_CommonUI.URL = "ui://kk7g5mmmfkl1g";
+
+
+/***/ }),
+
+/***/ "./src/ui/Main/UI_FunctionTest.ts":
+/*!****************************************!*\
+  !*** ./src/ui/Main/UI_FunctionTest.ts ***!
+  \****************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_FunctionTest; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_FunctionTest extends fgui.GComponent {
+    static createInstance() {
+        return (fgui.UIPackage.createObject("Main", "FunctionTest"));
+    }
+    onConstruct() {
+        this.m_btn_back = (this.getChildAt(1));
+        this.m_list_btns = (this.getChildAt(2));
+    }
+}
+UI_FunctionTest.URL = "ui://kk7g5mmmyllkk";
 
 
 /***/ }),
@@ -13235,9 +26934,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_Main; });
 /** This is an automatically generated class by FairyGUI. Please do not modify it. **/
 class UI_Main extends fgui.GComponent {
-    constructor() {
-        super();
-    }
     static createInstance() {
         return (fgui.UIPackage.createObject("Main", "Main"));
     }
@@ -13278,14 +26974,42 @@ class UI_MoudleDemo extends fgui.GComponent {
     onConstruct() {
         this.m___othergames = (this.getChildAt(1));
         this.m___hotgame = (this.getChildAt(2));
-        this.m___nativeicon = (this.getChildAt(3));
-        this.m___sidegames = (this.getChildAt(4));
-        this.m___endSG = (this.getChildAt(5));
-        this.m___bottomgames = (this.getChildAt(6));
-        this.m_btn_back = (this.getChildAt(7));
+        this.m___sidegames = (this.getChildAt(3));
+        this.m___endSG = (this.getChildAt(4));
+        this.m___bottomgames = (this.getChildAt(5));
+        this.m_btn_back = (this.getChildAt(6));
+        this.m___wxSG = (this.getChildAt(7));
     }
 }
 UI_MoudleDemo.URL = "ui://kk7g5mmmsgapj";
+
+
+/***/ }),
+
+/***/ "./src/ui/Main/UI_NativeDemo.ts":
+/*!**************************************!*\
+  !*** ./src/ui/Main/UI_NativeDemo.ts ***!
+  \**************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_NativeDemo; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_NativeDemo extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("Main", "NativeDemo"));
+    }
+    onConstruct() {
+        this.m___nativeinpage = (this.getChildAt(1));
+        this.m_btn_back = (this.getChildAt(2));
+    }
+}
+UI_NativeDemo.URL = "ui://kk7g5mmmn4aun";
 
 
 /***/ }),
@@ -13302,9 +27026,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_Others; });
 /** This is an automatically generated class by FairyGUI. Please do not modify it. **/
 class UI_Others extends fgui.GComponent {
-    constructor() {
-        super();
-    }
     static createInstance() {
         return (fgui.UIPackage.createObject("Main", "Others"));
     }
@@ -13339,9 +27060,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_PerfomanceDemo; });
 /** This is an automatically generated class by FairyGUI. Please do not modify it. **/
 class UI_PerfomanceDemo extends fgui.GComponent {
-    constructor() {
-        super();
-    }
     static createInstance() {
         return (fgui.UIPackage.createObject("Main", "PerfomanceDemo"));
     }
@@ -13368,9 +27086,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_RecordDemo; });
 /** This is an automatically generated class by FairyGUI. Please do not modify it. **/
 class UI_RecordDemo extends fgui.GComponent {
-    constructor() {
-        super();
-    }
     static createInstance() {
         return (fgui.UIPackage.createObject("Main", "RecordDemo"));
     }
@@ -13394,6 +27109,57 @@ UI_RecordDemo.URL = "ui://kk7g5mmmx62be";
 
 /***/ }),
 
+/***/ "./src/ui/Main/UI_Test.ts":
+/*!********************************!*\
+  !*** ./src/ui/Main/UI_Test.ts ***!
+  \********************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_Test; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_Test extends fgui.GComponent {
+    static createInstance() {
+        return (fgui.UIPackage.createObject("Main", "Test"));
+    }
+    onConstruct() {
+        this.m_img_bg = (this.getChildAt(0));
+        this.m_btn_back = (this.getChildAt(1));
+        this.m_text_notice = (this.getChildAt(2));
+    }
+}
+UI_Test.URL = "ui://kk7g5mmmyllkl";
+
+
+/***/ }),
+
+/***/ "./src/ui/Main/UI_TestRT.ts":
+/*!**********************************!*\
+  !*** ./src/ui/Main/UI_TestRT.ts ***!
+  \**********************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_TestRT; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_TestRT extends fgui.GComponent {
+    static createInstance() {
+        return (fgui.UIPackage.createObject("Main", "TestRT"));
+    }
+    onConstruct() {
+        this.m_img_display = (this.getChildAt(0));
+        this.m_btn_back = (this.getChildAt(1));
+    }
+}
+UI_TestRT.URL = "ui://kk7g5mmmhlhem";
+
+
+/***/ }),
+
 /***/ "./src/ui/Main/UI_UIDemo.ts":
 /*!**********************************!*\
   !*** ./src/ui/Main/UI_UIDemo.ts ***!
@@ -13406,9 +27172,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_UIDemo; });
 /** This is an automatically generated class by FairyGUI. Please do not modify it. **/
 class UI_UIDemo extends fgui.GComponent {
-    constructor() {
-        super();
-    }
     static createInstance() {
         return (fgui.UIPackage.createObject("Main", "UIDemo"));
     }
