@@ -15418,7 +15418,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _Commom_CommonEventId__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../../Commom/CommonEventId */ "./src/LTGame/Commom/CommonEventId.ts");
 /* harmony import */ var _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../../Platform/EPlatformType */ "./src/LTGame/Platform/EPlatformType.ts");
 /* harmony import */ var _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../Platform/LTPlatform */ "./src/LTGame/Platform/LTPlatform.ts");
-/* harmony import */ var _UI_LTGame_UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../UI/LTGame/UI_CommonEndSliderADs */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonEndSliderADs.ts");
+/* harmony import */ var _UI_LTGame_UI_bottomGames__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../UI/LTGame/UI_bottomGames */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_bottomGames.ts");
+/* harmony import */ var _UI_LTGame_UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ../UI/LTGame/UI_CommonEndSliderADs */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonEndSliderADs.ts");
+
 
 
 
@@ -15439,10 +15441,19 @@ class View_BottomGames {
             tagUI.dispose();
             return null;
         }
-        if (tagUI instanceof _UI_LTGame_UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_4__["default"]) {
+        if (tagUI instanceof _UI_LTGame_UI_bottomGames__WEBPACK_IMPORTED_MODULE_4__["default"]) {
             return new View_BottomGames(tagUI);
         }
-        let uiInstance = _UI_LTGame_UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_4__["default"].createInstance();
+        if (tagUI instanceof _UI_LTGame_UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_5__["default"]) {
+            return new View_BottomGames(tagUI);
+        }
+        let uiInstance = null;
+        if (tagUI.height < 140) {
+            uiInstance = _UI_LTGame_UI_bottomGames__WEBPACK_IMPORTED_MODULE_4__["default"].createInstance();
+        }
+        else {
+            uiInstance = _UI_LTGame_UI_CommonEndSliderADs__WEBPACK_IMPORTED_MODULE_5__["default"].createInstance();
+        }
         tagUI.parent.addChildAt(uiInstance, tagUI.parent.getChildIndex(tagUI));
         uiInstance.setXY(tagUI.x, tagUI.y);
         tagUI.dispose();
@@ -15452,7 +15463,7 @@ class View_BottomGames {
         return this._ui;
     }
     _Init() {
-        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].WX || _Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].Web) {
+        if (_Platform_LTPlatform__WEBPACK_IMPORTED_MODULE_3__["default"].instance.platform == _Platform_EPlatformType__WEBPACK_IMPORTED_MODULE_2__["EPlatformType"].WX) {
             this._posId = 5;
         }
         this._cacheAds = _SDK_LTSDK__WEBPACK_IMPORTED_MODULE_0__["default"].instance.adManager.GetADListByLocationId(this._posId);
@@ -15467,7 +15478,12 @@ class View_BottomGames {
             this.ui.m_list.numItems = this._cacheAds.length;
             this.ui.m_list.on(fairygui.Events.CLICK_ITEM, this, this._OnClickGameItem);
             Laya.timer.loop(5000, this, () => {
-                this.ui.m_list.scrollPane.scrollRight(169 / 150, true);
+                if (this.ui.height < 140) {
+                    this.ui.m_list.scrollPane.scrollRight(133 / 128, true);
+                }
+                else {
+                    this.ui.m_list.scrollPane.scrollRight(169 / 150, true);
+                }
             });
             let ads = [];
             for (let i = 0; i < this._cacheAds.length; i++) {
@@ -17299,10 +17315,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _UI_view_item_sign_02__WEBPACK_IMPORTED_MODULE_83__ = __webpack_require__(/*! ./UI_view_item_sign_02 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_sign_02.ts");
 /* harmony import */ var _UI_CommonEndLose__WEBPACK_IMPORTED_MODULE_84__ = __webpack_require__(/*! ./UI_CommonEndLose */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonEndLose.ts");
 /* harmony import */ var _UI_CommonUnlockProgress__WEBPACK_IMPORTED_MODULE_85__ = __webpack_require__(/*! ./UI_CommonUnlockProgress */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_CommonUnlockProgress.ts");
-/* harmony import */ var _UI_sliderADs__WEBPACK_IMPORTED_MODULE_86__ = __webpack_require__(/*! ./UI_sliderADs */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_sliderADs.ts");
-/* harmony import */ var _UI_rewardPannel__WEBPACK_IMPORTED_MODULE_87__ = __webpack_require__(/*! ./UI_rewardPannel */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_rewardPannel.ts");
-/* harmony import */ var _UI_view_sharegames_big__WEBPACK_IMPORTED_MODULE_88__ = __webpack_require__(/*! ./UI_view_sharegames_big */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_sharegames_big.ts");
+/* harmony import */ var _UI_bottomGames__WEBPACK_IMPORTED_MODULE_86__ = __webpack_require__(/*! ./UI_bottomGames */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_bottomGames.ts");
+/* harmony import */ var _UI_view_item_game128__WEBPACK_IMPORTED_MODULE_87__ = __webpack_require__(/*! ./UI_view_item_game128 */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_game128.ts");
+/* harmony import */ var _UI_sliderADs__WEBPACK_IMPORTED_MODULE_88__ = __webpack_require__(/*! ./UI_sliderADs */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_sliderADs.ts");
+/* harmony import */ var _UI_rewardPannel__WEBPACK_IMPORTED_MODULE_89__ = __webpack_require__(/*! ./UI_rewardPannel */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_rewardPannel.ts");
+/* harmony import */ var _UI_view_sharegames_big__WEBPACK_IMPORTED_MODULE_90__ = __webpack_require__(/*! ./UI_view_sharegames_big */ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_sharegames_big.ts");
 /** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+
+
 
 
 
@@ -17480,9 +17500,11 @@ class LTGameBinder {
         fgui.UIObjectFactory.setExtension(_UI_view_item_sign_02__WEBPACK_IMPORTED_MODULE_83__["default"].URL, _UI_view_item_sign_02__WEBPACK_IMPORTED_MODULE_83__["default"]);
         fgui.UIObjectFactory.setExtension(_UI_CommonEndLose__WEBPACK_IMPORTED_MODULE_84__["default"].URL, _UI_CommonEndLose__WEBPACK_IMPORTED_MODULE_84__["default"]);
         fgui.UIObjectFactory.setExtension(_UI_CommonUnlockProgress__WEBPACK_IMPORTED_MODULE_85__["default"].URL, _UI_CommonUnlockProgress__WEBPACK_IMPORTED_MODULE_85__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_sliderADs__WEBPACK_IMPORTED_MODULE_86__["default"].URL, _UI_sliderADs__WEBPACK_IMPORTED_MODULE_86__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_rewardPannel__WEBPACK_IMPORTED_MODULE_87__["default"].URL, _UI_rewardPannel__WEBPACK_IMPORTED_MODULE_87__["default"]);
-        fgui.UIObjectFactory.setExtension(_UI_view_sharegames_big__WEBPACK_IMPORTED_MODULE_88__["default"].URL, _UI_view_sharegames_big__WEBPACK_IMPORTED_MODULE_88__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_bottomGames__WEBPACK_IMPORTED_MODULE_86__["default"].URL, _UI_bottomGames__WEBPACK_IMPORTED_MODULE_86__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_item_game128__WEBPACK_IMPORTED_MODULE_87__["default"].URL, _UI_view_item_game128__WEBPACK_IMPORTED_MODULE_87__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_sliderADs__WEBPACK_IMPORTED_MODULE_88__["default"].URL, _UI_sliderADs__WEBPACK_IMPORTED_MODULE_88__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_rewardPannel__WEBPACK_IMPORTED_MODULE_89__["default"].URL, _UI_rewardPannel__WEBPACK_IMPORTED_MODULE_89__["default"]);
+        fgui.UIObjectFactory.setExtension(_UI_view_sharegames_big__WEBPACK_IMPORTED_MODULE_90__["default"].URL, _UI_view_sharegames_big__WEBPACK_IMPORTED_MODULE_90__["default"]);
     }
 }
 
@@ -17547,6 +17569,7 @@ class UI_BonusBox extends fgui.GComponent {
         this.m_keyList = (this.getChildAt(8));
         this.m_btn_ad = (this.getChildAt(9));
         this.m_txt_count = (this.getChildAt(10));
+        this.m___bottomgames = (this.getChildAt(11));
         this.m_t1 = this.getTransitionAt(0);
         this.m_delay = this.getTransitionAt(1);
     }
@@ -18817,6 +18840,7 @@ class UI_TrySkin extends fgui.GComponent {
         this.m_btn_close = (this.getChildAt(7));
         this.m_btn_no = (this.getChildAt(8));
         this.m_btn_try = (this.getChildAt(9));
+        this.m___bottomgames = (this.getChildAt(10));
         this.m_t0 = this.getTransitionAt(0);
         this.m_anim_enter = this.getTransitionAt(1);
     }
@@ -18852,6 +18876,33 @@ class UI_WxSideGames extends fgui.GComponent {
     }
 }
 UI_WxSideGames.URL = "ui://75kiu87kr3yg7h";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_bottomGames.ts":
+/*!****************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_bottomGames.ts ***!
+  \****************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_bottomGames; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_bottomGames extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "bottomGames"));
+    }
+    onConstruct() {
+        this.m_list = (this.getChildAt(1));
+    }
+}
+UI_bottomGames.URL = "ui://75kiu87kt3oybk";
 
 
 /***/ }),
@@ -19731,6 +19782,34 @@ class UI_view_item_game extends fgui.GComponent {
     }
 }
 UI_view_item_game.URL = "ui://75kiu87kp2ld6o";
+
+
+/***/ }),
+
+/***/ "./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_game128.ts":
+/*!**********************************************************************!*\
+  !*** ./src/LTGame/UIExt/DefaultUI/UI/LTGame/UI_view_item_game128.ts ***!
+  \**********************************************************************/
+/*! exports provided: default */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return UI_view_item_game128; });
+/** This is an automatically generated class by FairyGUI. Please do not modify it. **/
+class UI_view_item_game128 extends fgui.GComponent {
+    constructor() {
+        super();
+    }
+    static createInstance() {
+        return (fgui.UIPackage.createObject("LTGame", "view_item_game128"));
+    }
+    onConstruct() {
+        this.m_icon = (this.getChildAt(0));
+        this.m_text_name = (this.getChildAt(1));
+    }
+}
+UI_view_item_game128.URL = "ui://75kiu87kt3oybl";
 
 
 /***/ }),
